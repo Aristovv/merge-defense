@@ -46,8 +46,8 @@ app.get('/api/me',requireAuth,async(req,res)=>{
   res.set('Cache-Control','no-store');return res.json({player:rows[0]});
  }catch(e){console.error('db read failed',e.code||e.message);return res.status(503).json({error:'DATABASE_UNAVAILABLE'})}
 });
-// No unauthenticated balance updates, trust-on-first-use snapshot imports or client-side purchase fulfillment.
-// Gameplay actions and VK purchase verification will be added only with database transactions.
+// No unauthenticated balance updates, client-side purchase fulfillment, or unverified imports.
+// VK payments are credited only through signed server callbacks and database transactions.
 app.post('/api/game/action',requireAuth,(req,res,next)=>{if(!pool)return res.status(503).json({error:'DATABASE_NOT_CONFIGURED'});return gameplayAction(pool)(req,res,next)});
 app.post('/api/purchases/verify',requireAuth,(_req,res)=>res.status(501).json({error:'PAYMENTS_DISABLED'}));
 app.use((_req,res)=>res.status(404).json({error:'NOT_FOUND'}));
