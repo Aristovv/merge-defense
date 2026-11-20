@@ -15,6 +15,22 @@
 
 /* Fix: author-level flex display must never override the hidden attribute. */
 [hidden],.overlay[hidden],.notice[hidden]{display:none!important}
+
+/* Kingdoms 1.1: individual isometric sprites replace emoji buildings. */
+.world{height:clamp(370px,108vw,510px)!important;isolation:isolate;background-size:cover!important}
+.tile{height:13%!important;width:18.5%!important}
+.tile .ground{inset:17% 0 0!important}
+.tile .building-icon{position:absolute!important;top:-48%!important;left:50%;display:flex;align-items:flex-end;justify-content:center;width:118%;height:151%;pointer-events:none;z-index:2}
+.tile:has(.building-sprite) .building-icon{top:-65%!important}
+.tile:has(.building-sprite){z-index:15!important}
+.tile .building-sprite{width:100%;height:100%;max-width:none;object-fit:contain;filter:drop-shadow(0 7px 3px #091c2caa);animation:kingdom-arrive .32s ease both}
+.tile .building-sprite.elite{filter:drop-shadow(0 0 7px #f8d17f99) drop-shadow(0 7px 3px #091c2caa)}
+.tile .level-bubble{right:-10%;bottom:-7%;background:#181b36;border-color:#f5c67b;padding:3px 5px;z-index:5}
+.tile.empty .building-icon{font-size:26px;top:-29%;opacity:.7}
+.tile.lock .building-icon{font-size:28px}
+.world-caption{bottom:9px}
+@keyframes kingdom-arrive{from{opacity:.4;transform:translateY(-8px) scale(.89)}to{opacity:1;transform:none}}
+@media(max-width:365px){.world{height:360px!important}.building-sprite{min-width:54px}}
 </style><!-- VK Mini Apps: initialize the host before loading the playable game.
      Independent of gameplay: failing to load the bridge must never block the game. -->
 <script>
@@ -175,8 +191,13 @@ function buildInfo(b){var type=types[b.type],c=upgradePrice(b);return '<div clas
 function tileClick(tile){selectTile=tile;var z=zone(tile);if(!unlocked(tile)){var cost=[450+z*300,220+z*130,180+z*120,0];showModal('🔒 Закрытая территория','Открой новые земли для строительства. Требуется замок уровня '+(z+1)+'.','<p>'+costText(cost)+'</p><button class="act orange" data-action="unlock" data-id="'+z+'" '+(s.castle<z+1||!affordable(cost)?'disabled':'')+'>Открыть территорию</button>');return}var b=building(tile);if(b){showModal(types[b.type].ic+' '+types[b.type].n,'Управление зданием на карте.',buildInfo(b));return}showBuild(tile)}
 function showBuild(tile){var available=types.map(function(t,id){return {t:t,id:id}}).filter(function(o){return o.id!==0&&((o.id===5||o.id===7||o.id===8||o.id===11||o.id===13)?s.castle>=2:true)});
 showModal('🔨 Построить здание','Выбран свободный участок. Здания сразу появляются на карте.','<div class="list">'+available.map(function(o){var c=o.t.cost;return '<div class="item"><div class="pic">'+o.t.ic+'</div><div class="details"><b>'+o.t.n+'</b><small>'+o.t.d+'</small><small>'+costText(c)+'</small></div><button class="act" data-action="build" data-id="'+o.id+'" data-tile="'+tile+'" '+(!affordable(c)?'disabled':'')+'>Строить</button></div>'}).join('')+'</div>')}
+var BUILDING_ART=['castle','lumbermill','quarry','goldmine','farm','mana','archertower','firetower','icetower','barracks','market','academy','walls','lightning','forge','fountain'];
+function buildingArt(type,level){
+ var src=type===0?'./assets/kingdom-castle.svg?v=2':'./assets/buildings/'+BUILDING_ART[type]+'.svg?v=2';
+ return '<img draggable="false" class="building-sprite '+(level>=5?'elite':'')+'" src="'+src+'" alt="'+types[type].n+'">';
+}
 function cityMap(){var treeSeed=[[4,5,'🌲'],[81,9,'🌳'],[4,67,'🌲'],[79,75,'🌲'],[22,82,'🌳'],[68,4,'🌲'],[5,33,'🌿'],[87,50,'🌲'],[41,5,'🌲']];
-var tiles='';for(var sum=0;sum<=8;sum++){for(var y=0;y<5;y++){var x=sum-y;if(x<0||x>4)continue;var id=y*5+x,b=building(id),locked=!unlocked(id),ico=b?(b.type===0?'<img class="castle-sprite" src="./assets/kingdom-castle.svg?v=1" alt="Замок">':types[b.type].ic):(locked?'🌲':'✦');var px=50+(x-y)*9.1,py=17+(x+y)*7.95;tiles+='<button class="tile '+(locked?'lock':b?'free':'empty')+(id===selectTile?' select':'')+'" style="left:'+px+'%;top:'+py+'%;z-index:'+(4+sum)+'" data-action="tile" data-tile="'+id+'" aria-label="'+(b?types[b.type].n:'Участок '+id)+'"><span class="ground"></span><span class="building-icon">'+ico+'</span>'+(b?'<span class="level-bubble">'+b.level+'</span>':locked?'<span class="lock-bubble">🔒</span>':'')+'</button>'}}
+var tiles='';for(var sum=0;sum<=8;sum++){for(var y=0;y<5;y++){var x=sum-y;if(x<0||x>4)continue;var id=y*5+x,b=building(id),locked=!unlocked(id),ico=b?buildingArt(b.type,b.level):(locked?'🌲':'✦');var px=50+(x-y)*9.1,py=17+(x+y)*7.95;tiles+='<button class="tile '+(locked?'lock':b?'free':'empty')+(id===selectTile?' select':'')+'" style="left:'+px+'%;top:'+py+'%;z-index:'+(4+sum)+'" data-action="tile" data-tile="'+id+'" aria-label="'+(b?types[b.type].n:'Участок '+id)+'"><span class="ground"></span><span class="building-icon">'+ico+'</span>'+(b?'<span class="level-bubble">'+b.level+'</span>':locked?'<span class="lock-bubble">🔒</span>':'')+'</button>'}}
 return '<div class="world"><div class="mount a">⛰️</div><div class="mount b">🏔️</div><div class="river"></div><div class="world-ground"></div><div class="city-glow"></div><div class="forest">'+treeSeed.map(function(t){return '<span class="tree" style="left:'+t[0]+'%;top:'+t[1]+'%">'+t[2]+'</span>'}).join('')+'</div>'+tiles+'<div class="world-caption"><span>🏰 Замок · '+s.castle+' ур.</span><span>⚔️ Защита '+n(defense())+'</span></div></div>'}
 function city(){return '<div class="hero-banner"><div><div class="section-title">МОЁ КОРОЛЕВСТВО</div><small>Коснись участка, чтобы строить и улучшать</small></div><button class="mini gold" data-action="castle">⬆ Замок '+s.castle+'</button></div>'+cityMap()+'<div class="action-rail"><button class="quick" data-tab="heroes"><span>🛡️</span>Герои</button><button class="quick" data-tab="quests"><span>📜</span>Задания</button><button class="quick" data-action="collect"><span>🪙</span>Доход</button><button class="quick" data-action="research"><span>🔬</span>Наука</button></div><div class="panel"><div class="panelhead"><b class="section-title">⚒️ ПРОИЗВОДСТВО</b><span class="pill">Ресурсы / мин</span></div><div class="chipline">'+rate().map(function(r,i){return '<span class="chip">'+icons[i]+' +'+(r<1?r.toFixed(1):Math.round(r))+'</span>'}).join('')+'</div><p>Здания производят ресурсы даже когда ты не в игре. Офлайн-доход начисляется максимум за 8 часов.</p></div>'+questSummary()}
 function questSummary(){return '<div class="panel"><div class="panelhead"><b class="section-title">🎯 БЛИЖАЙШИЕ ЦЕЛИ</b><button class="mini" data-tab="quests">Все задания</button></div><p>Развивай замок, открывай территории, набирай героев и отправляй отряд в походы.</p><div class="stats"><div class="statbox"><b>'+s.buildings.length+'</b><small>Построек</small></div><div class="statbox"><b>'+s.heroes.length+'/12</b><small>Героев</small></div><div class="statbox"><b>'+s.zones.length+'/5</b><small>Территорий</small></div></div></div>'}
