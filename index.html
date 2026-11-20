@@ -468,6 +468,19 @@ function tower(p,t){
  ctx.fillStyle='#070c1ea8';ctx.beginPath();ctx.ellipse(0,r*.94,r*1.24,r*.37,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
  if(links){ctx.globalAlpha=.4+.12*Math.sin(phase);ctx.strokeStyle='#80ffcf';ctx.lineWidth=1.5+links*.5;ctx.beginPath();ctx.ellipse(0,0,r*1.46,r*1.27,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1}
  if(rar){ctx.shadowColor=rarityColors[rar];ctx.shadowBlur=8+rar*4;ctx.strokeStyle=rarityColors[rar];ctx.lineWidth=1.5+rar*.5;ctx.beginPath();ctx.ellipse(0,r*.2,r*1.22,r*.91,0,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0}
+ // Elemental World: distinct foundations for each class; no longer four identical turrets.
+ if(t.type===0){
+  polygon([[-r*1.10,r*.53],[-r*.75,-r*.25],[r*.75,-r*.25],[r*1.10,r*.53],[0,r*.95]],'#654c44','#d38860',1.6);
+  for(const side of [-1,1]){rect(side*r*.82-r*.13,-r*.47,r*.26,r*.92,3,'#8e5b43');ctx.fillStyle='#ffad73';ctx.beginPath();ctx.arc(side*r*.82,-r*.52,r*.12,0,7);ctx.fill()}
+ }else if(t.type===1){
+  polygon([[0,-r*1.19],[r*1.02,-r*.39],[r*.89,r*.63],[0,r*.94],[-r*.89,r*.63],[-r*1.02,-r*.39]],'#265775','#9adefa',1.8);
+  polygon([[0,-r*.96],[r*.58,-r*.25],[0,r*.66],[-r*.58,-r*.25]],'#5eb8d1','#c9fcff',1.3)
+ }else if(t.type===2){
+  for(const side of [-1,1]){polygon([[side*r*.42,-r*.67],[side*r*1.15,-r*1.02],[side*r*1.25,r*.34],[side*r*.63,r*.67]],'#464786','#bab0ff',1.4)}
+ }else{
+  polygon([[-r*1.18,r*.25],[-r*.68,-r*.75],[0,-r*.43],[r*.68,-r*.75],[r*1.18,r*.25],[0,r*.96]],'#285746','#78e7a2',1.4);
+  for(const side of [-1,1]){polygon([[side*r*.49,-r*.33],[side*r*1.12,-r*1.05],[side*r*.98,-r*.03]],'#3d9564','#b4ffc2',1)}
+ }
  // Mechanical pedestal with beveled armor, original silhouette for every element
  polygon([[-r*.92,r*.36],[0,r*.77],[r*.92,r*.36],[r*.92,-r*.38],[0,-r*.7],[-r*.92,-r*.38]],'#283146','#71829c',1.8);
  polygon([[-r*.94,-r*.38],[0,-r*.87],[r*.94,-r*.38],[0,.06]],'#788da7','#c1d0e0',1.2);
@@ -518,6 +531,13 @@ function tower(p,t){
   ctx.lineWidth=1.4;ctx.strokeStyle='#dcffc7';ctx.beginPath();ctx.moveTo(-r*.25,-r*.45);ctx.lineTo(-r*.45,-r*.28);ctx.moveTo(r*.25,-r*.45);ctx.lineTo(r*.45,-r*.28);ctx.stroke();
 
  }
+ // Per-element crest and animation; readable even on a small phone screen.
+ ctx.save();
+ if(t.type===0){ctx.strokeStyle='#ffc18e';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-r*.95,-r*.20);ctx.lineTo(-r*.80,r*.20);ctx.moveTo(r*.95,-r*.20);ctx.lineTo(r*.80,r*.20);ctx.stroke()}
+ if(t.type===1){ctx.fillStyle='#d6f9ff';for(let j=0;j<4;j++){const a=phase*.4+j*Math.PI/2;ctx.beginPath();ctx.arc(Math.cos(a)*r*.83,Math.sin(a)*r*.29-r*.66,Math.max(1.2,r*.065),0,7);ctx.fill()}}
+ if(t.type===2){ctx.strokeStyle='#bba1ff';ctx.lineWidth=1.6;const spark=Math.sin(elapsed*13+t.slot)*r*.12;ctx.beginPath();ctx.moveTo(-r*.94,-r*.67);ctx.lineTo(-r*.54,-r*.78+spark);ctx.moveTo(r*.94,-r*.67);ctx.lineTo(r*.54,-r*.78-spark);ctx.stroke()}
+ if(t.type===3){ctx.fillStyle='#84f1a4';for(let j=0;j<3;j++){const x=(j-1)*r*.48,y=-r*.5-Math.sin(phase+j)*r*.12;ctx.beginPath();ctx.arc(x,y,r*.065,0,7);ctx.fill()}}
+ ctx.restore();
  if(t.level>=4){ctx.save();ctx.strokeStyle=rarityColors[rar];ctx.globalAlpha=.24+.12*Math.sin(phase*2);ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,-r*.41,r*(1.08+Math.min(.2,t.level*.012)),r*.9,0,0,7);ctx.stroke();ctx.restore()}
  if(t.level>=3){ctx.strokeStyle=t.level>=5?'#ffe18b':'#e8c8ff';ctx.lineWidth=t.level>=5?3:2;ctx.beginPath();ctx.moveTo(-r*.78,-r*1.18);ctx.lineTo(-r*.52,-r*1.58);ctx.lineTo(0,-r*1.38);ctx.lineTo(r*.52,-r*1.58);ctx.lineTo(r*.78,-r*1.18);ctx.stroke()}
  if(rar>=2){ctx.fillStyle=rarityColors[rar];ctx.font='bold '+Math.round(r*.68)+'px system-ui';ctx.textAlign='center';ctx.fillText(rar===3?'★':'◆',0,-r*1.91)}
@@ -531,6 +551,7 @@ function monster(f){
  ctx.fillStyle='#08131a88';ctx.beginPath();ctx.ellipse(0,r*.80,r*1.12,r*.38,0,0,7);ctx.fill();
  ctx.shadowColor=col;ctx.shadowBlur=f.boss?14:6;
  if(f.kind!=='wraith'){ctx.strokeStyle=f.kind==='regenerator'?'#315f4a':f.kind==='armored'?'#455870':'#4b4d55';ctx.lineWidth=Math.max(2,r*.23);ctx.lineCap='round';const stride=Math.sin(pace)*(f.boss?2:4);ctx.beginPath();ctx.moveTo(-r*.46,r*.39);ctx.lineTo(-r*.48+stride,r*.91);ctx.moveTo(r*.46,r*.39);ctx.lineTo(r*.48-stride,r*.91);ctx.stroke();}
+ if(f.boss){ctx.save();ctx.strokeStyle=f.isFinal?'#ffc782':'#fa8cb8';ctx.lineWidth=2;ctx.globalAlpha=.5+.2*Math.sin(elapsed*3+f.id);ctx.beginPath();ctx.arc(0,-r*.17,r*1.40,0,7);ctx.stroke();ctx.restore()}
  if(f.kind==='wraith'){
   // Translucent specter with a floating cloak and spectral eye
   ctx.globalAlpha=.78+.12*Math.sin(elapsed*5+f.id);
@@ -596,8 +617,17 @@ const g=ctx.createLinearGradient(0,0,width*.85,height);g.addColorStop(0,'#407d7d
   ctx.fillStyle=i%3===0?'#c8f6d5':'#0b142b';ctx.fillRect(x,y,2+(i%4),1+(i%3))}
  ctx.restore();
 const sceneryH=Math.max(130,gy-12);
+// Floating elemental wisps hint at a living world without hiding the monsters.
+ctx.save();for(let i=0;i<14;i++){
+ const x=(i*101+23+Math.sin(elapsed*.38+i)*12)%Math.max(1,width);
+ const y=(i*139+28+Math.sin(elapsed*.7+i)*8)%Math.max(1,sceneryH);
+ const hue=i%4===0?'#9debd5':i%4===1?'#a6dbff':i%4===2?'#dcb1ff':'#ffbf83';
+ ctx.globalAlpha=.12+.10*Math.sin(elapsed*1.4+i)*Math.sin(elapsed*1.4+i);
+ ctx.fillStyle=hue;ctx.shadowColor=hue;ctx.shadowBlur=8;
+ ctx.beginPath();ctx.arc(x,y,1.5+i%3,0,7);ctx.fill()
+}ctx.restore();
 for(let i=0;i<75;i++){let x=(i*97+13)%width,y=(i*73+19)%sceneryH,size=6+(i*13)%13;ctx.fillStyle=i%4===0?'#72ba7f':i%3?'#3f9d7c':'#418a73';ctx.beginPath();ctx.ellipse(x,y,size,size*.58,(i%7)*.34,0,7);ctx.fill();if(i%9===0){ctx.strokeStyle='#b6eec3';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x-3,y);ctx.lineTo(x+3,y-6);ctx.stroke()}}
-for(let i=0;i<9;i++){let x=(i*149+49)%width,y=(i*181+71)%sceneryH;ctx.fillStyle='#2b655d';ctx.beginPath();ctx.ellipse(x,y,12,8,0,0,7);ctx.fill();ctx.fillStyle='#a5d8b0';ctx.beginPath();ctx.ellipse(x-3,y-4,10,5,-.4,0,7);ctx.fill()}
+for(let i=0;i<9;i++){let x=(i*149+49)%width,y=(i*181+71)%sceneryH;ctx.fillStyle='#28585d';ctx.beginPath();ctx.ellipse(x,y,12,8,0,0,7);ctx.fill();ctx.fillStyle='#81aa9f';ctx.beginPath();ctx.ellipse(x-3,y-4,10,5,-.4,0,7);ctx.fill()}
 for(let i=0;i<5;i++){const x=((i*127+38)%width),y=((i*91+66)%sceneryH),h=18+i%3*9;ctx.save();ctx.translate(x,y);ctx.fillStyle='#253951';ctx.fillRect(-8,-h,16,h);polygon([[-13,-h],[-8,-h-12],[8,-h-12],[13,-h]],'#626d88','#a0a8b3');rect(-5,-h+6,10,5,2,'#ffc47d');ctx.restore()}
 // Scattered tufts and pebbles lend scale to the battlefield without external textures.
 for(let i=0;i<28;i++){const x=(i*137+51)%Math.max(1,width),y=(i*83+31)%Math.max(1,sceneryH);if(i%3===0){ctx.strokeStyle='#8cbd9b44';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-2,y-5);ctx.moveTo(x,y);ctx.lineTo(x+3,y-4);ctx.stroke()}else{ctx.fillStyle='#b5bbb24a';ctx.beginPath();ctx.ellipse(x,y,2+i%3,1.5,.2,0,Math.PI*2);ctx.fill()}}
