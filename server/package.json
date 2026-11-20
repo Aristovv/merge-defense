@@ -1,0 +1,19 @@
+{
+  "name": "merge-defense-server",
+  "version": "1.0.0-alpha",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "check": "node --check index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.13.3",
+    "cors": "^2.8.5",
+    "express-rate-limit": "^7.5.0"
+  }
+}
