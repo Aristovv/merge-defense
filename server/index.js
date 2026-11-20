@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import {gameplayAction} from './game-actions.js';
 import {vkPaymentsCallback} from './vk-payments.js';
 import {cloudSaveGet,cloudSavePut} from './cloud-saves.js';
+import {kingdomGet,kingdomPut} from './kingdom-saves.js';
 
 const app=express();
 app.disable('x-powered-by');
@@ -55,6 +56,8 @@ app.get('/api/me',requireAuth,async(req,res)=>{
 // Cloud saves are independent from the server-owned purchases and spendable gems ledger.
 app.get('/api/cloud/save',requireAuth,(req,res)=>cloudSaveGet(pool,req,res));
 app.put('/api/cloud/save',requireAuth,(req,res)=>cloudSavePut(pool,req,res));
+app.get('/api/kingdom/save',requireAuth,(req,res)=>kingdomGet(pool,req,res));
+app.put('/api/kingdom/save',requireAuth,(req,res)=>kingdomPut(pool,req,res));
 app.post('/api/game/action',requireAuth,(req,res,next)=>{if(!pool)return res.status(503).json({error:'DATABASE_NOT_CONFIGURED'});return gameplayAction(pool)(req,res,next)});
 app.get('/api/purchases/test-status',requireAuth,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'DATABASE_NOT_CONFIGURED'});
