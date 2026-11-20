@@ -20,13 +20,17 @@ function signed(body,secret){
 export function vkPaymentsCallback(pool){
  return async(req,res)=>{
   res.set('Cache-Control','no-store');
+  // Log only notification type and validation outcome, never user IDs, signatures, tokens, or order details.
+  const kind=typeof req.body?.notification_type==='string'?req.body.notification_type.slice(0,40):'unknown';
+  console.info('[VK payments] incoming',kind);
   const secret=process.env.VK_PAYMENTS_SECRET||'';
-  if(!pool||!secret)return res.status(503).json(err(100,'Payment integration not configured'));
-  if(!signed(req.body,secret))return res.json(err(10,'Invalid signature'));
+  if(!pool||!secret){console.warn('[VK payments] integration not configured');return res.status(503).json(err(100,'Payment integration not configured'))}
+  if(!signed(req.body,secret)){console.warn('[VK payments] signature rejected',kind);return res.json(err(10,'Invalid signature'))}
   const b=req.body;
   if(b.notification_type==='get_item'||b.notification_type==='get_item_test'){
    const item=shop[b.item];
-   if(!item)return res.json(err(20,'Unknown product'));
+   if(!item){console.warn('[VK payments] unknown item',kind);return res.json(err(20,'Unknown product'))}
+   console.info('[VK payments] item approved',kind);
    return res.json({response:{item_id:item.id,title:item.name,price:item.price,photo_url:''}});
   }
   if(!['order_status_change','order_status_change_test'].includes(b.notification_type))return res.json(err(100,'Unsupported notification'));
@@ -55,6 +59,7 @@ export function vkPaymentsCallback(pool){
     if(previous.rows[0]?.player_id!==playerId||previous.rows[0]?.product_id!==item.key)throw Error('Duplicate order mismatch');
    }
    await client.query('COMMIT');
+   console.info('[VK payments] order accepted',test?'test':'live',inserted.rowCount?'new':'duplicate');
    return res.json({response:{order_id:Number(b.order_id)}});
   }catch(e){
    if(client)await client.query('ROLLBACK').catch(()=>{});
