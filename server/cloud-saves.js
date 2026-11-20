@@ -15,6 +15,7 @@ function ensureTable(pool){
 const validInt=(x,min,max)=>Number.isSafeInteger(x)&&x>=min&&x<=max;
 function normalizeSave(input){
  if(!input||typeof input!=='object'||Array.isArray(input))return null;
+ if(input.gameVersion===89)return normalizeHeroSave(input);
  const num=(key,min,max)=>validInt(input[key],min,max)?input[key]:null;
  const scalar={
   coins:num('coins',0,Number.MAX_SAFE_INTEGER),gems:num('gems',0,Number.MAX_SAFE_INTEGER),
@@ -54,6 +55,23 @@ function normalizeSave(input){
   daily={date:a.date,claimed:a.claimed,tasks,rewards};
  }
  return {...scalar,towers,achievements,discovered,daily,battleSpeed:[1,2,3].includes(input.battleSpeed)?input.battleSpeed:1};
+}
+function normalizeHeroSave(input){
+ const s=input.state;
+ if(!s||typeof s!=='object'||Array.isArray(s))return null;
+ const int=(v,min,max)=>Number.isSafeInteger(v)&&v>=min&&v<=max;
+ if(!int(s.wave,1,10)||!int(s.hp,0,20)||!int(s.coins,0,1000000000)||!int(s.gems,0,10000000)||!int(s.mana,0,9999)||!int(s.upgrade,0,5)||!int(s.wins,0,10000000)||!int(s.kills,0,100000000)||!int(s.highest,1,10))return null;
+ const ids=(a,max,limit)=>Array.isArray(a)&&a.length<=limit&&a.every(v=>int(v,0,max))&&new Set(a).size===a.length;
+ if(!Array.isArray(s.deck)||s.deck.length!==5||!ids(s.deck,11,5))return null;
+ if(!Array.isArray(s.unlocked)||s.unlocked.length>12||!ids(s.unlocked,11,12)||s.deck.some(v=>!s.unlocked.includes(v)))return null;
+ if(!Array.isArray(s.board)||s.board.length!==15)return null;
+ const board=[];
+ for(const t of s.board){
+  if(t===null){board.push(null);continue}
+  if(!t||typeof t!=='object'||!int(t.hero,0,11)||!int(t.rank,1,7))return null;
+  board.push({hero:t.hero,rank:t.rank});
+ }
+ return {gameVersion:89,state:{wave:s.wave,hp:s.hp,coins:s.coins,gems:s.gems,mana:s.mana,deck:[...s.deck],unlocked:[...s.unlocked],board,upgrade:s.upgrade,wins:s.wins,kills:s.kills,highest:s.highest}};
 }
 function failure(res,e){
  console.error('[cloud save] database error',e.code||e.message);
