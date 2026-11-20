@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import {gameplayAction} from './game-actions.js';
 import {vkPaymentsCallback} from './vk-payments.js';
+import {cloudSaveGet,cloudSavePut} from './cloud-saves.js';
 
 const app=express();
 app.disable('x-powered-by');
@@ -14,7 +15,7 @@ app.set('trust proxy', 1);
 app.use(express.json({limit:'12kb'}));
 app.use('/api/vk/payments/callback',express.urlencoded({extended:false,limit:'12kb'}));
 const origin=process.env.CLIENT_ORIGIN||'https://merge-defense.onrender.com';
-app.use(cors({origin,methods:['GET','POST'],allowedHeaders:['Content-Type','X-VK-Launch-Params']}));
+app.use(cors({origin,methods:['GET','POST','PUT'],allowedHeaders:['Content-Type','X-VK-Launch-Params']}));
 app.use('/api',rateLimit({windowMs:60_000,limit:80,standardHeaders:'draft-7',legacyHeaders:false}));
 const pool=process.env.DATABASE_URL?new pg.Pool({connectionString:process.env.DATABASE_URL,ssl:process.env.DB_SSL==='disable'?false:{rejectUnauthorized:true},max:5,connectionTimeoutMillis:4000}):null;
 const secret=process.env.VK_APP_SECRET||'';
@@ -51,6 +52,9 @@ app.get('/api/me',requireAuth,async(req,res)=>{
 });
 // No unauthenticated balance updates, client-side purchase fulfillment, or unverified imports.
 // VK payments are credited only through signed server callbacks and database transactions.
+// Cloud saves are independent from the server-owned purchases and spendable gems ledger.
+app.get('/api/cloud/save',requireAuth,(req,res)=>cloudSaveGet(pool,req,res));
+app.put('/api/cloud/save',requireAuth,(req,res)=>cloudSavePut(pool,req,res));
 app.post('/api/game/action',requireAuth,(req,res,next)=>{if(!pool)return res.status(503).json({error:'DATABASE_NOT_CONFIGURED'});return gameplayAction(pool)(req,res,next)});
 app.get('/api/purchases/test-status',requireAuth,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'DATABASE_NOT_CONFIGURED'});
