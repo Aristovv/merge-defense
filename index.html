@@ -69,7 +69,7 @@ body.vk-embedded .hint{margin:4px 0 1px}
   attach('https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js','https://cdn.jsdelivr.net/npm/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js');
 })();
 </script>
-</head><body><main id="app"><header class="top"><div class="brand">⚔ MERGE DEFENSE <small style="font-size:10px;color:#b6a4db">VK 3.2 REBORN</small></div><button class="vk-status" id="vk-status" type="button" title="Состояние облачного сохранения">🌐 Браузерная версия · локальное сохранение</button><div class="stats"><span class="pill" id="coins"></span><span class="pill" id="gems"></span><span class="pill" id="hp"></span></div><div style="display:flex;justify-content:space-between;margin-top:9px"><b id="wave"></b><small id="kills"></small></div><div class="progress"><div id="bar"></div></div></header><section class="field"><canvas id="board"></canvas></section><div class="controls"><div class="utility"><button id="speed">⏩ Скорость ×1</button><button id="repair">❤️ Починить базу</button><button id="surge" disabled>✨ Импульс 0/60</button></div><div class="skills"><button class="skill" data-spell="fire">🔥 Удар</button><button class="skill" data-spell="ice">❄️ Мороз</button><button class="skill" data-spell="shock">⚡ Разряд</button></div><div class="actions"><button class="action gold" id="summon">Призвать</button><button class="action" id="start">▶ Начать волну</button></div><div class="manage"><button id="sellmode">🪙 Продать</button><button id="automerge">✨ Автослияние</button><button id="tips">❔ Правила</button></div><div class="hint" id="hint">Разные стихии рядом дают +8% урона · максимум +24%</div></div><nav><button class="active" data-tab="game">⚔️<div>Бой</div></button><button data-tab="upgrade">⬆️<div>Прокачка</div></button><button data-tab="collection">🏆<div>Награды</div></button><button data-tab="shop">💎<div>Магазин</div></button></nav></main><div id="overlay" class="overlay hidden"><div class="sheet"><h2 id="heading"></h2><div id="content"></div><button id="close" class="close">Закрыть</button></div></div><div id="toast"></div><script>
+</head><body><main id="app"><header class="top"><div class="brand">⚔ MERGE DEFENSE <small style="font-size:10px;color:#b6a4db">VK 3.2.1 REBORN</small></div><button class="vk-status" id="vk-status" type="button" title="Состояние облачного сохранения">🌐 Браузерная версия · локальное сохранение</button><div class="stats"><span class="pill" id="coins"></span><span class="pill" id="gems"></span><span class="pill" id="hp"></span></div><div style="display:flex;justify-content:space-between;margin-top:9px"><b id="wave"></b><small id="kills"></small></div><div class="progress"><div id="bar"></div></div></header><section class="field"><canvas id="board"></canvas></section><div class="controls"><div class="utility"><button id="speed">⏩ Скорость ×1</button><button id="repair">❤️ Починить базу</button><button id="surge" disabled>✨ Импульс 0/60</button></div><div class="skills"><button class="skill" data-spell="fire">🔥 Удар</button><button class="skill" data-spell="ice">❄️ Мороз</button><button class="skill" data-spell="shock">⚡ Разряд</button></div><div class="actions"><button class="action gold" id="summon">Призвать</button><button class="action" id="start">▶ Начать волну</button></div><div class="manage"><button id="sellmode">🪙 Продать</button><button id="automerge">✨ Автослияние</button><button id="tips">❔ Правила</button></div><div class="hint" id="hint">Разные стихии рядом дают +8% урона · максимум +24%</div></div><nav><button class="active" data-tab="game">⚔️<div>Бой</div></button><button data-tab="upgrade">⬆️<div>Прокачка</div></button><button data-tab="collection">🏆<div>Награды</div></button><button data-tab="shop">💎<div>Магазин</div></button></nav></main><div id="overlay" class="overlay hidden"><div class="sheet"><h2 id="heading"></h2><div id="content"></div><button id="close" class="close">Закрыть</button></div></div><div id="toast"></div><script>
 (()=>{'use strict';const $=x=>document.getElementById(x),c=$('board'),ctx=c.getContext('2d');const vkParams=new URLSearchParams(location.search);const vkContext=!!(vkParams.get('vk_app_id')&&vkParams.get('vk_user_id'));let vkPaymentsTestEnabled=false,remoteGems=null;const colors=['#ff914a','#70dfff','#bc80ff','#a4fa6b'],signs=['🔥','❄️','⚡','☣️'],names=['Огненная','Ледяная','Грозовая','Ядовитая'];let d;try{d=JSON.parse(localStorage.getItem('md_game_01'))}catch{}d={coins:450,gems:60,hp:20,wave:1,kills:0,summons:0,power:0,income:0,towers:[],achievements:[],bosses:0,bestLevel:1,pity:0,discovered:[],daily:null,wins:0,seasonClears:0,...d};if(!Array.isArray(d.towers))d.towers=[];if(!Array.isArray(d.achievements))d.achievements=[];if(!Array.isArray(d.discovered))d.discovered=[];d.towers.forEach(t=>{if(!Number.isInteger(t.rarity))t.rarity=0;const k=t.type+':'+t.rarity;if(!d.discovered.includes(k))d.discovered.push(k)});let battleSpeed=[1,2,3].includes(d.battleSpeed)?d.battleSpeed:1,battleStats={kills:0,escaped:0,spells:0,healthStart:20},battleEnergy=0,surgeLeft=0,bossJamLeft=0,impactFx=[],deathFx=[],mergeFx=[],battleBanner='',battleBannerLeft=0,killStreak=0,streakLast=0,lastHudSync=0,sellMode=false,spellFx=[],spellCd={fire:0,ice:0,shock:0},particles=[],screenShake=0,elapsed=0,sparks=[],drag=null,foes=[],shots=[],busy=false,spawn=0,clock=0,last=0,selection=-1,width=350,height=520,tile=75,gx=25,gy=270,seq=0,modal=false;const CLOUD_API='https://merge.89-23-115-251.sslip.io/api/cloud/save';
 let cloudReady=false,cloudLoading=false,cloudRevision=0,cloudDirty=false,cloudSaving=false,cloudTimer=null,cloudInitStarted=false,cloudLastError='',cloudAccount='',cloudLastSaved=0,cloudRetryMs=2500,cloudRetryAt=0;
 const cloudSnapshot=()=>({
@@ -88,7 +88,7 @@ function setCloudBadge(message){$('vk-status').textContent=message}
 async function cloudRequest(method='GET',payload){
  const response=await fetch(CLOUD_API,{method,headers:{
   'X-VK-Launch-Params':location.search.slice(1),...(payload?{'Content-Type':'application/json'}:{})
- },body:payload?JSON.stringify(payload):undefined,cache:'no-store',credentials:'omit'});
+ },body:payload?JSON.stringify(payload):undefined,cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(5500)});
  if(!response.ok){let info;try{info=await response.json()}catch{};const e=new Error(info?.error||'HTTP '+response.status);e.status=response.status;throw e}
  return response.json()
 }
@@ -192,19 +192,20 @@ function initVK(){
  if(window.vkBridge&&typeof window.vkBridge.send==='function'){
   try{window.vkBridge.send('VKWebAppInit').catch(()=>{})}catch{}
  }
- if(!vkParams.get('sign')){setCloudBadge('VK · отсутствует подпись · локальное сохранение');return}
+ if(!vkParams.get('sign')){cloudLoading=false;setCloudBadge('VK · отсутствует подпись · локальное сохранение');return}
  cloudAccount=vkParams.get('vk_user_id');
  cloudLoading=true;hud();
  setCloudBadge('VK · проверяем аккаунт на VPS…');
  fetch('https://merge.89-23-115-251.sslip.io/api/me',{
   method:'GET',headers:{'X-VK-Launch-Params':location.search.slice(1)},
-  cache:'no-store',mode:'cors',credentials:'omit'
+  cache:'no-store',mode:'cors',credentials:'omit',signal:AbortSignal.timeout(5000)
  }).then(async r=>{
   if(!r.ok)throw new Error('HTTP '+r.status);
   const data=await r.json();
   if(!data.player||typeof data.player.player_id!=='string')throw new Error('INVALID_PROFILE');
   vkPaymentsTestEnabled=data.paymentsTestEnabled===true;
   remoteGems=Number(data.player.gems);
+  cloudLoading=false;
   await loadCloud();
  }).catch(err=>{
   console.warn('VK cloud handshake:',err.message);
