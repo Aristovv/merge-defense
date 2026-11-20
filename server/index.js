@@ -4,10 +4,12 @@ import cors from 'cors';
 import crypto from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import {gameplayAction} from './game-actions.js';
+import {vkPaymentsCallback} from './vk-payments.js';
 
 const app=express();
 app.disable('x-powered-by');
 app.use(express.json({limit:'12kb'}));
+app.use('/api/vk/payments/callback',express.urlencoded({extended:false,limit:'12kb'}));
 const origin=process.env.CLIENT_ORIGIN||'https://merge-defense.onrender.com';
 app.use(cors({origin,methods:['GET','POST'],allowedHeaders:['Content-Type','X-VK-Launch-Params']}));
 app.use('/api',rateLimit({windowMs:60_000,limit:80,standardHeaders:'draft-7',legacyHeaders:false}));
@@ -34,6 +36,7 @@ function requireAuth(req,res,next) {
  if(!user)return res.status(401).json({error:'INVALID_VK_LAUNCH'});
  req.playerId=user;next();
 }
+app.post('/api/vk/payments/callback',vkPaymentsCallback(pool));
 app.get('/health',(_req,res)=>res.json({ok:true,service:'merge-defense-api',databaseConfigured:!!pool,vkAuthConfigured:!!secret}));
 app.get('/api/me',requireAuth,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'DATABASE_NOT_CONFIGURED'});
