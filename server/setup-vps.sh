@@ -18,9 +18,9 @@ else
 fi
 cd "$APPDIR/server"
 npm install --omit=dev
-if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DBUSER'" | grep -qx 1; then
+if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DBUSER'" | grep -qx 1; then
   DBPASS="$(openssl rand -hex 24)"
-  sudo -u postgres psql -v ON_ERROR_STOP=1 -v passwd="$DBPASS" <<'SQL'
+  runuser -u postgres -- psql -v ON_ERROR_STOP=1 -v passwd="$DBPASS" <<'SQL'
 SELECT format('CREATE ROLE merge_defense_app LOGIN PASSWORD %L', :'passwd') \gexec
 SQL
   umask 077
@@ -32,10 +32,15 @@ else
   fi
   DBPASS="$(sed -n 's/^DB_PASSWORD=//p' "$APPDIR/.merge-db-password")"
 fi
-if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DBNAME'" | grep -qx 1; then
-  sudo -u postgres createdb -O "$DBUSER" "$DBNAME"
+if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DBNAME'" | grep -qx 1; then
+  runuser -u postgres -- createdb -O "$DBUSER" "$DBNAME"
 fi
-sudo -u postgres psql -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$APPDIR/server/schema.sql"
+runuser -u postgres -- psql -d "$DBNAME" -v ON_ERROR_STOP=1 -f "$APPDIR/server/schema.sql"
+runuser -u postgres -- psql -d "$DBNAME" -v ON_ERROR_STOP=1 <<'SQL'
+GRANT USAGE ON SCHEMA public TO merge_defense_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO merge_defense_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO merge_defense_app;
+SQL
 if [[ ! -f "$DBFILE" ]]; then
   umask 077
   cat > "$DBFILE" <<EOF
@@ -63,7 +68,7 @@ if ! pm2 describe merge-defense-api >/dev/null 2>&1; then
 else
   pm2 restart merge-defense-api --update-env
 fi
-echo "MERGE DEFENSE API listening internally on 127.0.0.1:3005 (process binds 0.0.0.0; firewall must restrict port)."
+echo "MERGE DEFENSE API configured on 0.0.0.0:3005. Restrict inbound port 3005 at the VPS firewall."
 echo "Separate database: $DBNAME; database AutoEmpire untouched."
 echo "NEXT: set VK_APP_ID and VK_APP_SECRET in $DBFILE, then pm2 restart merge-defense-api."
 echo "NEXT: configure existing Caddy HTTPS reverse proxy for a unique game API hostname to 127.0.0.1:3005."
