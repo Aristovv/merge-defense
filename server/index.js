@@ -46,7 +46,7 @@ app.get('/api/me',requireAuth,async(req,res)=>{
  try {
   await pool.query('INSERT INTO players(player_id) VALUES($1) ON CONFLICT DO NOTHING',[req.playerId]);
   const {rows}=await pool.query('SELECT player_id,coins,gems,hp,wave,summons,pity,kills,wins,power,income,towers,achievements,discovered,revision,updated_at FROM players WHERE player_id=$1',[req.playerId]);
-  res.set('Cache-Control','no-store');return res.json({player:rows[0]});
+  res.set('Cache-Control','no-store');return res.json({player:rows[0],paymentsTestEnabled:process.env.VK_PAYMENTS_TEST_MODE==='1'&&process.env.VK_PAYMENTS_TESTER_ID===req.playerId.slice(3)});
  }catch(e){console.error('db read failed',e.code||e.message);return res.status(503).json({error:'DATABASE_UNAVAILABLE'})}
 });
 // No unauthenticated balance updates, client-side purchase fulfillment, or unverified imports.
