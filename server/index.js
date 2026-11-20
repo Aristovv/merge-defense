@@ -3,6 +3,7 @@ import pg from 'pg';
 import cors from 'cors';
 import crypto from 'node:crypto';
 import rateLimit from 'express-rate-limit';
+import {gameplayAction} from './game-actions.js';
 
 const app=express();
 app.disable('x-powered-by');
@@ -44,7 +45,7 @@ app.get('/api/me',requireAuth,async(req,res)=>{
 });
 // No unauthenticated balance updates, trust-on-first-use snapshot imports or client-side purchase fulfillment.
 // Gameplay actions and VK purchase verification will be added only with database transactions.
-app.post('/api/game/action',requireAuth,(_req,res)=>res.status(501).json({error:'SERVER_GAME_ACTIONS_NOT_READY'}));
+app.post('/api/game/action',requireAuth,(req,res,next)=>{if(!pool)return res.status(503).json({error:'DATABASE_NOT_CONFIGURED'});return gameplayAction(pool)(req,res,next)});
 app.post('/api/purchases/verify',requireAuth,(_req,res)=>res.status(501).json({error:'PAYMENTS_DISABLED'}));
 app.use((_req,res)=>res.status(404).json({error:'NOT_FOUND'}));
 const port=Number(process.env.PORT||3000);
