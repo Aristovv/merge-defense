@@ -15,7 +15,30 @@
 
 /* Fix: author-level flex display must never override the hidden attribute. */
 [hidden],.overlay[hidden],.notice[hidden]{display:none!important}
-</style></head><body><div id="app"></div><div id="modal" class="overlay" hidden></div><div id="notice" class="notice" hidden></div>
+</style><!-- VK Mini Apps: initialize the host before loading the playable game.
+     Independent of gameplay: failing to load the bridge must never block the game. -->
+<script>
+(function(){
+  var initiated=false;
+  function initVK(){
+    if(initiated || !window.vkBridge || typeof window.vkBridge.send!=='function')return;
+    initiated=true;
+    try{
+      var result=window.vkBridge.send('VKWebAppInit');
+      if(result&&typeof result.catch==='function')result.catch(function(err){console.warn('VK bridge init rejected',err);});
+    }catch(err){console.warn('VK bridge init failed',err);}
+  }
+  function attach(url,fallback){
+    var script=document.createElement('script');
+    script.src=url;
+    script.onload=initVK;
+    script.onerror=function(){if(fallback)attach(fallback,null);else console.warn('VK bridge CDN unavailable');};
+    document.head.appendChild(script);
+  }
+  attach('https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js','https://cdn.jsdelivr.net/npm/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js');
+})();
+</script>
+</head><body><div id="app"></div><div id="modal" class="overlay" hidden></div><div id="notice" class="notice" hidden></div>
 <script>
 (function(){
 'use strict';
