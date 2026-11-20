@@ -52,6 +52,14 @@ app.get('/api/me',requireAuth,async(req,res)=>{
 // No unauthenticated balance updates, client-side purchase fulfillment, or unverified imports.
 // VK payments are credited only through signed server callbacks and database transactions.
 app.post('/api/game/action',requireAuth,(req,res,next)=>{if(!pool)return res.status(503).json({error:'DATABASE_NOT_CONFIGURED'});return gameplayAction(pool)(req,res,next)});
+app.get('/api/purchases/test-status',requireAuth,async(req,res)=>{
+ if(!pool)return res.status(503).json({error:'DATABASE_NOT_CONFIGURED'});
+ if(process.env.VK_PAYMENTS_TEST_MODE!=='1'||process.env.VK_PAYMENTS_TESTER_ID!==req.playerId.slice(3))return res.status(403).json({error:'TEST_MODE_DISABLED'});
+ try{
+  const {rows}=await pool.query("SELECT product_id,status,created_at FROM purchases WHERE player_id=$1 AND provider='vk_votes_test' ORDER BY id DESC LIMIT 5",[req.playerId]);
+  res.set('Cache-Control','no-store');return res.json({testOrders:rows});
+ }catch(e){return res.status(503).json({error:'DATABASE_UNAVAILABLE'})}
+});
 app.post('/api/purchases/verify',requireAuth,(_req,res)=>res.status(501).json({error:'PAYMENTS_DISABLED'}));
 app.use((_req,res)=>res.status(404).json({error:'NOT_FOUND'}));
 const port=Number(process.env.PORT||3000);
