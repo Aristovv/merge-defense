@@ -56,8 +56,9 @@ app.get('/api/purchases/test-status',requireAuth,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'DATABASE_NOT_CONFIGURED'});
  if(process.env.VK_PAYMENTS_TEST_MODE!=='1'||process.env.VK_PAYMENTS_TESTER_ID!==req.playerId.slice(3))return res.status(403).json({error:'TEST_MODE_DISABLED'});
  try{
-  const {rows}=await pool.query("SELECT product_id,status,created_at FROM purchases WHERE player_id=$1 AND provider='vk_votes_test' ORDER BY id DESC LIMIT 5",[req.playerId]);
-  res.set('Cache-Control','no-store');return res.json({testOrders:rows});
+  const {rows}=await pool.query("SELECT product_id,status,created_at FROM purchases WHERE player_id=$1 AND provider='vk_votes_test' ORDER BY id DESC LIMIT 20",[req.playerId]);
+  const total=await pool.query("SELECT COALESCE(SUM(CASE WHEN product_id='gems100' THEN 100 WHEN product_id='gems550' THEN 550 ELSE 0 END),0)::text AS gems FROM purchases WHERE player_id=$1 AND provider='vk_votes_test' AND status='test'",[req.playerId]);
+  res.set('Cache-Control','no-store');return res.json({testOrders:rows,testGems:Number(total.rows[0].gems),spendable:false});
  }catch(e){return res.status(503).json({error:'DATABASE_UNAVAILABLE'})}
 });
 app.post('/api/purchases/verify',requireAuth,(_req,res)=>res.status(501).json({error:'PAYMENTS_DISABLED'}));
