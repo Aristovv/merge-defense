@@ -199,7 +199,7 @@ body.vk-embedded .brand{font-size:15px}
   attach('https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js','https://cdn.jsdelivr.net/npm/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js');
 })();
 </script>
-</head><body><main id="app"><header class="top"><div class="brand">🏰 ЛЕГЕНДЫ БАШЕН <small style="font-size:10px;color:#b6a4db">VK 5.0 ELEMENTAL WORLD</small></div><button class="vk-status" id="vk-status" type="button" title="Состояние облачного сохранения">🌐 Браузерная версия · локальное сохранение</button><div class="stats"><span class="pill" id="coins"></span><span class="pill" id="gems"></span><span class="pill" id="hp"></span></div><div style="display:flex;justify-content:space-between;margin-top:9px"><b id="wave"></b><small id="kills"></small></div><div class="progress"><div id="bar"></div></div></header><section class="field"><canvas id="board"></canvas></section><div class="controls"><div class="utility"><button id="speed">⏩ Скорость ×1</button><button id="repair">❤️ Починить базу</button><button id="surge" disabled>✨ Импульс 0/60</button></div><div class="skills"><button class="skill" data-spell="fire">🔥 Удар</button><button class="skill" data-spell="ice">❄️ Мороз</button><button class="skill" data-spell="shock">⚡ Разряд</button></div><div class="actions"><button class="action gold" id="summon">Призвать</button><button class="action" id="start">▶ Начать волну</button></div><div class="manage"><button id="sellmode">🪙 Продать</button><button id="automerge">✨ Автослияние</button><button id="tips">❔ Правила</button></div><div class="hint" id="hint">Разные стихии рядом дают +8% урона · максимум +24%</div></div><nav><button class="active" data-tab="game">⚔️<div>Бой</div></button><button data-tab="upgrade">⬆️<div>Прокачка</div></button><button data-tab="collection">🏆<div>Награды</div></button><button data-tab="shop">💎<div>Магазин</div></button></nav></main><div id="overlay" class="overlay hidden"><div class="sheet"><h2 id="heading"></h2><div id="content"></div><button id="close" class="close">Закрыть</button></div></div><div id="toast"></div><script>
+</head><body><main id="app"><header class="top"><div class="brand">🏰 ЛЕГЕНДЫ БАШЕН <small style="font-size:10px;color:#b6a4db">VK 5.0.1 RECOVERY</small></div><button class="vk-status" id="vk-status" type="button" title="Состояние облачного сохранения">🌐 Браузерная версия · локальное сохранение</button><div class="stats"><span class="pill" id="coins"></span><span class="pill" id="gems"></span><span class="pill" id="hp"></span></div><div style="display:flex;justify-content:space-between;margin-top:9px"><b id="wave"></b><small id="kills"></small></div><div class="progress"><div id="bar"></div></div></header><section class="field"><canvas id="board"></canvas></section><div class="controls"><div class="utility"><button id="speed">⏩ Скорость ×1</button><button id="repair">❤️ Починить базу</button><button id="surge" disabled>✨ Импульс 0/60</button></div><div class="skills"><button class="skill" data-spell="fire">🔥 Удар</button><button class="skill" data-spell="ice">❄️ Мороз</button><button class="skill" data-spell="shock">⚡ Разряд</button></div><div class="actions"><button class="action gold" id="summon">Призвать</button><button class="action" id="start">▶ Начать волну</button></div><div class="manage"><button id="sellmode">🪙 Продать</button><button id="automerge">✨ Автослияние</button><button id="tips">❔ Правила</button></div><div class="hint" id="hint">Разные стихии рядом дают +8% урона · максимум +24%</div></div><nav><button class="active" data-tab="game">⚔️<div>Бой</div></button><button data-tab="upgrade">⬆️<div>Прокачка</div></button><button data-tab="collection">🏆<div>Награды</div></button><button data-tab="shop">💎<div>Магазин</div></button></nav></main><div id="overlay" class="overlay hidden"><div class="sheet"><h2 id="heading"></h2><div id="content"></div><button id="close" class="close">Закрыть</button></div></div><div id="toast"></div><script>
 (()=>{'use strict';const $=x=>document.getElementById(x),c=$('board'),ctx=c.getContext('2d');const vkParams=new URLSearchParams(location.search);const vkContext=!!(vkParams.get('vk_app_id')&&vkParams.get('vk_user_id'));let vkPaymentsTestEnabled=false,remoteGems=null;const colors=['#ff914a','#70dfff','#bc80ff','#a4fa6b'],signs=['🔥','❄️','⚡','☣️'],names=['Огненная','Ледяная','Грозовая','Ядовитая'];let d;try{d=JSON.parse(localStorage.getItem('md_game_01'))}catch{}d={coins:450,gems:60,hp:20,wave:1,kills:0,summons:0,power:0,income:0,towers:[],achievements:[],bosses:0,bestLevel:1,pity:0,discovered:[],daily:null,wins:0,seasonClears:0,...d};if(!Array.isArray(d.towers))d.towers=[];if(!Array.isArray(d.achievements))d.achievements=[];if(!Array.isArray(d.discovered))d.discovered=[];if(!d.runBuffs||typeof d.runBuffs!=='object'||Array.isArray(d.runBuffs))d.runBuffs={};if(!d.perkPending||!Array.isArray(d.perkPending.offers))d.perkPending=null;d.towers.forEach(t=>{if(!Number.isInteger(t.rarity))t.rarity=0;const k=t.type+':'+t.rarity;if(!d.discovered.includes(k))d.discovered.push(k)});let battleSpeed=[1,2,3].includes(d.battleSpeed)?d.battleSpeed:1,battleStats={kills:0,escaped:0,spells:0,healthStart:20},battleEnergy=0,surgeLeft=0,bossJamLeft=0,impactFx=[],deathFx=[],mergeFx=[],battleBanner='',battleBannerLeft=0,killStreak=0,streakLast=0,lastHudSync=0,sellMode=false,spellFx=[],spellCd={fire:0,ice:0,shock:0},particles=[],screenShake=0,elapsed=0,sparks=[],drag=null,foes=[],shots=[],busy=false,spawn=0,clock=0,last=0,selection=-1,width=350,height=520,tile=75,gx=25,gy=270,seq=0,modal=false;const CLOUD_API='https://merge.89-23-115-251.sslip.io/api/cloud/save';
 let cloudReady=false,cloudLoading=false,cloudRevision=0,cloudDirty=false,cloudSaving=false,cloudTimer=null,cloudInitStarted=false,cloudLastError='',cloudAccount='',cloudLastSaved=0,cloudRetryMs=2500,cloudRetryAt=0;
 const cloudSnapshot=()=>({
@@ -211,7 +211,18 @@ const cloudSnapshot=()=>({
  battleSpeed:battleSpeed
 });
 const cloudMetaKey=()=>('md_cloud_meta_'+cloudAccount);
-const saveLocal=()=>{try{localStorage.setItem('md_game_01',JSON.stringify(d))}catch{}};
+// Preserve a rotating copy of real progress before any further save.
+const scoreSave=x=>!x||typeof x!=='object'?0:(Array.isArray(x.towers)?x.towers.length*15:0)+(Number(x.wins)||0)*4+(Number(x.kills)||0)*.5+(Number(x.wave)>1?Number(x.wave)*3:0)+(Number(x.coins)>450?5:0);
+const saveLocal=()=>{
+ try{
+  const key='md_game_01',prior=localStorage.getItem(key);
+  if(prior){
+   try{const existing=JSON.parse(prior);if(scoreSave(existing)>0&&JSON.stringify(existing)!==JSON.stringify(d)){localStorage.setItem('md_game_01_previous',prior)}}catch{}
+  }
+  localStorage.setItem(key,JSON.stringify(d));
+  if(scoreSave(d)>0)localStorage.setItem('md_game_01_backup',JSON.stringify(d));
+ }catch(err){console.warn('Local save unavailable:',err)}
+};
 const save=()=>{saveLocal()};
 function scheduleCloud(){if(!cloudReady||cloudSaving||!cloudDirty)return;clearTimeout(cloudTimer);cloudTimer=setTimeout(()=>{void pushCloud()},Math.max(2300,cloudRetryAt-Date.now()))}
 function setCloudBadge(message){$('vk-status').textContent=message}
@@ -296,9 +307,43 @@ async function loadCloud(afterConflict=false){
   setCloudBadge('⚠️ Облако недоступно · локальное сохранение работает');hud()
  }
 }
+function recoveryCandidates(){
+ const keys=['md_game_01_previous','md_game_01_backup'];
+ const vkId=vkParams.get('vk_user_id');
+ if(vkId)keys.push('md_cloud_backup_'+vkId,'md_cloud_meta_'+vkId);
+ try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('md_cloud_backup_')&&!keys.includes(k))keys.push(k)}}catch{}
+ const found=[];
+ for(const key of keys){
+  try{
+   const raw=localStorage.getItem(key);if(!raw)continue;
+   const parsed=JSON.parse(raw);
+   const state=key.startsWith('md_cloud_meta_')?JSON.parse(parsed.snapshot||'null'):parsed;
+   if(!state||!Array.isArray(state.towers)||state.towers.length>12||!Number.isFinite(Number(state.coins))||scoreSave(state)<=0)continue;
+   if(found.some(x=>JSON.stringify(x.state)===JSON.stringify(state)))continue;
+   found.push({key,state,score:scoreSave(state)})
+  }catch{}
+ }
+ return found.sort((a,b)=>b.score-a.score)
+}
 function cloudInfo(){
- show('💾 Сохранение прогресса',
- '<p>Прогресс этой версии сохраняется на текущем устройстве.</p><p>Волна: <b>'+d.wave+'/10</b> · башен: <b>'+d.towers.length+'</b> · монет: <b>'+d.coins+'</b>.</p><p class="note">Вход через ВК определяет аккаунт, но пока не синхронизирует прогресс между устройствами. Не очищай данные браузера ВК до подключения облака.</p>');
+ const candidates=recoveryCandidates();
+ show('💾 Сохранения и восстановление',
+ '<p>На этом устройстве: <b>волна '+d.wave+'/10</b>, башен <b>'+d.towers.length+'</b>, монет <b>'+d.coins+'</b>.</p>'+
+ '<p class="note">Привязка к ВК ID пока не синхронизирует игровой прогресс. Ищем старые локальные копии; восстановление происходит только по твоему выбору.</p>'+
+ (candidates.length?candidates.map((item,i)=>'<div class="row"><div><b>Резервная копия '+(i+1)+'</b><p>Волна '+item.state.wave+' · башен '+item.state.towers.length+' · 🪙 '+item.state.coins+'</p></div><button type="button" data-restore="'+i+'">Восстановить</button></div>').join(''):'<p class="note">Доступных резервных копий в этом хранилище пока не найдено. Это не означает, что данных нет в другом контексте ВК.</p>')+
+ '<p class="note">Не удаляй приложение и не очищай его данные.</p>');
+ document.querySelectorAll('[data-restore]').forEach(btn=>btn.onclick=()=>{
+  const item=candidates[Number(btn.dataset.restore)];
+  if(!item||busy)return;
+  if(!confirm('Восстановить резервную копию: волна '+item.state.wave+', башен '+item.state.towers.length+'? Текущий прогресс сохранится отдельно.'))return;
+  try{localStorage.setItem('md_game_01_before_restore',JSON.stringify(d))}catch{}
+  const state=item.state;
+  d={...d,...state,towers:state.towers.map(t=>({...t,cd:0,flash:0}))};
+  battleSpeed=[1,2,3].includes(d.battleSpeed)?d.battleSpeed:1;
+  saveLocal();hud();
+  $('overlay').classList.add('hidden');modal=false;
+  alert('✅ Резервная копия восстановлена');
+ });
 }
 
 const PERKS=[
