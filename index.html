@@ -12,6 +12,9 @@
 .castle-sprite{display:block;width:clamp(49px,15vw,74px);height:clamp(58px,18vw,90px);object-fit:contain;filter:drop-shadow(0 7px 3px #142c3caa);transform:translateY(-7px)}
 .tile:has(.castle-sprite) .building-icon{top:-76%}
 .tile:has(.castle-sprite){z-index:40!important}
+
+/* Fix: author-level flex display must never override the hidden attribute. */
+[hidden],.overlay[hidden],.notice[hidden]{display:none!important}
 </style></head><body><div id="app"></div><div id="modal" class="overlay" hidden></div><div id="notice" class="notice" hidden></div>
 <script>
 (function(){
