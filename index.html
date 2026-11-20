@@ -90,7 +90,69 @@ const HERO_IMAGE_FILES=["pyromancer","frost-keeper","thunderlord","alchemist-new
 function heroArt(i){return '<span class="hero-painted" role="img" aria-label="'+HEROES[i].name+'" style="--hero-art:url(./assets/heroes/'+HERO_IMAGE_FILES[i]+'.jpg?v=89),url(./assets/heroes/'+HERO_IMAGE_FILES[i]+'.svg?v=88)"></span>'}
 const START=[0,1,2,3,4],defaultState=()=>({wave:1,hp:20,coins:500,gems:50,mana:160,deck:[...START],unlocked:[...START,5,6,7],board:Array(15).fill(null),upgrade:0,wins:0,kills:0,highest:1});
 let d=defaultState();try{const raw=localStorage.getItem(KEY);if(raw){const p=JSON.parse(raw);if(p&&Array.isArray(p.board)&&p.board.length===15){d={...d,...p};d.deck=Array.isArray(p.deck)&&p.deck.length===5?p.deck:[...START];d.unlocked=Array.isArray(p.unlocked)?p.unlocked:[...START,5,6,7];d.board=p.board.map(x=>x&&Number.isInteger(x.hero)&&x.hero>=0&&x.hero<HEROES.length&&x.rank>=1&&x.rank<=7?{hero:x.hero,rank:x.rank}:null)}}}catch(e){console.warn('Preview save unavailable',e)}
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(d))}catch(e){console.warn('Cannot save',e)}};
+const CLOUD_API='https://merge.89-23-115-251.sslip.io/api/cloud/save';
+const vkLaunchParams=location.search.replace(/^\\?/,'');
+const cloud={enabled:!!(new URLSearchParams(vkLaunchParams).get('vk_user_id')&&new URLSearchParams(vkLaunchParams).get('vk_app_id')),ready:false,loading:false,saving:false,dirty:false,revision:0,timer:null};
+function cloudSnapshot(){
+ const deck=Array.isArray(d.deck)&&d.deck.length===5?[...d.deck]:[...START];
+ const unlocked=Array.isArray(d.unlocked)?[...new Set(d.unlocked.filter(x=>Number.isInteger(x)&&x>=0&&x<12))]:[...START,5,6,7];
+ for(const id of deck)if(!unlocked.includes(id))unlocked.push(id);
+ return {gameVersion:89,state:{wave:d.wave,hp:d.hp,coins:d.coins,gems:d.gems,mana:d.mana,deck,unlocked,board:Array.isArray(d.board)?d.board.slice(0,15).map(x=>x&&Number.isInteger(x.hero)&&Number.isInteger(x.rank)?{hero:x.hero,rank:x.rank}:null):Array(15).fill(null),upgrade:d.upgrade,wins:d.wins,kills:d.kills,highest:d.highest}};
+}
+function validCloudState(x){
+ return !!x&&x.gameVersion===89&&x.state&&Array.isArray(x.state.board)&&x.state.board.length===15&&Array.isArray(x.state.deck)&&x.state.deck.length===5&&Array.isArray(x.state.unlocked);
+}
+function applyCloudSave(x){
+ if(!validCloudState(x))return false;
+ const s=x.state;
+ d={...d,...s,deck:[...s.deck],unlocked:[...s.unlocked],board:s.board.map(t=>t?{hero:t.hero,rank:t.rank}:null)};
+ try{localStorage.setItem(KEY,JSON.stringify(d))}catch(e){console.warn('Local save unavailable',e)}
+ hud();return true;
+}
+function cloudHeaders(){return {'Content-Type':'application/json','X-VK-Launch-Params':vkLaunchParams}}
+function queueCloudSave(){
+ if(!cloud.enabled||!cloud.ready)return;
+ cloud.dirty=true;
+ if(cloud.timer)clearTimeout(cloud.timer);
+ cloud.timer=setTimeout(pushCloudSave,1100);
+}
+async function pushCloudSave(){
+ if(!cloud.enabled||!cloud.ready||cloud.saving||!cloud.dirty)return;
+ cloud.saving=true;cloud.dirty=false;
+ const sent=JSON.stringify(cloudSnapshot());
+ try{
+  const response=await fetch(CLOUD_API,{method:'PUT',headers:cloudHeaders(),body:JSON.stringify({revision:cloud.revision,save:JSON.parse(sent)})});
+  const result=await response.json().catch(()=>({}));
+  if(response.status===409){
+   const latest=await fetch(CLOUD_API,{headers:cloudHeaders(),cache:'no-store'});
+   const remote=await latest.json();
+   cloud.revision=Number(remote.revision)||0;
+   if(validCloudState(remote.save)&&JSON.stringify(cloudSnapshot())===sent)applyCloudSave(remote.save);
+   else if(validCloudState(remote.save)&&JSON.stringify(cloudSnapshot())!==sent){cloud.dirty=true}
+   if(cloud.dirty)cloud.timer=setTimeout(pushCloudSave,500);
+  }else if(!response.ok)throw new Error(result.error||'CLOUD_SAVE_FAILED');
+  else{cloud.revision=Number(result.revision)||cloud.revision+1;if(JSON.stringify(cloudSnapshot())!==sent)queueCloudSave()}
+ }catch(e){cloud.dirty=true;cloud.timer=setTimeout(pushCloudSave,5000);console.warn('Cloud save deferred',e)}
+ finally{cloud.saving=false}
+}
+async function initCloudSave(){
+ if(!cloud.enabled)return;
+ cloud.loading=true;
+ const localAtStart=JSON.stringify(cloudSnapshot());
+ try{
+  const response=await fetch(CLOUD_API,{headers:cloudHeaders(),cache:'no-store'});
+  if(!response.ok)throw new Error('CLOUD_LOAD_'+response.status);
+  const remote=await response.json();
+  cloud.revision=Number(remote.revision)||0;
+  const localChanged=JSON.stringify(cloudSnapshot())!==localAtStart;
+  if(validCloudState(remote.save)&&!localChanged)applyCloudSave(remote.save);
+  cloud.ready=true;
+  if(!remote.save||localChanged)queueCloudSave();
+  toast('☁️ Облачное сохранение подключено');
+ }catch(e){console.warn('Cloud save unavailable; local progress remains active',e);toast('💾 Локальное сохранение активно')}
+ finally{cloud.loading=false}
+}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(d))}catch(e){console.warn('Cannot save',e)}if(cloud.ready)queueCloudSave()};
 const canvas=$('field'),ctx=canvas.getContext('2d');let W=400,H=350,enemyId=0,enemies=[],shots=[],effects=[],running=false,spawned=0,waveTotal=0,spawnClock=0,selected=-1,speed=1,last=0,time=0,modal=false,spellCD={fire:0,freeze:0,shock:0},dragFrom=-1;
 const clamp=(n,a,b)=>Math.min(b,Math.max(a,n)),rand=(a,b)=>a+Math.random()*(b-a);
 function toast(t){$('hint').textContent=t}
@@ -136,6 +198,6 @@ function deckMenu(){if(running){toast('Колоду можно менять то
 function collection(){const body='<p>У каждого героя своя атака и роль. Открывай новых героев за монеты, собирай разные колоды.</p><div class="cards">'+HEROES.map((h,i)=>'<div class="card"><span class="art">'+heroArt(i)+'</span><strong>'+h.name+'</strong><small>'+h.trait+'</small><small>'+(d.unlocked.includes(i)?'✓ Открыт':'🔒 Цена: '+(450+i*80)+' 🪙')+'</small>'+(!d.unlocked.includes(i)?'<button class="btn" data-unlock="'+i+'">Открыть</button>':'')+'</div>').join('')+'</div>';open('📚 Коллекция героев',body);document.querySelectorAll('[data-unlock]').forEach(b=>b.onclick=()=>{const id=+b.dataset.unlock,price=450+id*80;if(d.coins<price){toast('Недостаточно монет');return}d.coins-=price;d.unlocked.push(id);save();hud();collection()})}
 $('tabdeck').onclick=deckMenu;$('tabcollection').onclick=collection;$('tabbattle').onclick=()=>{close();toast('⚔️ Перетащи одинаковых героев друг на друга')};$('summon').onclick=summon;$('start').onclick=begin;$('speed').onclick=()=>{speed=speed===1?2:speed===2?3:1;hud()};$('upgrade').onclick=()=>{const cost=65+d.upgrade*40;if(d.mana<cost||d.upgrade>=5)return;d.mana-=cost;d.upgrade++;save();hud();toast('⬆️ Урон всех героев усилен')};for(const k of ['fire','freeze','shock'])$(k).onclick=()=>spell(k);
 function frame(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;if($('shade').classList.contains('hide'))step(dt*speed);draw();requestAnimationFrame(frame)}
-resize();hud();requestAnimationFrame(frame);toast('🃏 Собери колоду из 5 героев — затем призывай и объединяй');
+resize();hud();requestAnimationFrame(frame);initCloudSave();toast('🃏 Собери колоду из 5 героев — затем призывай и объединяй');
 })();
 </script></body></html>
