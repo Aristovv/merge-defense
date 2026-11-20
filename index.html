@@ -1,566 +1,128 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#101d31"><title>Легенды Башен 11.0 — Тактическая оборона</title>
+<!doctype html>
+<html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"><meta name="theme-color" content="#100e22"><title>Легенды Башен: Королевства</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#081321;color:#eaf7ff;font:14px system-ui,-apple-system,sans-serif}button{font:inherit;color:inherit;cursor:pointer}#app{max-width:480px;min-height:100dvh;margin:auto;background:linear-gradient(#183550,#0b1a30);display:flex;flex-direction:column}.top{padding:10px 13px 8px;background:#10243b;border-bottom:2px solid #3b829b}.brand{display:flex;justify-content:space-between;align-items:center;gap:8px}.brand b{font-size:19px;color:#eafaf1}.version{font-size:10px;color:#82dfd7}.wallet{display:flex;gap:7px;margin-top:9px}.wallet span{background:#254760;border:1px solid #4e7897;border-radius:18px;padding:5px 11px;font-weight:850;flex:1;text-align:center}.progress{height:7px;background:#092033;border-radius:8px;overflow:hidden;margin-top:9px}.progress i{display:block;background:linear-gradient(90deg,#32bdb4,#e3bd69);height:100%;width:0}.field{position:relative;height:54dvh;min-height:340px;max-height:650px;background:radial-gradient(ellipse at 45% 35%,#3e7c76,#1d4a59 68%,#16324c)}canvas{width:100%;height:100%;display:block;touch-action:none}.arena{padding:9px 12px 10px;background:linear-gradient(#24425e,#122940);border-top:3px solid #58a7ab}.arena-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;font-size:12px;font-weight:850;color:#c8f6f0}.board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;max-width:470px;margin:0 auto;touch-action:none}.cell{aspect-ratio:1;border-radius:11px;border:2px solid #638ca7;background:linear-gradient(145deg,#416583,#213b60);box-shadow:inset 0 3px 8px #ffffff1a,0 3px #0a1a2b;position:relative;display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none}.cell.empty{background:linear-gradient(140deg,#2a4a64,#1b334d);border-color:#436985}.cell.match{border-color:#90ffd5;box-shadow:0 0 14px #62ffc29c,inset 0 0 12px #60ffae52}.cell.dragging{opacity:.72;transform:scale(.95)}.cell.selected{border-color:#ffdc85;box-shadow:0 0 13px #ffd47e99}.unit{width:96%;height:96%;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:clamp(22px,7vw,33px);position:relative;background:radial-gradient(circle at 50% 30%,var(--shine),#172c4c 75%);border:1px solid var(--shine);text-shadow:0 2px 8px #0008}.unit:before{content:"";position:absolute;inset:5px;border:1px solid #ffffff50;border-radius:50%}.rank{position:absolute;right:-4px;bottom:-4px;background:#0a1730;border:1px solid #d4d9ef;border-radius:50%;width:23px;height:23px;display:grid;place-items:center;font-size:12px;font-weight:950}.unit small{position:absolute;top:-6px;left:-4px;background:#ffe3a2;color:#3b2b14;border-radius:6px;font-size:9px;padding:1px 3px}.controls{padding:10px 12px 6px;background:#101f37}.row{display:flex;gap:8px;align-items:center;margin-bottom:8px}.mana{flex:1;background:#243b63;border:1px solid #668cc3;border-radius:11px;padding:10px;font-weight:900}.btn{border:1px solid #6ca9d4;border-radius:11px;background:linear-gradient(#386fa8,#244a7a);padding:10px 8px;font-weight:850}.btn:disabled{opacity:.42}.btn.summon{background:linear-gradient(#42d5b3,#1c9e91);color:#082b33;flex:1.2}.btn.fight{background:linear-gradient(#659df0,#3467bc);flex:1}.spell{flex:1;font-size:12px;padding:8px 2px}.hint{font-size:11px;color:#9fc6d8;text-align:center;min-height:18px}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:#0a172a;padding:7px 9px max(8px,env(safe-area-inset-bottom))}.tabs button{border:0;border-radius:9px;background:transparent;color:#b8d2e6;padding:9px 2px;font-weight:800}.tabs button.active{background:#234969;color:#a8fce7}.shade{position:fixed;inset:0;background:#020e1bd9;display:flex;justify-content:center;align-items:center;padding:14px;z-index:5}.hide{display:none!important}.modal{width:min(100%,440px);max-height:85dvh;overflow:auto;background:linear-gradient(#254664,#142a46);border:1px solid #79b8c5;border-radius:20px;padding:18px;box-shadow:0 18px 65px #000b}.modal h2{margin:0 0 12px;color:#c2ffed;font-size:21px}.modal p{color:#c1d8e8;line-height:1.5}.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.card{border:1px solid #6689ac;border-radius:13px;background:#1b3654;padding:11px;text-align:left;min-width:0}.card.chosen{border-color:#b6fcd5;background:#2a5c65}.card strong{display:block;font-size:13px}.card small{display:block;color:#a8c6da;margin-top:5px;line-height:1.35}.card .art{font-size:29px;display:block;margin-bottom:5px}.modal .close{width:100%;margin-top:15px}.bossbar{height:8px;background:#4c273d;border-radius:9px;overflow:hidden;margin-top:6px}.bossbar span{display:block;height:100%;background:#ff986d;width:100%}.tag{font-size:10px;color:#e8ca89}.stat{display:flex;justify-content:space-between;margin:10px 0;border-bottom:1px solid #ffffff26;padding-bottom:9px}@media(max-height:780px){.field{height:49dvh;min-height:300px}.arena{padding:6px 11px}.controls{padding:7px 11px 4px}.cell{border-radius:8px}.row{margin-bottom:5px}.btn{padding:8px 5px}} 
-.hero-svg{width:79%;height:79%;filter:drop-shadow(0 3px 5px #0009)}.card .art{height:65px;display:flex;justify-content:center;align-items:center;background:#10283c;border-radius:10px}.card .art .hero-svg{width:58px;height:58px}.unit{overflow:hidden}.unit:after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,#ffffff30,transparent 45%);pointer-events:none}.top{padding-top:6px;padding-bottom:5px}.wallet{margin-top:5px}.wallet span{padding:4px 7px}.controls{padding-top:6px}@media(min-width:550px){#app{max-width:540px}.field{height:58dvh}.board{max-width:500px}}@media(max-height:700px){.field{height:46dvh;min-height:270px}.btn{padding:7px 5px}}
-
-/* 7.4 — compact game HUD, icon system and thumb-friendly controls */
-.top{background:linear-gradient(145deg,#102c42,#0b1c31);border-bottom:1px solid #357a86}.brand b{font-size:17px;letter-spacing:.5px}.wallet span{border-radius:10px;background:#142f46;border-color:#38667d}.field{height:46dvh;min-height:290px;max-height:510px}.arena{background:linear-gradient(180deg,#1a3b51,#102b41);border-top:2px solid #5caeac}.arena-head{letter-spacing:.6px}.cell{border-radius:9px}.controls{background:#0d2035;padding:9px 12px 4px}.btn{border-radius:10px;min-height:39px}.btn.summon{background:linear-gradient(#53e6c5,#20a69d);box-shadow:0 3px 0 #09695f}.btn.fight{background:linear-gradient(#72a9f4,#3867b9);box-shadow:0 3px 0 #1b3d80}.tabs{position:sticky;bottom:0;z-index:3;border-top:1px solid #325d78}.tabs button{display:flex;justify-content:center;align-items:center;gap:7px}.game-icon{width:17px;height:17px;display:inline-block;vertical-align:-3px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.tabs .game-icon{width:19px;height:19px}.spell{font-size:11px}.modal{background:linear-gradient(165deg,#244963,#10263e);border-color:#5fadb5}.stat{align-items:center}@media(max-height:740px){.field{height:41dvh;min-height:240px}.top{padding:5px 11px}.arena{padding:5px 11px}.controls{padding:5px 11px}.btn{min-height:35px}}
-.card .art{height:80px}.card .art .hero-svg{width:70px;height:70px}.card{box-shadow:0 4px 14px #0003}.card.chosen{border-color:#72d6bc}.cell:active{transform:scale(.97)}.unit{box-shadow:inset 0 2px 12px #ffffff26,0 2px 5px #0008}.arena-head{font-size:11px}.wallet span{font-size:13px}
-/* 7.5.2 iOS VK: restore vertical page scroll and avoid controls hidden behind tabs */
-html,body{height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:auto}#app{height:auto;min-height:100dvh;overflow:visible}.tabs{position:static!important;bottom:auto!important}.board{touch-action:pan-y!important}.cell{touch-action:pan-y!important}.unit,.hero-svg{pointer-events:none}.field{height:clamp(245px,36dvh,390px)!important;min-height:245px!important;max-height:390px!important}.arena{padding-bottom:9px}.controls{padding-bottom:12px}.tabs{padding-bottom:max(12px,env(safe-area-inset-bottom))}.shade{overscroll-behavior:contain}.modal{-webkit-overflow-scrolling:touch;touch-action:pan-y}@media(min-width:550px){.field{height:clamp(290px,44dvh,480px)!important;max-height:480px!important}}
-
-/* 7.6 — compact mobile arena and persistent battle actions */
-.field{height:clamp(185px,26dvh,285px)!important;min-height:185px!important;max-height:285px!important}.top{padding:5px 11px 6px}.brand b{font-size:16px}.wallet{margin-top:4px}.wallet span{padding:3px 6px}.arena{padding:5px 10px 7px}.arena-head{margin-bottom:4px}.board{gap:3px;max-width:390px}.cell{border-width:1px;aspect-ratio:1.12}.rank{width:20px;height:20px;font-size:11px}.controls{padding:7px 10px 10px}.row{margin-bottom:5px}.btn{min-height:34px;padding:7px 5px}.mana{padding:7px}.tabs{padding-bottom:12px}.quickdock{position:fixed;bottom:0;left:50%;transform:translateX(-50%);z-index:4;width:min(100%,480px);display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 12px max(10px,env(safe-area-inset-bottom));background:linear-gradient(#10263beF,#0b1b2dfA);border-top:1px solid #63b1b6;box-shadow:0 -6px 24px #0008}.quickdock .btn{min-height:43px;font-weight:900}.quickdock .btn:disabled{opacity:.45}body{padding-bottom:0}#app{padding-bottom:74px}.tabs{position:static!important}.field canvas{touch-action:pan-y}@media(min-width:550px){.field{height:clamp(240px,35dvh,340px)!important;max-height:340px!important}.board{max-width:430px}}@media(max-height:680px){.field{height:185px!important}.board{max-width:340px}}
- .quickdock{display:none!important}#app{padding-bottom:0!important}.controls{padding-bottom:12px}.tabs{position:static!important}.hero-portrait{width:90%;height:90%;filter:drop-shadow(0 2px 4px #000a)}.unit:before{border-color:#ffffff26}.unit{border-radius:10px;background:radial-gradient(circle at 50% 20%,color-mix(in srgb,var(--shine) 45%,#14263c),#12233b 80%)}.cell{background:linear-gradient(150deg,#426783,#172b49);border-color:#6b92a9}.cell.empty{background:linear-gradient(145deg,#29465d,#142a43)}.arena{background:linear-gradient(180deg,#1d3d55,#11263f)}.top{background:linear-gradient(120deg,#122e48,#101c33)}.tabs button.active{background:linear-gradient(145deg,#315a74,#1c435f);box-shadow:inset 0 1px #91d9db55}.btn{box-shadow:inset 0 1px #ffffff3b,0 2px 0 #091b2c}.card .art{background:radial-gradient(circle at 50% 30%,#315b73,#132b42 80%);border:1px solid #567d95}.card .art .hero-portrait{width:62px;height:62px}.version{letter-spacing:.4px}
-/* 7.9 Fantasy overhaul: single cohesive visual language, keep layout & touch behavior */
-:root{--gold:#ffcf6a;--violet:#a54cff;--deep:#0c0820}body{background:#0b0921;color:#fff3e4}.top{background:radial-gradient(ellipse at 83% 10%,#39206c 0,transparent 65%),linear-gradient(120deg,#170d35,#100c28)!important;border-bottom:2px solid #8438d4;box-shadow:0 3px 16px #5d1b9d99}.brand b{color:#ffe6a0;text-shadow:0 1px 2px #5b2c16,0 0 12px #ffb13d66;letter-spacing:.7px}.version{color:#c9a3fa!important}.wallet span{background:linear-gradient(160deg,#311454,#120e31)!important;border:1px solid #7e39bd!important;box-shadow:inset 0 1px #b88ce855,0 0 9px #6421a955;border-radius:12px!important}.progress{background:#150e30!important;border:1px solid #6f35aa}.progress>div{background:linear-gradient(90deg,#fd9c19,#ffdc53)!important;box-shadow:0 0 10px #ffa21f}.field{border-bottom:3px solid #a14fe8;background:#17354a}.arena{background:radial-gradient(ellipse at 50% 40%,#28134f,#0f0b2b 80%)!important;border-top:2px solid #a04bf3!important;border-bottom:1px solid #6c2a9b;padding:7px 10px 12px}.arena-head{color:#f4ddff!important;text-shadow:0 0 8px #8c4cdd}.board{gap:5px!important;max-width:390px}.cell,.cell.empty{border-radius:13px!important;background:linear-gradient(145deg,#271e56,#110e2d)!important;border:2px solid #56358f!important;box-shadow:inset 0 2px 8px #d6adff16,0 3px 0 #0b0921,0 0 9px #4f2b8c77!important}.cell:not(.empty){border-color:var(--shine,#a85bea)!important}.cell.selected{box-shadow:0 0 0 2px #ffdf72,0 0 15px #ffbc49!important}.unit{border:0!important;border-radius:10px!important;background:radial-gradient(circle at 50% 20%,color-mix(in srgb,var(--shine) 30%,#251b50),#100e2a 75%)!important;box-shadow:inset 0 0 9px var(--shine),0 0 8px var(--shine)!important}.unit:before{inset:2px!important;border:1px solid #ffffff40!important;border-radius:8px!important}.rank{background:linear-gradient(#20143e,#080a22)!important;border:2px solid #e8e6ff!important;box-shadow:0 0 6px #000!important}.controls{background:linear-gradient(#171032,#0d0b25)!important;border-bottom:1px solid #5b2c91;padding:9px 10px 12px}.mana{background:linear-gradient(110deg,#311a64,#1b1746)!important;border:1px solid #8c52d4!important;border-radius:12px!important}.btn{border-radius:12px!important;border:1px solid #9973ed!important;background:linear-gradient(#5448a9,#252568)!important;box-shadow:inset 0 2px #ffffff55,0 3px 0 #130c38,0 0 9px #452a9c66!important;color:#fff!important;text-shadow:0 1px 2px #0008}.btn.summon{background:linear-gradient(#47e5a7,#0ab569 57%,#087e54)!important;border-color:#b1ffb6!important;box-shadow:inset 0 2px #d6ffe0,0 3px #075b42,0 0 10px #12ce7c66!important;color:#0b2a25!important;text-shadow:none}.btn.fight{background:linear-gradient(#ffdc54,#ff9a14 55%,#db570c)!important;border-color:#ffef9d!important;box-shadow:inset 0 2px #fff1b0,0 3px #9c3b13,0 0 12px #ff8d2a77!important;color:#43230c!important;text-shadow:none}.btn:disabled{filter:saturate(.55);opacity:.58}.tabs{background:#100c29!important;border-top:1px solid #7130b7!important}.tabs button{color:#e2d0fb!important}.tabs button.active{background:linear-gradient(#6326ac,#30125f)!important;border:1px solid #c16bff!important;box-shadow:inset 0 1px #e5c1ff,0 0 13px #9a32f8!important;color:#ffe7a2!important}.modal{background:linear-gradient(145deg,#2b1954,#100e2d)!important;border:1px solid #a35cf0!important}.card{background:linear-gradient(#302053,#15132e)!important;border:1px solid #7855ac!important}.card .art{background:radial-gradient(circle,#35246c,#110d2a)!important}.spell{background:linear-gradient(#45277b,#231445)!important}.field{height:clamp(185px,26dvh,285px)!important}#app{padding-bottom:0!important}.tabs{position:static!important}
-
-/* 8.1: smaller road, navigation never hidden by VK mobile browser toolbar */
-.tabs{position:relative!important;z-index:2!important;margin-bottom:0!important;padding:8px 9px max(32px,env(safe-area-inset-bottom,0px))!important;min-height:70px;box-sizing:border-box}.tabs button{min-height:42px;align-self:start}.controls{padding-bottom:14px!important}.arena{padding-bottom:10px!important}#app{padding-bottom:0!important;overflow:visible!important}html,body{overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}#field{display:block;width:100%}.field{height:clamp(185px,26dvh,285px)!important}@supports(height:100dvh){.tabs{padding-bottom:max(42px,env(safe-area-inset-bottom,0px))!important}}.hero-painted{display:block;width:100%;height:100%;border-radius:8px;background-image:url('./assets/hero-portraits.svg?v=82');background-size:600% 100%;background-repeat:no-repeat;background-color:#160d32;box-shadow:inset 0 0 8px #0009}.unit .hero-painted{width:100%;height:100%}.card .art .hero-painted{width:70px;height:70px;max-width:100%;margin:auto;border-radius:12px}.unit{overflow:hidden}.rank{z-index:3}
-/* 8.3 — full-size collection art and 12 differentiated portrait treatments */
-.hero-painted{background-image:url('./assets/hero-portraits.svg?v=84')!important;background-size:600% 100%!important;background-repeat:no-repeat!important;background-color:#160e31}.card .art{height:clamp(92px,19vw,135px)!important;width:100%!important;display:flex!important;align-items:stretch!important;justify-content:center!important;padding:0!important;overflow:hidden!important;border-radius:13px!important;border:1px solid #7c5aaf!important;background:#110e2a!important;margin-bottom:9px!important}.card .art .hero-painted{display:block!important;width:100%!important;height:100%!important;max-width:none!important;margin:0!important;border-radius:11px!important;background-color:#160e31!important}.card{overflow:hidden!important;min-width:0!important;padding:9px!important}.card strong{display:block;font-size:14px;line-height:1.2;overflow-wrap:anywhere}.card small{display:block;line-height:1.3;margin-top:5px}.cards{gap:10px!important}.unit .hero-painted{width:100%;height:100%;border-radius:9px}.unit{isolation:isolate}.card.chosen .art{box-shadow:0 0 0 2px #8ef3c6,0 0 12px #42df9c88!important}
-
-/* 8.5 individual hero image files: no CSS sprite coordinates */
-.hero-painted{background-image:var(--hero-art)!important;background-size:cover!important;background-position:center center!important;background-repeat:no-repeat!important;background-color:#170e2d!important}.card .art .hero-painted{background-size:contain!important;background-color:#160e30!important}.card .art{background:#160e30!important}.unit .hero-painted{background-size:cover!important}
-
-/* 8.6: square full-bleed portraits in collection/deck, with reachable mobile modal controls */
-.card .art{height:auto!important;aspect-ratio:1/1!important;min-height:0!important;display:block!important;overflow:hidden!important;padding:0!important;border-radius:14px!important;background:#170e2d!important}
-.card .art .hero-painted{display:block!important;width:100%!important;height:100%!important;min-height:0!important;background-size:cover!important;background-position:center!important;border-radius:12px!important}
-.cards{align-items:start!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
-.card{min-width:0!important;overflow:hidden!important}
-.modal{max-height:calc(100dvh - 175px)!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;padding-bottom:75px!important}
-.modal button:last-child{scroll-margin-bottom:75px}
-@media(max-width:420px){.card .art{aspect-ratio:1/1!important}.card{padding:8px!important}}
-
-/* 8.7: fixed modal title/close, only hero list scrolls on mobile */
-.shade{padding:12px!important;align-items:center!important;overflow:hidden!important}
-.modal{display:flex!important;flex-direction:column!important;overflow:hidden!important;box-sizing:border-box!important;max-height:min(78dvh,730px)!important;width:min(100%,440px)!important;padding:0!important;min-height:0!important}
-.modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:0 0 auto;padding:15px 16px 12px;border-bottom:1px solid #8251ad;background:linear-gradient(120deg,#301653,#1b123b);position:relative;z-index:2}
-.modal-head h2{font-size:19px!important;margin:0!important;line-height:1.2!important;min-width:0!important}
-.modal-close-top{appearance:none;border:1px solid #a17bcf;background:#4d2a72;color:#fff;border-radius:12px;width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;font-size:23px;font-weight:800;cursor:pointer;touch-action:manipulation}
-#mbody{flex:1 1 auto;min-height:0;overflow-y:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:14px 15px 18px!important;scrollbar-width:thin;scrollbar-color:#8654ad transparent}
-.modal .close{flex:0 0 auto!important;width:calc(100% - 30px)!important;margin:8px 15px 14px!important;min-height:44px!important}
-@media(max-height:700px){.modal{max-height:72dvh!important}.modal-head{padding:9px 12px}.modal-close-top{height:38px;width:38px;flex-basis:38px}}
-
-/* 9.0 — compact, scroll-safe VK mobile collection and deliberate deck replacement */
-.shade{padding:8px 10px max(10px,env(safe-area-inset-bottom))!important}
-.modal{max-height:min(76dvh,680px)!important;border-radius:17px!important;box-shadow:0 20px 60px #000c!important}
-.modal-head{padding:10px 13px!important;min-height:56px!important}
-.modal-head h2{font-size:17px!important;white-space:normal}
-.modal-close-top{width:38px!important;height:38px!important;flex-basis:38px!important}
-#mbody{padding:10px 12px 16px!important;scroll-padding-top:12px;scroll-padding-bottom:20px;overflow-anchor:none}
-#mbody .cards{gap:9px!important;align-items:start!important}
-#mbody .card{padding:7px!important;border-radius:13px!important;position:relative;touch-action:manipulation;min-width:0}
-#mbody .card .art{aspect-ratio:1/1!important;height:auto!important;margin-bottom:7px!important;border-radius:10px!important}
-#mbody .card .art .hero-painted{border-radius:9px!important}
-#mbody .card strong{font-size:13px!important;line-height:1.25!important}
-#mbody .card small{font-size:11px!important;line-height:1.35!important}
-#mbody .card.deck-replace{outline:2px solid #ffd57b;outline-offset:-3px;box-shadow:0 0 15px #ffc15b66!important}
-#mbody .card.chosen{border-color:#62e7ba!important}
-#mbody .card:disabled{opacity:.68!important;cursor:default}
-#mbody .deck-help{font-size:12px;line-height:1.4;color:#e4d2fa;background:#22133e;border:1px solid #694299;border-radius:10px;padding:9px 10px;margin:0 0 11px}
-#mbody .deck-help b{color:#ffdc88}
-#mbody .deck-pill{display:block;font-size:10px;line-height:1.4;color:#b7ffd7;margin-top:5px}
-#mbody .deck-pill.replace{color:#ffe2a2}
-#mbody .deck-pill.available{color:#ddc4ff}
-.modal .close{margin:7px 12px 10px!important;width:calc(100% - 24px)!important;min-height:40px!important;padding:8px!important;flex:0 0 auto!important}
-@media(max-height:700px){.modal{max-height:73dvh!important}.modal-head{min-height:48px!important;padding:7px 11px!important}#mbody{padding:8px 10px 14px!important}.modal .close{min-height:36px!important}}
-
-/* 9.1 — mobile collection: purchase affordances, persistent scroll and readable cards */
-#mbody .collection-summary{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;background:#261748;border:1px solid #7453a9;border-radius:11px;padding:9px 10px;color:#ffe2a2;font-size:12px}
-#mbody .collection-summary span{color:#d4c6ff;font-weight:800}
-#mbody .collection-intro{font-size:12px;line-height:1.45;margin:9px 1px 12px;color:#cfc3e6}
-#mbody .collection-card{display:flex;flex-direction:column;align-self:stretch}
-#mbody .collection-card .art{flex:none}
-#mbody .collection-card strong{min-height:1.2em}
-#mbody .collection-card small{flex:1}
-#mbody .collection-status{display:block;margin:8px 0 6px;font-size:11px;color:#ffdb9e;font-weight:800}
-#mbody .collection-status.owned-status{color:#a9f4ca}
-#mbody .collection-buy{width:100%;font-size:11px;line-height:1.25;margin-top:auto;padding:8px 5px!important;min-height:36px!important;white-space:normal;overflow-wrap:anywhere}
-#mbody .collection-buy:disabled{opacity:.52!important;filter:saturate(.55)}
-#mbody .card.owned{border-color:#477f76!important}
-@media(max-width:355px){#mbody .cards{gap:6px!important}#mbody .card{padding:5px!important}#mbody .card strong{font-size:12px!important}#mbody .collection-buy{font-size:10px!important}}
-
-/* 9.2 — concept fidelity: jewel HUD, fantasy stage and radiant portrait battlefield */
-:root{--concept-purple:#b443ff;--concept-gold:#ffcf64}
-html,body{background:#090619!important}
-#app{max-width:540px!important;background:linear-gradient(180deg,#130728 0%,#130b30 44%,#0b0720 100%)!important}
-.top{padding:8px 9px 8px!important;background:linear-gradient(180deg,#130824,#251048 76%,#12082a)!important;border-bottom:2px solid #912aff!important;box-shadow:0 2px 18px #922bff8a!important}
-.brand{align-items:center!important;display:flex!important;justify-content:space-between!important;gap:6px!important}
-.brand-identity{display:flex;align-items:center;min-width:0;gap:5px;flex:1 1 auto}
-.brand-crown{flex:none;font-size:clamp(25px,6.8vw,38px);line-height:1.1;filter:drop-shadow(0 0 7px #fb9000) drop-shadow(0 1px 3px #7d20ee)}
-.brand-label{min-width:0}
-.brand-label b{display:block!important;font-weight:1000!important;font-size:clamp(11px,3.4vw,18px)!important;letter-spacing:.15px!important;white-space:nowrap;color:#ffe59d!important;text-shadow:0 0 9px #ff922777!important}
-.brand-label .version{color:#ddd1ff!important;font-size:clamp(8px,2.05vw,11px)!important;white-space:nowrap;margin-top:2px}
-.wallet{display:flex!important;flex:0 1 55%;min-width:0;gap:4px!important;margin:0!important}
-.wallet span{min-width:0!important;display:flex!important;justify-content:center;align-items:center;padding:6px 3px!important;white-space:nowrap;font-size:clamp(10px,3vw,14px)!important;font-weight:1000!important;border:1px solid #9b50f7!important;border-radius:10px!important;background:linear-gradient(175deg,#56218c,#290d51 55%,#1b0b32)!important;box-shadow:inset 0 1px 2px #efbcffb0,0 2px 4px #000c,0 0 8px #8333ec6e!important}
-.wave-strip{display:flex;align-items:center;gap:8px;margin-top:10px}
-.wave-strip #wave,.wave-strip #foecount{font-size:clamp(10px,2.8vw,14px)!important;font-weight:900;flex:none;white-space:nowrap;text-shadow:0 1px 4px #000}
-.wave-strip #wave{padding:5px 7px;border:1px solid #733ab6;border-radius:10px;background:#2f1454}
-.wave-strip #foecount{padding:5px 6px}
-.wave-strip .progress{height:12px!important;margin:0!important;flex:1;min-width:22px;border:2px solid #7140ac!important;border-radius:20px!important;background:#120a2b!important;box-shadow:inset 0 2px 6px #000a,0 0 5px #8d3fe599}
-.progress i{height:100%!important;background:linear-gradient(180deg,#fff281,#ffae00 40%,#f66500)!important;box-shadow:0 0 9px #ffb300!important;border-radius:10px}
-.field{height:clamp(250px,35dvh,360px)!important;min-height:250px!important;max-height:360px!important;overflow:hidden;position:relative;border-bottom:3px solid #ac4bff!important;box-shadow:inset 0 -8px 15px #4e159566,0 3px 12px #af44ff55;background:#13113c!important}
-.field-glow{pointer-events:none;position:absolute;inset:0;z-index:1;background:radial-gradient(circle at 22% 85%,#9536ff13,transparent 42%),linear-gradient(180deg,#200a4b1c,transparent 22%,transparent 80%,#1809315a)}
-.field canvas{position:relative;z-index:0}
-.arena{padding:8px 9px 10px!important;background:linear-gradient(180deg,#2a0c53,#1c0c39 48%,#140b2c)!important;border-top:2px solid #c45bff!important;border-bottom:2px solid #53218b!important;box-shadow:inset 0 7px 14px #0005}
-.arena-head{margin:0 0 7px!important;padding:2px 6px 4px;display:flex;justify-content:space-between;font-size:clamp(10px,3vw,14px)!important;color:#fff0ff!important;text-shadow:0 0 8px #ca74ff!important}
-.arena-head .game-icon{color:#ffcd7e!important;width:20px;height:20px}
-.board{max-width:495px!important;gap:5px!important}
-.cell,.cell.empty{aspect-ratio:1/1!important;border-radius:14px!important;border:2px solid #7540bd!important;background:radial-gradient(circle at 35% 15%,#513085,#1e1046 64%,#140d30)!important;box-shadow:inset 0 2px 9px #c88bff22,0 3px 0 #090516,0 0 6px #993bfa55!important;overflow:visible}
-.cell:not(.empty){border-color:var(--shine,#9f58ec)!important;box-shadow:inset 0 0 8px #b888ff55,0 0 10px var(--shine,#9955dd)!important}
-.cell .unit{width:100%!important;height:100%!important;overflow:hidden!important;border-radius:11px!important;background:radial-gradient(circle,#272052,#140d30)!important;border:0!important;box-shadow:inset 0 0 10px var(--shine),0 0 8px var(--shine)!important}
-.cell .unit .hero-painted{border-radius:10px!important;width:100%!important;height:100%!important;background-size:cover!important;background-position:center!important}
-.cell .rank{right:0!important;bottom:0!important;background:linear-gradient(#22143d,#080b22)!important;border:2px solid #eae4ff!important;color:#fff;width:23px;height:23px;z-index:4}
-.controls{background:linear-gradient(180deg,#1a0d37,#120a2c)!important;padding:10px 10px 9px!important}
-.controls .row{gap:7px!important;margin-bottom:7px!important}
-.mana{background:linear-gradient(180deg,#35165f,#211048)!important;color:#fff;font-weight:1000!important;border:1px solid #ae62ff!important;border-radius:12px!important;box-shadow:inset 0 1px 2px #dfaeff7a,0 0 10px #8b30d455;padding:10px 9px!important;min-width:0!important;white-space:nowrap}
-.controls .btn{font-size:clamp(11px,3vw,15px)!important;border-radius:12px!important;min-height:42px!important;font-weight:950!important;padding:9px 6px!important;line-height:1.15!important;border:1px solid #aa61ed!important;box-shadow:inset 0 2px 2px #ffffff66,0 3px 0 #0c0722,0 0 8px #8f33fa6c!important}
-.controls .summon{background:linear-gradient(180deg,#90ff83 0%,#1cde63 38%,#009c35 100%)!important;border:2px solid #c0ff94!important;color:#093d19!important;text-shadow:0 1px #e5ffd2!important;box-shadow:inset 0 2px 3px #ffffffb0,0 3px 0 #075c1b,0 0 13px #40ff737a!important}
-.controls .fight{background:linear-gradient(180deg,#ffe66b 0%,#ffac09 38%,#e44a00 100%)!important;border:2px solid #ffe49a!important;color:#561907!important;text-shadow:0 1px #ffefb9!important;box-shadow:inset 0 2px 3px #ffffff8a,0 3px 0 #913000,0 0 15px #ff8f1b91!important}
-.controls .spell{background:linear-gradient(180deg,#553090,#260b59 70%,#1f0d44)!important;border:1px solid #a250ff!important;font-size:clamp(11px,3vw,14px)!important}
-.controls .spell .game-icon{width:20px;height:20px;filter:drop-shadow(0 0 4px currentColor)}
-.controls .hint{font-size:clamp(10px,2.6vw,12px)!important;color:#d9ceec!important;line-height:1.4!important;margin:4px auto 2px!important}
-.tabs{padding:11px 9px max(20px,env(safe-area-inset-bottom))!important;min-height:80px!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;background:linear-gradient(180deg,#1b0b39,#0d0721)!important}
-.tabs button{height:52px!important;min-height:52px!important;padding:6px 3px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:4px!important;border:1px solid #7639c9!important;border-radius:13px!important;font-size:clamp(11px,3vw,15px)!important;color:#f3e5ff!important;font-weight:950!important;background:linear-gradient(180deg,#4b2782,#24104c 75%)!important;box-shadow:inset 0 2px 3px #c6a0ff65,0 3px 0 #070414,0 0 9px #8937fe5a!important}
-.tabs button.active{background:linear-gradient(180deg,#6b24ba,#2a0a5a 80%)!important;border:2px solid #e26eff!important;box-shadow:inset 0 1px 2px #fff7ff,0 0 15px #ca41ff,0 0 5px #f7b9ff!important;color:#ffe4af!important}
-.tabs .game-icon{width:22px!important;height:22px!important;flex:none}
-@media(max-width:355px){.brand-label b{font-size:10px!important}.wallet{flex-basis:52%}.wallet span{font-size:10px!important;padding:5px 2px!important}.wave-strip{gap:4px}.wave-strip #wave,.wave-strip #foecount{font-size:10px!important;padding:5px 3px}.controls .btn{font-size:11px!important}}
-@media(max-height:700px){.field{height:clamp(220px,33dvh,285px)!important;min-height:220px!important}.tabs{min-height:70px!important;padding-bottom:max(14px,env(safe-area-inset-bottom))!important}}
-
-/* 9.3 — VK mobile viewport, protected resource row and accessible battle controls */
-.top{padding:6px 8px 7px!important}
-.brand{display:block!important;position:relative}
-.brand-identity{min-height:31px!important;padding-right:76px!important}
-.brand-crown{font-size:27px!important}
-.brand-label b{font-size:clamp(12px,3.6vw,18px)!important}
-.brand-label .version{font-size:10px!important}
-.wallet{margin:5px 0 0!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;width:100%;gap:6px!important}
-.wallet span{font-size:clamp(11px,3.1vw,14px)!important;min-height:27px!important}
-.wave-strip{margin-top:6px!important;gap:5px!important}
-.wave-strip #wave,.wave-strip #foecount{font-size:clamp(10px,2.8vw,13px)!important}
-.field{height:clamp(184px,25dvh,265px)!important;min-height:184px!important;max-height:265px!important}
-.arena{padding:6px 7px 7px!important}
-.arena-head{margin:0 0 5px!important;padding:1px 5px 2px!important}
-.board{width:min(100%,320px)!important;max-width:320px!important;gap:4px!important}
-.cell,.cell.empty{border-radius:11px!important;border-width:2px!important}
-.cell .unit{border-radius:9px!important}
-.cell .unit .hero-painted{border-radius:8px!important}
-.cell .rank{width:21px!important;height:21px!important;font-size:11px!important}
-.controls{padding:8px 8px 6px!important}
-.controls .row{margin-bottom:6px!important;gap:6px!important}
-.controls .btn{min-height:38px!important;padding:7px 5px!important;font-size:clamp(11px,3vw,14px)!important}
-.mana{padding:8px!important}
-.tabs{min-height:70px!important;padding:8px 8px max(14px,env(safe-area-inset-bottom))!important;gap:5px!important}
-.tabs button{height:46px!important;min-height:46px!important}
-@media(max-width:360px){.board{width:min(100%,295px)!important}.field{height:clamp(180px,24dvh,240px)!important;min-height:180px!important}.controls .btn{min-height:37px!important}.brand-label b{font-size:12px!important}}
-@media(min-width:480px){.board{width:min(100%,390px)!important;max-width:390px!important}.field{height:clamp(240px,29dvh,325px)!important;max-height:325px!important}}
-@media(max-height:700px){.field{height:180px!important;min-height:180px!important}.board{width:min(100%,290px)!important}.tabs{padding-bottom:max(12px,env(safe-area-inset-bottom))!important}}
-
-/* 9.4 — prevent browser toolbar occlusion and restore scenic map proportions */
-#app{padding-bottom:0!important}
-.top{padding:4px 8px 6px!important}
-.brand-identity{min-height:27px!important}
-.brand-crown{font-size:24px!important}
-.wallet{margin-top:3px!important;gap:5px!important}
-.wallet span{min-height:25px!important;padding:4px 3px!important}
-.wave-strip{margin-top:4px!important}
-.field{height:clamp(145px,21dvh,225px)!important;min-height:145px!important;max-height:225px!important}
-.arena{padding:5px 8px 5px!important}
-.arena-head{margin-bottom:3px!important}
-.board{max-width:286px!important;width:min(100%,286px)!important;gap:3px!important}
-.cell,.cell.empty{aspect-ratio:1/1!important;border-radius:9px!important}
-.controls{padding:5px 8px 5px!important}
-.controls .row{margin-bottom:4px!important}
-.controls .btn{min-height:35px!important;padding:6px 5px!important}
-.mana{padding:7px!important}
-.controls .hint{margin:1px 0 0!important;min-height:15px!important}
-.tabs{min-height:61px!important;padding:6px 7px 9px!important;gap:5px!important}
-.tabs button{height:43px!important;min-height:43px!important}
-html,body{overflow-y:auto!important}
-@media(min-width:480px){.board{width:min(100%,340px)!important;max-width:340px!important}.field{height:clamp(190px,27dvh,280px)!important;max-height:280px!important}}
-@media(max-width:360px){.board{width:min(100%,270px)!important}.field{height:clamp(140px,20dvh,200px)!important;min-height:140px!important}}
-@media(max-height:690px){.field{height:140px!important;min-height:140px!important}.board{width:min(100%,260px)!important}.tabs button{min-height:40px!important;height:40px!important}}
-
-/* 9.5: detailed scenic artwork with a clear battle overlay */
-.field{background:linear-gradient(#211148,#113b48)!important;border-top:2px solid #9f36ef!important;border-bottom:3px solid #c05aff!important}
-.field-glow{background:linear-gradient(180deg,#22094244,transparent 24%,transparent 78%,#170d3d44)!important}
-.arena-head{color:#fff2d9!important}
-#board{position:relative}
-@media(max-width:420px){.field{height:clamp(160px,22dvh,225px)!important;min-height:160px!important}}
-
-/* 9.6 — jewel-like tower frames, combat focus, and touch feedback */
-.cell:not(.empty){position:relative;isolation:isolate}
-.cell:not(.empty)::after{content:"";position:absolute;inset:2px;border-radius:8px;border:1px solid #ffffff4d;box-shadow:inset 0 1px 1px #ffffff88;pointer-events:none;z-index:2}
-.cell:not(.empty) .hero-painted{filter:saturate(1.1) contrast(1.04)}
-.cell.selected{border-color:#ffdf8b!important;box-shadow:0 0 0 2px #ffd36c,0 0 17px #ffc66eaa!important}
-.cell.match{border-color:#adffcc!important;box-shadow:0 0 0 2px #92ffd2,0 0 16px #59fdb7bb!important}
-.cell:active{transform:scale(.97);transition:transform .11s ease-out}
-.btn:active:not(:disabled),.tabs button:active{transform:translateY(1px) scale(.985);filter:brightness(1.1)}
-.controls .summon:disabled,.controls .fight:disabled{box-shadow:none!important}
-.wallet span{box-shadow:inset 0 1px 1px #dfb5ff88,0 0 7px #b14dff75!important}
-.arena-head{border-bottom:1px solid #8a43d34d;padding-bottom:5px!important}
-@media(prefers-reduced-motion:reduce){.cell,.btn,.tabs button{animation:none!important;transition:none!important}}
-
-/* 9.7 — richer HUD matching concept resource colors and hero affinity frames */
-.wallet span{position:relative;gap:4px!important;font-weight:950!important}
-.wallet span:nth-child(1){border-color:#f1b74e!important;background:linear-gradient(180deg,#61337a,#2d104f 68%,#180b31)!important}
-.wallet span:nth-child(2){border-color:#d26aff!important;background:linear-gradient(180deg,#59268b,#2d104f 68%,#180b31)!important}
-.wallet span:nth-child(3){border-color:#fa6b9a!important;background:linear-gradient(180deg,#5c245b,#2d104f 68%,#180b31)!important}
-.wallet span:nth-child(1) .game-icon{color:#ffca50!important;filter:drop-shadow(0 0 5px #ffa52e)}
-.wallet span:nth-child(2) .game-icon{color:#de87ff!important;filter:drop-shadow(0 0 5px #b948ff)}
-.wallet span:nth-child(3) .game-icon{color:#ff7996!important;filter:drop-shadow(0 0 5px #ff5677)}
-.wave-strip .progress{border-color:#ad59f4!important;box-shadow:inset 0 2px 5px #050314,0 0 8px #923de86a!important}
-.wave-strip .progress i{transition:width .32s ease-out!important}
-.cell:not(.empty){border:2px solid var(--shine,#9054d7)!important;box-shadow:0 0 9px var(--shine,#9855ee),inset 0 0 5px #ffffff44!important}
-.cell:not(.empty)::before{content:"";position:absolute;inset:-1px;border-radius:10px;box-shadow:inset 0 0 8px var(--shine,#9959e9);pointer-events:none;z-index:3}
-.cell .rank{font-weight:950!important;box-shadow:0 2px 5px #000e,0 0 3px #ffffffe0!important}
-.brand-crown{filter:drop-shadow(0 0 7px #ffbc46) drop-shadow(0 2px 5px #a331fa)!important}
-.controls .fight:not(:disabled){filter:drop-shadow(0 0 3px #f98d28)}
-.controls .summon:not(:disabled){filter:drop-shadow(0 0 3px #28df6c)}
-.tabs button.active .game-icon{filter:drop-shadow(0 0 5px #ffc87b)}
-@media(max-width:380px){.wallet span{font-size:11px!important;gap:3px!important}.wallet .game-icon{width:15px!important;height:15px!important}}
-
-/* 9.8: cinematic scene is kept separate from actual unit path and controls */
-.field{box-shadow:inset 0 0 24px #06091f77,0 3px 16px #af43ff44!important}
-.field-glow{background:linear-gradient(180deg,#100a2e28,transparent 28%,transparent 78%,#190c3052)!important}
-
-/* 9.9: real painted fantasy illustration; all units remain on the synchronized path */
-.field{background:#173e3d!important;box-shadow:inset 0 0 14px #03091977,0 3px 14px #ae43ff55!important}
-.field-glow{background:linear-gradient(180deg,#10092518,transparent 34%,transparent 77%,#110a2626)!important}
-
-/* 10.0 — atmospheric arena with consistent readable HUD and reduced viewport waste */
-.field-glow{pointer-events:none!important;background:linear-gradient(180deg,#12082722,transparent 26%,transparent 81%,#130b2a33)!important}
-.wave-strip .progress{height:13px!important;border-color:#b765ff!important}
-.wave-strip #foecount{text-shadow:0 0 6px #120524,0 1px 2px #000!important}
-.arena{background:linear-gradient(180deg,#280d50,#1c0b36)!important}
-.board{filter:drop-shadow(0 2px 6px #0802196c)}
-.controls .summon,.controls .fight{min-height:40px!important}
-.tabs{border-top:2px solid #a243e2!important;box-shadow:inset 0 3px 10px #9435dd22!important}
-
-/* 11.0: distinct battlefield readability and action focus */
-.arena-head{background:linear-gradient(90deg,#120c2d8f,#26124b50)!important;border-bottom:1px solid #9950d966!important}
-.cell:not(.empty){box-shadow:0 0 7px var(--shine,#9657dc),inset 0 0 5px #ffffff33!important}
-.cell.selected{outline:2px solid #ffe5a6!important;outline-offset:1px!important}
-.cell.match{outline:2px solid #8fffc0!important;outline-offset:1px!important}
-.controls .hint{padding:4px 8px!important;min-height:23px!important;border-radius:9px!important;background:#0d082969!important;border:1px solid #6c3ea557!important}
-.controls .spell:disabled{opacity:.57!important}
-</style><!-- VK Mini Apps: initialize the host before loading the playable game.
-     Independent of gameplay: failing to load the bridge must never block the game. -->
+:root{--gold:#ffd78b;--mint:#82efbe;--ink:#0d1026;--soft:#bdc0dc;--line:#7954a5;--violet:#9c74ee}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#08091a;color:#f9f1df;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}button:disabled{opacity:.45;cursor:default}#app{width:100%;max-width:510px;margin:0 auto;min-height:100dvh;background:radial-gradient(circle at 45% -15%,#51447a 0,#11132d 43%,#0a1126 85%);padding-bottom:88px;overflow:hidden}.top{position:relative;padding:12px 13px 9px;background:linear-gradient(125deg,#31234e,#15172e 72%);border-bottom:1px solid #9877c377;box-shadow:0 4px 23px #09051e}.identity{display:flex;align-items:center;gap:9px}.crest{width:42px;height:42px;display:grid;place-items:center;border:1px solid #e1b867;border-radius:12px;background:linear-gradient(145deg,#8b5ec5,#2e1f57);box-shadow:inset 0 2px 8px #ffe5a655,0 0 14px #885cd455;font-size:24px}.identity strong{font-size:17px;letter-spacing:.5px;color:#ffe7b0;text-shadow:0 2px #160b25}.subtitle{font-size:10px;letter-spacing:1.4px;color:#d2bcfa;margin-top:2px}.level{margin-left:auto;display:flex;align-items:center;gap:5px;background:#0f1536;padding:7px 9px;border:1px solid #8b70ac;border-radius:22px;font-size:11px;font-weight:800}.wallet{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin-top:10px}.res{background:linear-gradient(#353354,#1b2038);border:1px solid #8274a333;border-radius:9px;text-align:center;padding:6px 1px 5px;min-width:0;box-shadow:inset 0 1px #ffffff1b}.res span{display:block;font-size:16px}.res b{font-size:11px;color:#ffefcd;font-variant-numeric:tabular-nums;white-space:nowrap}.section-title{font-weight:900;color:#ffe4ad;letter-spacing:.4px}.hero-banner{padding:11px 13px 9px;display:flex;justify-content:space-between;align-items:center;gap:8px}.hero-banner small{color:#b9b7d2;font-size:11px;display:block;margin-top:3px}.mini{border:1px solid #8673bd;border-radius:10px;background:#25264a;padding:8px 10px;font-size:11px;font-weight:800}.mini.gold{background:linear-gradient(#8b592b,#614020);border-color:#cb9961;color:#ffe6a6}.world{position:relative;margin:0 9px;border:2px solid #8c70a8;border-radius:20px;height:clamp(300px,88vw,440px);overflow:hidden;background:radial-gradient(ellipse at 48% 49%,#6f9f72,#285c55 50%,#193c49 90%);box-shadow:inset 0 0 70px #0c183f99,0 7px 27px #0007}.world:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 16% 18%,#f8e6a533,transparent 27%),radial-gradient(ellipse at 82% 16%,#7b71e077,transparent 38%),linear-gradient(150deg,#0f274866,transparent 30%,#050f2166 91%);pointer-events:none}.mount{position:absolute;top:2%;width:38%;font-size:clamp(44px,13vw,78px);filter:drop-shadow(0 10px 7px #0a1a34a8);opacity:.85}.mount.a{left:-9%}.mount.b{right:-14%;top:-1%}.river{position:absolute;left:76%;top:-14%;width:21%;height:138%;border-radius:60% 35% 55% 50%;transform:rotate(17deg);background:linear-gradient(90deg,#65b5bd33,#aceafa99 43%,#1d699c88 75%,#102d53aa);border:2px solid #9ee4f244;filter:blur(1px);pointer-events:none}.world-ground{position:absolute;inset:4% 4%;background:radial-gradient(ellipse at 50% 50%,#8ab06e6b 0,#7cac6350 35%,transparent 69%);pointer-events:none}.forest{position:absolute;inset:0;pointer-events:none}.tree{position:absolute;font-size:clamp(19px,6vw,38px);filter:drop-shadow(2px 5px 2px #102b3299);opacity:.95}.tile{position:absolute;width:20%;height:15%;transform:translate(-50%,-50%);border:0;padding:0;background:none;overflow:visible;z-index:2}.ground{position:absolute;inset:5% 0;background:linear-gradient(155deg,#b6c685,#4d9663 42%,#285c4f);clip-path:polygon(50% 0,100% 48%,50% 100%,0 52%);filter:drop-shadow(0 4px 1px #173b40)}.tile:after{content:"";position:absolute;inset:7%;border:1px solid #fff9be25;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);pointer-events:none}.tile.lock .ground{background:linear-gradient(#3a4956,#202d45)}.tile.lock .building-icon{filter:grayscale(1);opacity:.45}.tile.empty .ground{background:linear-gradient(155deg,#aec876,#61936a 50%,#37635b)}.tile.free .ground{box-shadow:inset 0 0 8px #fcdf7a55}.tile.select .ground{background:linear-gradient(#f9d893,#a37640);filter:drop-shadow(0 0 7px #ffeb99)}.building-icon{position:absolute;left:50%;top:-37%;transform:translateX(-50%);font-size:clamp(25px,8vw,46px);white-space:nowrap;filter:drop-shadow(0 7px 3px #092c30a9);transition:transform .15s}.tile:active .building-icon{transform:translateX(-50%) scale(.9)}.tile .level-bubble{position:absolute;right:-1px;bottom:10%;font-size:9px;background:#191332e8;border:1px solid #d7b06f;color:#ffe8aa;padding:2px 4px;border-radius:7px;z-index:4;font-weight:900}.tile .lock-bubble{position:absolute;left:34%;top:23%;font-size:17px}.city-glow{position:absolute;left:45%;top:52%;width:26%;height:26%;border-radius:50%;background:#f9d47144;filter:blur(20px);pointer-events:none}.world-caption{position:absolute;bottom:8px;left:10px;right:10px;display:flex;justify-content:space-between;gap:10px;z-index:20}.world-caption span{font-size:10px;font-weight:900;padding:6px 8px;border:1px solid #dcba854f;background:#0c1e33cf;border-radius:9px;backdrop-filter:blur(5px)}.action-rail{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:10px 11px}.quick{min-height:68px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:13px;background:linear-gradient(145deg,#3b305d,#201d42);border:1px solid #9c7ccd80;box-shadow:inset 0 1px #fff3,0 3px #0b112b;font-weight:900;font-size:11px}.quick span{font-size:25px}.quick:active{transform:translateY(2px)}.panel{margin:0 11px 12px;background:linear-gradient(155deg,#272345,#151a38);border:1px solid #61517b;border-radius:16px;padding:13px;box-shadow:inset 0 1px #ffffff19,0 6px 25px #0004}.panelhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:11px}.panel p{line-height:1.5;color:#c8c6dc;margin:5px 0 9px}.pill{display:inline-block;background:#5c397a;border:1px solid #a27acc;border-radius:8px;padding:5px 8px;font-weight:800;font-size:10px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.statbox{text-align:center;background:#14162f;border:1px solid #5b4c79;border-radius:11px;padding:11px 4px}.statbox b{color:#ffda96;font-size:18px}.statbox small{display:block;color:#aca9c9;font-size:10px;margin-top:3px}.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,510px);z-index:80;display:grid;grid-template-columns:repeat(5,1fr);gap:3px;background:#0c1028ed;border-top:1px solid #9c6fc888;padding:7px 6px max(9px,env(safe-area-inset-bottom));box-shadow:0 -5px 30px #080319bb;backdrop-filter:blur(9px)}.nav button{border:0;background:transparent;min-height:54px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;font-size:10px;color:#bbafca;font-weight:900}.nav .on{background:linear-gradient(#74509d,#39295e);color:#ffdfa4;border:1px solid #aa84d8}.nav button span{font-size:22px}.list{display:grid;gap:9px}.item{background:#16192f;border:1px solid #564a79;border-radius:13px;padding:10px;display:flex;align-items:center;gap:10px}.item .pic{font-size:30px;width:46px;text-align:center;flex-shrink:0}.item .details{flex:1;min-width:0}.item b{color:#fff0ce}.item small{display:block;color:#bdb9d1;line-height:1.45;margin-top:3px}.act{border:1px solid #b48fe7;background:linear-gradient(#7652a4,#493172);border-radius:10px;padding:9px;font-weight:900;color:#fff4d9;white-space:nowrap}.act.green{border-color:#b1e3a0;background:linear-gradient(#4fa579,#256e5d)}.act.orange{background:linear-gradient(#be8b43,#81502f);border-color:#f8cd7d}.act:disabled{opacity:.46}.chipline{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.chip{font-size:11px;padding:5px 8px;border:1px solid #746488;background:#282244;border-radius:9px}.hero-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.herocard{min-width:0;border:1px solid #77618f;border-radius:14px;overflow:hidden;background:linear-gradient(#30284e,#17192f);position:relative}.portrait{width:100%;height:115px;object-fit:cover;object-position:center 28%;background:radial-gradient(circle,#7259a2,#24213e);display:block}.herocard .heroinfo{padding:8px}.herocard b{font-size:12px;color:#ffe8b5}.herocard small{display:block;color:#b8b7d4;font-size:10px;margin-top:3px}.herocard button{margin-top:7px;width:100%;font-size:10px;padding:8px 4px}.squadmark{position:absolute;top:6px;right:6px;background:#0d3a2fe8;border:1px solid #72e9a0;color:#e6ffe7;border-radius:8px;padding:4px;font-size:10px;font-weight:900}.overlay{position:fixed;inset:0;background:#050514c9;z-index:100;display:flex;align-items:flex-end;justify-content:center;padding:12px 12px max(12px,env(safe-area-inset-bottom));backdrop-filter:blur(4px)}.sheet{width:min(100%,490px);background:linear-gradient(#352951,#181b35);border:1px solid #ad8bce;border-radius:23px;box-shadow:0 15px 65px #000a;max-height:84dvh;overflow:auto;padding:17px}.sheet h2{margin:0 0 8px;color:#ffe1ad;font-size:20px}.sheet .description{color:#cbc3df;line-height:1.5;margin:5px 0 13px}.sheet .close{float:right;border:1px solid #745588;border-radius:9px;background:#221a3f;padding:5px 10px}.empty-note{text-align:center;padding:20px;color:#c5bed9}.notice{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:#211c3bf2;border:1px solid #d5a974;border-radius:12px;padding:11px 16px;z-index:250;max-width:90vw;pointer-events:none;font-size:12px;text-align:center;box-shadow:0 4px 22px #0009}.muted{color:#bcb9d2;font-size:12px}.strong{color:#ffdb93}.backlink{font-size:11px;color:#bdb7d9;text-decoration:none}.bar{height:8px;background:#14172d;border-radius:9px;overflow:hidden;border:1px solid #6f538b}.bar i{display:block;height:100%;background:linear-gradient(90deg,#6ce1ac,#d0b36d)}@media(min-width:600px){.world{height:440px}.building-icon{font-size:45px}}@media(max-width:365px){.top{padding:9px}.identity strong{font-size:15px}.wallet{gap:3px}.res b{font-size:10px}.world{height:290px}.quick{font-size:10px}.building-icon{font-size:26px}}
+</style></head><body><div id="app"></div><div id="modal" class="overlay" hidden></div><div id="notice" class="notice" hidden></div>
 <script>
 (function(){
-  var initiated=false;
-  function initVK(){
-    if(initiated || !window.vkBridge || typeof window.vkBridge.send!=='function')return;
-    initiated=true;
-    try{
-      var result=window.vkBridge.send('VKWebAppInit');
-      if(result&&typeof result.catch==='function')result.catch(function(err){console.warn('VK bridge init rejected',err);});
-    }catch(err){console.warn('VK bridge init failed',err);}
-  }
-  function attach(url,fallback){
-    var script=document.createElement('script');
-    script.src=url;
-    script.onload=initVK;
-    script.onerror=function(){if(fallback)attach(fallback,null);else console.warn('VK bridge CDN unavailable');};
-    document.head.appendChild(script);
-  }
-  attach('https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js','https://cdn.jsdelivr.net/npm/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js');
-})();
-</script>
-</head><body><div id="app"><header class="top"><div class="brand"><div class="brand-identity"><span class="brand-crown" aria-hidden="true">👑</span><div class="brand-label"><b>ЛЕГЕНДЫ БАШЕН</b><div class="version">11.0 · ТАКТИЧЕСКАЯ ОБОРОНА</div></div></div><div class="wallet"><span id="coins">🪙 0</span><span id="gems">💎 0</span><span id="hp">❤️ 20</span></div></div><div class="wave-strip"><span id="wave">Волна 1/10</span><div class="progress"><i id="progress"></i></div><span id="foecount">⚔️ 0 врагов</span></div><div id="bosswrap" class="hide"><small id="bosslabel">👹 БОСС</small><div class="bossbar"><span id="bosshp"></span></div></div></header><div class="field"><div class="field-glow" aria-hidden="true"></div><canvas id="field"></canvas></div><section class="arena"><div class="arena-head"><span><svg class="game-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l5-5m-3-9 12 12m0-12L6 18m9-13 4 4"/></svg> БОЕВОЕ ПОЛЕ · 5×3</span><span id="power">✨ Сила 0</span></div><div id="board" class="board"></div></section><section class="controls"><div class="row"><span id="mana" class="mana">🔮 Мана 0</span><button id="upgrade" class="btn">⬆️ Усилить</button><button id="speed" class="btn">⏩ ×1</button></div><div class="row"><button id="summon" class="btn summon">✨ Призвать · 🔮 40</button><button id="start" class="btn fight">▶ Начать волну</button></div><div class="row"><button id="fire" class="btn spell"><svg class="game-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c2 5-2 7 2 10 2-1 3-3 3-5 7 9 2 15-5 15S3 17 7 11c0 4 3 3 5-9z"/></svg> Огонь</button><button id="freeze" class="btn spell"><svg class="game-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M4 7l16 10M20 7 4 17M9 5l3 3 3-3M9 19l3-3 3 3"/></svg> Лёд</button><button id="shock" class="btn spell"><svg class="game-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 5 13h7l-1 9 8-12h-7z"/></svg> Гроза</button></div><div id="hint" class="hint">Выбери колоду из пяти героев и начни бой</div></section><nav class="tabs"><button id="tabbattle" class="active"><svg class="game-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l5-5m-3-9 12 12m0-12L6 18m9-13 4 4"/></svg> Бой</button><button id="tabdeck"><svg class="game-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h13v17H5zM9 7h5m-5 4h5M2 6v16h13"/></svg> Колода</button><button id="tabcollection"><svg class="game-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h8l3 2 5-2v16l-5 2-3-2H4zM12 4v16"/></svg> Коллекция</button></nav></div><div id="shade" class="shade hide"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle"><div class="modal-head"><h2 id="mtitle"></h2><button id="mcloseTop" class="modal-close-top" type="button" aria-label="Закрыть окно">✕</button></div><div id="mbody"></div><button id="mclose" class="btn close">Закрыть</button></div></div>
-<script>
-(()=>{
 'use strict';
-const UI_PATHS={coin:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-3 7c0-2 6-2 6 0s-6 2-6 4 6 2 6 0M12 6v12',gem:'M6 3h12l5 6-11 13L1 9zM1 9h22M6 3l6 19 6-19',heart:'M12 21 3 12C-1 6 6 1 12 7c6-6 13-1 9 5z',mana:'M12 2c-5 6-8 10-8 14a8 8 0 0 0 16 0c0-4-3-8-8-14z',sword:'M4 20l5-5m-3-9 12 12m0-12L6 18m9-13 4 4',spark:'M12 2l2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5z',play:'M7 4v16l13-8z',up:'M12 20V4m-7 7 7-7 7 7',fast:'M3 5l8 7-8 7zm10 0 8 7-8 7z',skull:'M12 2c-6 0-9 4-9 9 0 4 2 6 5 7v4h8v-4c3-1 5-3 5-7 0-5-3-9-9-9zM8 12h1m6 0h1m-4 2-1 2h2'};const uiIcon=k=>'<svg class="game-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="'+UI_PATHS[k]+'"/></svg>';
-const $=id=>document.getElementById(id),KEY='legendy_bashen_v7_preview',LEGACY='md_game_01';
-const HEROES=[
- {name:'Пиромант',icon:'🔥',color:'#ff9d5d',role:'Урон по площади',damage:15,rate:1.15,trait:'Взрывает соседних врагов'},
- {name:'Хранитель льда',icon:'❄️',color:'#8bdfff',role:'Контроль',damage:10,rate:1.05,trait:'Замедляет врагов'},
- {name:'Громовержец',icon:'⚡',color:'#d3b3ff',role:'Цепной урон',damage:13,rate:1.12,trait:'Поражает сразу несколько целей'},
- {name:'Алхимик',icon:'🧪',color:'#9af2b0',role:'Яд',damage:9,rate:1.05,trait:'Накладывает длительное отравление'},
- {name:'Охотница',icon:'🏹',color:'#ffe3a1',role:'Быстрая атака',damage:11,rate:.65,trait:'Часто стреляет'},
- {name:'Арбалетчик',icon:'🎯',color:'#ffc4a7',role:'Добивание',damage:17,rate:1.2,trait:'Бонус по раненым'},
- {name:'Кристалломант',icon:'💎',color:'#b4e7ff',role:'Магический удар',damage:18,rate:1.55,trait:'Игнорирует часть брони'},
- {name:'Шаман',icon:'🌀',color:'#b4f3d2',role:'Поддержка',damage:8,rate:1.15,trait:'Усиливает соседей'},
- {name:'Жрица',icon:'🌟',color:'#fce4b3',role:'Экономика',damage:8,rate:1.2,trait:'Возвращает ману при призыве'},
- {name:'Механик',icon:'⚙️',color:'#d2dce8',role:'Ускорение',damage:11,rate:.95,trait:'Ускоряет соседей'},
- {name:'Некромант',icon:'💀',color:'#c3a3e7',role:'Проклятие',damage:12,rate:1.3,trait:'Ослабляет монстров'},
- {name:'Страж',icon:'🛡️',color:'#aad7ff',role:'Защита',damage:12,rate:1.2,trait:'Бонус против боссов'}
+var $=function(id){return document.getElementById(id)},K='legends_kingdoms_v120';
+var types=[
+ {n:'Замок',ic:'🏰',d:'Главное здание королевства',cost:[0,0,0,0],rate:[0,0,0,0,0]},
+ {n:'Лесопилка',ic:'🪵',d:'Добывает дерево каждую минуту',cost:[170,0,70,0],rate:[0,8,0,0,0]},
+ {n:'Каменоломня',ic:'⛏️',d:'Добывает камень каждую минуту',cost:[180,65,0,0],rate:[0,0,7,0,0]},
+ {n:'Золотая шахта',ic:'💰',d:'Добывает золото каждую минуту',cost:[120,80,70,0],rate:[13,0,0,0,0]},
+ {n:'Ферма',ic:'🌾',d:'Производит провизию',cost:[110,80,35,0],rate:[0,0,0,0,9]},
+ {n:'Источник маны',ic:'🔮',d:'Создаёт кристаллы',cost:[390,250,220,0],rate:[0,0,0,.38,0]},
+ {n:'Башня лучников',ic:'🏹',d:'Сдерживает вражеские рейды',cost:[220,130,150,0],rate:[0,0,0,0,0],def:33},
+ {n:'Огненная башня',ic:'🔥',d:'Атакует толпы монстров',cost:[340,170,170,12],rate:[0,0,0,0,0],def:58},
+ {n:'Ледяная башня',ic:'❄️',d:'Замедляет противников',cost:[330,160,190,12],rate:[0,0,0,0,0],def:50},
+ {n:'Казармы',ic:'⚔️',d:'Готовят героев к экспедициям',cost:[280,180,180,0],rate:[0,0,0,0,0]},
+ {n:'Рынок',ic:'⚖️',d:'Позволяет обменивать ресурсы',cost:[200,150,125,0],rate:[0,0,0,0,0]},
+ {n:'Академия',ic:'📜',d:'Открывает исследования',cost:[390,200,220,15],rate:[0,0,0,0,0]},
+ {n:'Стены',ic:'🧱',d:'Усиливают оборону замка',cost:[230,100,190,0],rate:[0,0,0,0,0],def:38},
+ {n:'Башня молний',ic:'⚡',d:'Сильная магическая защита',cost:[470,260,280,20],rate:[0,0,0,0,0],def:78},
+ {n:'Кузница',ic:'⚒️',d:'Усиливает боевую мощь героев',cost:[350,210,230,0],rate:[0,0,0,0,0]},
+ {n:'Магический фонтан',ic:'⛲',d:'Украшение со светом магии',cost:[170,90,130,4],rate:[0,0,0,0,0],def:4}
 ];
-const ART=["<path d=\"M31 7C14 25 20 34 29 39c-3-10 7-16 9-27 15 18 16 30 5 40-10 9-27 4-27-10 0-11 8-20 15-35Z\" fill=\"#ff8d3d\"/><path d=\"M36 26c-3 9-12 13-10 22 2 11 20 10 22-1 1-8-8-14-12-21Z\" fill=\"#ffe18d\"/>","<path d=\"M32 7v50M10 20l44 24M54 20 10 44\" stroke=\"#bdf5ff\" stroke-width=\"6\" stroke-linecap=\"round\"/>","<path d=\"M36 5 13 34h18l-5 25 26-34H35Z\" fill=\"#f7db77\" stroke=\"#fff5c1\" stroke-width=\"2\"/>","<path d=\"M23 7h18v6l-5 6v11l13 18c3 5-1 10-6 10H21c-5 0-9-5-6-10l13-18V19l-5-6Z\" fill=\"#65e0b5\" stroke=\"#c7fff1\" stroke-width=\"3\"/><circle cx=\"31\" cy=\"39\" r=\"4\" fill=\"#efffe3\"/>","<path d=\"M10 49 53 14M14 13q25 2 36 36\" stroke=\"#e8c58d\" stroke-width=\"5\" fill=\"none\"/><path d=\"m42 12 12 0-1 12\" stroke=\"#fff1b6\" stroke-width=\"4\" fill=\"none\"/>","<path d=\"M10 32h44M43 22l12 10-12 10M20 18v28\" stroke=\"#f2d4a5\" stroke-width=\"5\" fill=\"none\"/><circle cx=\"23\" cy=\"32\" r=\"9\" fill=\"#a44d4a\"/>","<path d=\"M32 4 53 26 45 53 20 53 11 26Z\" fill=\"#7fd4ff\" stroke=\"#d9f6ff\" stroke-width=\"3\"/><path d=\"m11 26 21 7 21-7M32 4v29l13 20\" stroke=\"#f1ffff\" stroke-width=\"2\" fill=\"none\"/>","<circle cx=\"32\" cy=\"32\" r=\"23\" stroke=\"#9cf7dc\" stroke-width=\"5\" fill=\"none\" stroke-dasharray=\"12 5\"/><path d=\"M21 36c0-16 24-19 24-4 0 12-18 15-18 3 0-6 9-9 11-3\" stroke=\"#c9ffeb\" stroke-width=\"5\" fill=\"none\"/>","<path d=\"M32 6 39 24 58 32 39 40 32 58 24 40 6 32 24 24Z\" fill=\"#ffe9a2\" stroke=\"#fff8d5\" stroke-width=\"2\"/><circle cx=\"32\" cy=\"32\" r=\"8\" fill=\"#fff\"/>","<circle cx=\"32\" cy=\"32\" r=\"18\" fill=\"#a4c4d9\" stroke=\"#e8f5ff\" stroke-width=\"5\" stroke-dasharray=\"10 5\"/><circle cx=\"32\" cy=\"32\" r=\"9\" fill=\"#4d728b\"/><circle cx=\"32\" cy=\"32\" r=\"4\" fill=\"#e9f8ff\"/>","<path d=\"M16 23Q16 9 32 9t16 14v18l-9 11H25l-9-11Z\" fill=\"#b9a4e9\" stroke=\"#e6d5ff\" stroke-width=\"3\"/><circle cx=\"24\" cy=\"30\" r=\"5\" fill=\"#38245a\"/><circle cx=\"40\" cy=\"30\" r=\"5\" fill=\"#38245a\"/>","<path d=\"M32 5 51 14v17c0 14-10 22-19 28-9-6-19-14-19-28V14Z\" fill=\"#7daee5\" stroke=\"#d6edff\" stroke-width=\"4\"/><path d=\"M32 14v34M20 30h24\" stroke=\"#f4f8ff\" stroke-width=\"5\"/>"];
-const HERO_PORTRAITS=["<path d=\"M7 57 13 40 20 45 24 57Z\" fill=\"#a33d29\"/><path d=\"M43 57 48 39 57 57Z\" fill=\"#d35a24\"/><path d=\"M16 27Q10 15 24 12L27 4 33 13 43 3 40 17Q53 21 46 34Z\" fill=\"#f26b28\" stroke=\"#ffd17b\" stroke-width=\"2\"/><path d=\"M21 29Q24 21 33 22T43 30L40 43 26 43Z\" fill=\"#e4ad82\"/><path d=\"M25 31h4m8 0h4\" stroke=\"#58292c\" stroke-width=\"3\"/><path d=\"M28 38q5 3 9 0\" stroke=\"#9a4c38\" stroke-width=\"2\" fill=\"none\"/><path d=\"M49 13q11 7 0 16q-7-6 0-16\" fill=\"#ffbd40\"/>","<path d=\"M7 55 19 41 26 46 38 42 55 55Z\" fill=\"#78cde7\"/><path d=\"M10 20 21 7 32 13 43 6 54 22 44 29 20 29Z\" fill=\"#b5efff\" stroke=\"#fff\" stroke-width=\"2\"/><path d=\"M17 27 25 20 40 20 47 28 42 42 22 42Z\" fill=\"#9ec9e4\"/><path d=\"M23 29 28 27m8 0 5 2\" stroke=\"#25476b\" stroke-width=\"3\"/><path d=\"M25 36 39 36\" stroke=\"#477da0\" stroke-width=\"2\"/><path d=\"M7 34 16 25 17 40 10 44Z M48 25 57 34 54 44 47 40Z\" fill=\"#b7f5ff\" stroke=\"#d9ffff\"/>","<path d=\"M7 55 15 40 25 42 32 50 41 41 53 40 59 56Z\" fill=\"#4d4599\"/><path d=\"M15 23 21 9 31 15 40 5 49 21 43 27 20 28Z\" fill=\"#6655a4\" stroke=\"#e2c1ff\" stroke-width=\"2\"/><path d=\"M24 24h17l3 15-12 8-12-8Z\" fill=\"#c7a5a0\"/><path d=\"M24 31h6m6 0h6\" stroke=\"#ffe789\" stroke-width=\"3\"/><path d=\"M32 5 29 16 36 21 33 30 41 17Z\" fill=\"#ffe079\"/><path d=\"M8 20 15 28 7 35M54 19 47 28 57 34\" stroke=\"#d5b7ff\" stroke-width=\"3\" fill=\"none\"/>","<path d=\"M6 55 13 39 21 43 42 43 53 39 60 55Z\" fill=\"#3c8470\"/><path d=\"M14 15 25 7 43 9 51 18 46 30 17 30Z\" fill=\"#48786e\"/><path d=\"M19 25Q31 16 45 25L42 42 22 42Z\" fill=\"#c4a485\"/><path d=\"M17 29 46 29 45 36 18 36Z\" fill=\"#6e4e3b\"/><circle cx=\"25\" cy=\"32\" r=\"5\" fill=\"#a3f9d2\" stroke=\"#e7fff4\" stroke-width=\"2\"/><circle cx=\"39\" cy=\"32\" r=\"5\" fill=\"#a3f9d2\" stroke=\"#e7fff4\" stroke-width=\"2\"/><path d=\"M30 32h4\" stroke=\"#c5ffdd\" stroke-width=\"2\"/><path d=\"M49 44 53 24 57 44Z\" fill=\"#74f1ba\"/>","<path d=\"M7 57 12 42 21 41 32 50 44 41 53 43 58 57Z\" fill=\"#477c55\"/><path d=\"M11 30Q12 7 32 6Q52 7 53 30L43 24 35 14 22 23Z\" fill=\"#315f48\" stroke=\"#a5d6a0\" stroke-width=\"2\"/><path d=\"M22 27 41 27 40 42 24 42Z\" fill=\"#d7a985\"/><path d=\"M24 32h4m8 0h4\" stroke=\"#3d3430\" stroke-width=\"2.5\"/><path d=\"M8 49 18 22M11 35 27 35\" stroke=\"#cfa56c\" stroke-width=\"3\" fill=\"none\"/><path d=\"M7 22Q22 12 23 39\" stroke=\"#f4dc98\" stroke-width=\"2\" fill=\"none\"/>","<path d=\"M5 56 13 40 22 42 32 51 42 42 53 40 59 56Z\" fill=\"#ad6c43\"/><path d=\"M13 24 20 12 43 12 51 24 44 30 20 30Z\" fill=\"#9b4d35\" stroke=\"#e9be83\" stroke-width=\"2\"/><path d=\"M21 26 42 26 41 42 22 42Z\" fill=\"#cba37f\"/><path d=\"M17 29h30v7H17Z\" fill=\"#263a45\" stroke=\"#b6b9a2\" stroke-width=\"2\"/><path d=\"M25 32h5m5 0h5\" stroke=\"#f5dca1\" stroke-width=\"2\"/><path d=\"M50 9v38M44 15l6-6 6 6\" stroke=\"#d9bb7c\" stroke-width=\"3\" fill=\"none\"/>","<path d=\"M6 57 16 41 24 44 32 51 40 44 51 41 58 57Z\" fill=\"#3a7f9e\"/><path d=\"M17 26 22 12 32 4 42 12 47 26 39 22 32 13 25 22Z\" fill=\"#6ac8f1\" stroke=\"#e4ffff\" stroke-width=\"2\"/><path d=\"M22 26 42 26 40 41 24 41Z\" fill=\"#a8dce4\"/><path d=\"M25 30h4m6 0h4\" stroke=\"#1b5077\" stroke-width=\"2\"/><path d=\"M32 3 37 12 32 20 27 12Z\" fill=\"#e4ffff\"/><path d=\"M8 29 15 18 20 32 15 43Z M56 29 49 18 44 32 49 43Z\" fill=\"#74cfff\" stroke=\"#e5ffff\"/>","<path d=\"M5 56 14 41 22 45 32 50 42 45 50 41 59 56Z\" fill=\"#2c8e81\"/><path d=\"M9 28Q10 8 32 7Q54 8 55 28L45 24 32 14 19 24Z\" fill=\"#276d65\" stroke=\"#b3ffe2\" stroke-width=\"2\"/><path d=\"M22 27 42 27 40 42 24 42Z\" fill=\"#c1a2a0\"/><path d=\"M25 31h5m5 0h5\" stroke=\"#214c48\" stroke-width=\"2.5\"/><path d=\"M8 12Q1 31 15 43M56 12Q63 31 49 43\" stroke=\"#a4fce5\" stroke-width=\"3\" fill=\"none\"/><circle cx=\"32\" cy=\"7\" r=\"5\" fill=\"#b2f9dc\"/>","<path d=\"M6 57 15 40 24 44 32 49 40 44 49 40 58 57Z\" fill=\"#e4b65c\"/><path d=\"M17 29 20 15 32 6 44 15 47 29 42 38 22 38Z\" fill=\"#f2dba1\" stroke=\"#fff5c6\" stroke-width=\"2\"/><path d=\"M22 28h20l-2 13-16 0Z\" fill=\"#e2c1a1\"/><path d=\"M25 32h4m6 0h4\" stroke=\"#70533b\" stroke-width=\"2\"/><path d=\"M32 4v16m-8-8h16\" stroke=\"#fff9e5\" stroke-width=\"3\"/><path d=\"M8 25 15 20 18 35 10 42Z M56 25 49 20 46 35 54 42Z\" fill=\"#ffe7a4\"/>","<path d=\"M6 57 13 41 24 43 32 51 40 43 52 41 58 57Z\" fill=\"#667c8d\"/><path d=\"M15 24 20 9 44 9 49 24 43 31 21 31Z\" fill=\"#879da9\" stroke=\"#c7e6e8\" stroke-width=\"2\"/><path d=\"M20 27 44 27 41 42 23 42Z\" fill=\"#b4a89d\"/><path d=\"M18 29h28v8H18Z\" fill=\"#273b4d\" stroke=\"#9bd3df\" stroke-width=\"2\"/><circle cx=\"26\" cy=\"33\" r=\"3\" fill=\"#a7f4ff\"/><circle cx=\"38\" cy=\"33\" r=\"3\" fill=\"#a7f4ff\"/><path d=\"M49 13 56 19 50 27\" stroke=\"#d9f4f8\" stroke-width=\"3\" fill=\"none\"/>","<path d=\"M6 57 15 40 24 44 32 51 40 44 49 40 58 57Z\" fill=\"#58466e\"/><path d=\"M13 31Q13 7 32 5Q51 7 51 31L42 25 32 14 22 25Z\" fill=\"#47335d\" stroke=\"#c6a0ec\" stroke-width=\"2\"/><path d=\"M22 26 42 26 40 40 24 40Z\" fill=\"#b8a1b6\"/><path d=\"M21 30h22v8H21Z\" fill=\"#332341\"/><path d=\"M25 33h5m5 0h5\" stroke=\"#dfb5ff\" stroke-width=\"2\"/><path d=\"M23 42 32 48 41 42\" stroke=\"#e1d5df\" stroke-width=\"2\" fill=\"none\"/><path d=\"M8 19 15 11 20 25M56 19 49 11 44 25\" stroke=\"#9e70c4\" stroke-width=\"3\" fill=\"none\"/>","<path d=\"M5 57 12 39 22 43 32 50 42 43 52 39 59 57Z\" fill=\"#52799b\"/><path d=\"M14 25 20 10 32 5 44 10 50 25 44 30 20 30Z\" fill=\"#91a9bc\" stroke=\"#f1faff\" stroke-width=\"2\"/><path d=\"M20 26 44 26 42 42 22 42Z\" fill=\"#bdc9c6\"/><path d=\"M19 30h26v9H19Z\" fill=\"#394d5d\" stroke=\"#b5d2e6\" stroke-width=\"2\"/><path d=\"M26 33h4m4 0h4\" stroke=\"#d7f5ff\" stroke-width=\"2\"/><path d=\"M32 8v16m-7-9h14\" stroke=\"#f3faff\" stroke-width=\"3\"/><path d=\"M8 40 13 29 19 42M56 40 51 29 45 42\" fill=\"#a9c6d8\" stroke=\"#e5f3ff\"/>"];
-const HERO_IMAGE_FILES=["pyromancer","frost-keeper","thunderlord","alchemist-new","huntress-new","crossbowman","crystalmancer","shaman-new","priestess","mechanic-new","necromancer","guardian"];
-function heroArt(i){return '<span class="hero-painted" role="img" aria-label="'+HEROES[i].name+'" style="--hero-art:url(./assets/heroes/'+HERO_IMAGE_FILES[i]+'.jpg?v=89),url(./assets/heroes/'+HERO_IMAGE_FILES[i]+'.svg?v=88)"></span>'}
-const START=[0,1,2,3,4],defaultState=()=>({wave:1,hp:20,coins:500,gems:50,mana:160,deck:[...START],unlocked:[...START,5,6,7],board:Array(15).fill(null),upgrade:0,wins:0,kills:0,highest:1});
-let d=defaultState();try{const raw=localStorage.getItem(KEY);if(raw){const p=JSON.parse(raw);if(p&&Array.isArray(p.board)&&p.board.length===15){d={...d,...p};d.deck=Array.isArray(p.deck)&&p.deck.length===5?p.deck:[...START];d.unlocked=Array.isArray(p.unlocked)?p.unlocked:[...START,5,6,7];d.board=p.board.map(x=>x&&Number.isInteger(x.hero)&&x.hero>=0&&x.hero<HEROES.length&&x.rank>=1&&x.rank<=7?{hero:x.hero,rank:x.rank}:null)}}}catch(e){console.warn('Preview save unavailable',e)}
-const CLOUD_API='https://merge.89-23-115-251.sslip.io/api/cloud/save';
-const vkLaunchParams=location.search.replace(/^\\?/,'');
-const cloud={enabled:!!(new URLSearchParams(vkLaunchParams).get('vk_user_id')&&new URLSearchParams(vkLaunchParams).get('vk_app_id')),ready:false,loading:false,saving:false,dirty:false,revision:0,timer:null};
-function cloudSnapshot(){
- const deck=Array.isArray(d.deck)&&d.deck.length===5?[...d.deck]:[...START];
- const unlocked=Array.isArray(d.unlocked)?[...new Set(d.unlocked.filter(x=>Number.isInteger(x)&&x>=0&&x<12))]:[...START,5,6,7];
- for(const id of deck)if(!unlocked.includes(id))unlocked.push(id);
- return {gameVersion:89,state:{wave:d.wave,hp:d.hp,coins:d.coins,gems:d.gems,mana:d.mana,deck,unlocked,board:Array.isArray(d.board)?d.board.slice(0,15).map(x=>x&&Number.isInteger(x.hero)&&Number.isInteger(x.rank)?{hero:x.hero,rank:x.rank}:null):Array(15).fill(null),upgrade:d.upgrade,wins:d.wins,kills:d.kills,highest:d.highest}};
+var heroes=[
+ ['Пиромант','Маг','Огонь','pyromancer',55],
+ ['Хранитель льда','Маг','Лёд','frost-keeper',52],
+ ['Громовержец','Маг','Гроза','thunderlord',58],
+ ['Алхимик','Поддержка','Природа','alchemist-new',41],
+ ['Охотница','Лучник','Природа','huntress-new',49],
+ ['Арбалетчик','Лучник','Огонь','crossbowman',48],
+ ['Кристалломант','Маг','Свет','crystalmancer',65],
+ ['Шаман','Поддержка','Природа','shaman-new',44],
+ ['Жрица','Поддержка','Свет','priestess',39],
+ ['Механик','Воин','Огонь','mechanic-new',46],
+ ['Некромант','Маг','Тьма','necromancer',68],
+ ['Страж','Танк','Свет','guardian',59]
+];
+var journeys=[
+ {n:'Лесные тропы',ic:'🌲',duration:120000,food:25,power:70,reward:[120,75,35,0,10]},
+ {n:'Горные шахты',ic:'⛰️',duration:360000,food:60,power:145,reward:[280,90,135,2,10]},
+ {n:'Древние руины',ic:'🏛️',duration:900000,food:120,power:250,reward:[550,120,120,12,0]}
+];
+var researches=[
+ ['Мастера добычи','+15% к производству всех ресурсов'],
+ ['Каменные стены','+20% к обороне королевства'],
+ ['Боевая подготовка','+15% к силе отряда'],
+ ['Магические потоки','+30% к производству кристаллов'],
+ ['Щедрые походы','+20% к наградам экспедиций']
+];
+var resource=['gold','wood','stone','crystal','food'],icons=['🪙','🪵','🪨','💎','🍖'];
+function fresh(){return {gold:650,wood:420,stone:380,crystal:45,food:180,castle:1,level:1,xp:0,energy:10,wins:0,defenses:0,bosses:0,days:0,updated:Date.now(),lastDaily:0,buildings:[{tile:12,type:0,level:1},{tile:7,type:1,level:1},{tile:11,type:4,level:1},{tile:13,type:3,level:1},{tile:17,type:2,level:1}],heroes:[{id:0,level:1,star:1},{id:1,level:1,star:1},{id:4,level:1,star:1}],squad:[0,1,4],zones:[0],research:[],expeditions:[],pendingDefense:0,lastDefense:Date.now(),claimed:[],dayStamp:''}}
+var s=fresh(),tab='city',selectTile=null,modalOpen=false,dirty=false,saving=false,cloudRev=0,cloudReady=false,cloudEnabled=false,cloudBusy=false,lastSave=0;
+try{var local=JSON.parse(localStorage.getItem(K)||'null');if(local&&local.castle&&Array.isArray(local.buildings)){s=Object.assign(fresh(),local)}}catch(e){}
+function esc(x){return String(x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function n(v){v=Math.floor(v);return v>=1e6?(v/1e6).toFixed(1)+'м':v>=1e4?(v/1e3).toFixed(1)+'к':String(v)}
+function now(){return Date.now()}
+function dateKey(){var d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+function contains(id){return s.buildings.some(function(b){return b.type===id})}
+function building(id){return s.buildings.find(function(b){return b.tile===id})}
+function ownedHero(id){return s.heroes.find(function(h){return h.id===id})}
+function zone(tile){var x=tile%5,y=Math.floor(tile/5);if(x>=1&&x<=3&&y>=1&&y<=3)return 0;if(y===0)return 1;if(x===4)return 2;if(y===4)return 3;return 4}
+function unlocked(tile){return s.zones.includes(zone(tile))}
+function rate(){var r=[0,0,0,0,0];s.buildings.forEach(function(b){var t=types[b.type];t.rate.forEach(function(v,i){r[i]+=v*(1+(b.level-1)*.72)})});var m=s.research.includes(0)?1.15:1;r=r.map(function(v,i){return v*m*(i===3&&s.research.includes(3)?1.3:1)});return r}
+function production(){var t=now(),minutes=Math.min(480,Math.max(0,(t-s.updated)/60000));if(minutes>=.012){var r=rate();resource.forEach(function(k,i){s[k]=Math.min(1e9,s[k]+r[i]*minutes)});s.updated=t}}
+function persist(){s.updated=now();try{localStorage.setItem(K,JSON.stringify(s))}catch(e){}dirty=true;lastSave=now();if(cloudReady&&!cloudBusy)clearTimeout(saveTimer),saveTimer=setTimeout(upload,1000)}
+var saveTimer=null;
+function notify(msg){var el=$('notice');el.textContent=msg;el.hidden=false;clearTimeout(notify.timer);notify.timer=setTimeout(function(){el.hidden=true},2600)}
+function affordable(cost){return cost.every(function(v,i){return s[resource[i]]>=v})}
+function pay(cost){if(!affordable(cost)){notify('Недостаточно ресурсов');return false}cost.forEach(function(v,i){s[resource[i]]-=v});return true}
+function price(cost,l){return cost.map(function(v){return Math.ceil(v*(1+Math.pow(l,1.4)*.65))})}
+function costText(c){return c.map(function(v,i){return v?icons[i]+' '+n(v):''}).filter(Boolean).join(' · ')}
+function power(){return s.squad.reduce(function(a,id){var h=ownedHero(id);return a+(h?Math.round(heroes[id][4]*(1+(h.level-1)*.28)*(1+(h.star-1)*.35)):0)},0)*(s.research.includes(2)?1.15:1)+(contains(14)?35:0)}
+function defense(){return Math.round(s.buildings.reduce(function(a,b){return a+(types[b.type].def||0)*b.level},25+s.castle*35)+(power()*.48))*(s.research.includes(1)?1.2:1)}
+function xp(v){s.xp+=v;while(s.xp>=s.level*90){s.xp-=s.level*90;s.level++;s.crystal+=3;notify('Новый уровень '+s.level+'! +3 💎')}}
+function transition(t){production();tab=t;render()}
+function heroPicture(id){return './assets/heroes/'+heroes[id][3]+'.jpg?v=89'}
+function clearModal(){$('modal').hidden=true;$('modal').innerHTML='';modalOpen=false}
+function showModal(title,description,body){modalOpen=true;$('modal').hidden=false;$('modal').innerHTML='<div class="sheet"><button class="close" data-action="close">✕</button><h2>'+title+'</h2><div class="description">'+description+'</div>'+body+'</div>'}
+function complete(){var t=now(),count=0;s.expeditions=s.expeditions.filter(function(e){if(t<e.ends)return true;var j=journeys[e.id],success=e.power>=j.power,reward=j.reward.map(function(v){return Math.floor(v*(success?1:.45)*(s.research.includes(4)?1.2:1))});resource.forEach(function(k,i){s[k]+=reward[i]});if(success){s.wins++;xp(25)}notify((success?'Победа: ':'Поход завершён: ')+j.n+' — награды получены');count++;return false});if(count)persist()}
+function daily(){var today=dateKey();if(s.dayStamp!==today){s.dayStamp=today;s.claimed=[];s.days++;s.energy=Math.min(10,s.energy+3);persist()}}
+function buildInfo(b){var type=types[b.type],c=price(type.cost,b.level);return '<div class="item"><div class="pic">'+type.ic+'</div><div class="details"><b>'+type.n+' · ур. '+b.level+'</b><small>'+type.d+'</small><small>Улучшение: '+costText(c)+'</small></div></div><button class="act orange" style="width:100%;margin-top:10px" data-action="upgrade" data-tile="'+b.tile+'" '+(!affordable(c)?'disabled':'')+'>⬆ Улучшить здание</button>'}
+function tileClick(tile){selectTile=tile;var z=zone(tile);if(!unlocked(tile)){var cost=[450+z*300,220+z*130,180+z*120,0];showModal('🔒 Закрытая территория','Открой новые земли для строительства. Требуется замок уровня '+(z+1)+'.','<p>'+costText(cost)+'</p><button class="act orange" data-action="unlock" data-id="'+z+'" '+(s.castle<z+1||!affordable(cost)?'disabled':'')+'>Открыть территорию</button>');return}var b=building(tile);if(b){showModal(types[b.type].ic+' '+types[b.type].n,'Управление зданием на карте.',buildInfo(b));return}showBuild(tile)}
+function showBuild(tile){var available=types.map(function(t,id){return {t:t,id:id}}).filter(function(o){return o.id!==0&&((o.id===5||o.id===7||o.id===8||o.id===11||o.id===13)?s.castle>=2:true)});
+showModal('🔨 Построить здание','Выбран свободный участок. Здания сразу появляются на карте.','<div class="list">'+available.map(function(o){var c=o.t.cost;return '<div class="item"><div class="pic">'+o.t.ic+'</div><div class="details"><b>'+o.t.n+'</b><small>'+o.t.d+'</small><small>'+costText(c)+'</small></div><button class="act" data-action="build" data-id="'+o.id+'" data-tile="'+tile+'" '+(!affordable(c)?'disabled':'')+'>Строить</button></div>'}).join('')+'</div>')}
+function cityMap(){var treeSeed=[[4,5,'🌲'],[81,9,'🌳'],[4,67,'🌲'],[79,75,'🌲'],[22,82,'🌳'],[68,4,'🌲'],[5,33,'🌿'],[87,50,'🌲'],[41,5,'🌲']];
+var tiles='';for(var sum=0;sum<=8;sum++){for(var y=0;y<5;y++){var x=sum-y;if(x<0||x>4)continue;var id=y*5+x,b=building(id),locked=!unlocked(id),ico=b?types[b.type].ic:(locked?'🌲':'✦');var px=50+(x-y)*9.1,py=17+(x+y)*7.95;tiles+='<button class="tile '+(locked?'lock':b?'free':'empty')+(id===selectTile?' select':'')+'" style="left:'+px+'%;top:'+py+'%;z-index:'+(4+sum)+'" data-action="tile" data-tile="'+id+'" aria-label="'+(b?types[b.type].n:'Участок '+id)+'"><span class="ground"></span><span class="building-icon">'+ico+'</span>'+(b?'<span class="level-bubble">'+b.level+'</span>':locked?'<span class="lock-bubble">🔒</span>':'')+'</button>'}}
+return '<div class="world"><div class="mount a">⛰️</div><div class="mount b">🏔️</div><div class="river"></div><div class="world-ground"></div><div class="city-glow"></div><div class="forest">'+treeSeed.map(function(t){return '<span class="tree" style="left:'+t[0]+'%;top:'+t[1]+'%">'+t[2]+'</span>'}).join('')+'</div>'+tiles+'<div class="world-caption"><span>🏰 Замок · '+s.castle+' ур.</span><span>⚔️ Защита '+n(defense())+'</span></div></div>'}
+function city(){return '<div class="hero-banner"><div><div class="section-title">МОЁ КОРОЛЕВСТВО</div><small>Коснись участка, чтобы строить и улучшать</small></div><button class="mini gold" data-action="castle">⬆ Замок '+s.castle+'</button></div>'+cityMap()+'<div class="action-rail"><button class="quick" data-tab="heroes"><span>🛡️</span>Герои</button><button class="quick" data-tab="quests"><span>📜</span>Задания</button><button class="quick" data-action="collect"><span>🪙</span>Доход</button><button class="quick" data-action="research"><span>🔬</span>Наука</button></div><div class="panel"><div class="panelhead"><b class="section-title">⚒️ ПРОИЗВОДСТВО</b><span class="pill">Ресурсы / мин</span></div><div class="chipline">'+rate().map(function(r,i){return '<span class="chip">'+icons[i]+' +'+(r<1?r.toFixed(1):Math.round(r))+'</span>'}).join('')+'</div><p>Здания производят ресурсы даже когда ты не в игре. Офлайн-доход начисляется максимум за 8 часов.</p></div>'+questSummary()}
+function questSummary(){return '<div class="panel"><div class="panelhead"><b class="section-title">🎯 БЛИЖАЙШИЕ ЦЕЛИ</b><button class="mini" data-tab="quests">Все задания</button></div><p>Развивай замок, открывай территории, набирай героев и отправляй отряд в походы.</p><div class="stats"><div class="statbox"><b>'+s.buildings.length+'</b><small>Построек</small></div><div class="statbox"><b>'+s.heroes.length+'/12</b><small>Героев</small></div><div class="statbox"><b>'+s.zones.length+'/5</b><small>Территорий</small></div></div></div>'}
+function heroTab(){var cards=heroes.map(function(h,id){var own=ownedHero(id),inSquad=s.squad.includes(id),p=own?price([90,25,25,0],own.level):null;
+return '<div class="herocard">'+(inSquad?'<span class="squadmark">В отряде</span>':'')+'<img class="portrait" loading="lazy" src="'+heroPicture(id)+'" alt="'+h[0]+'"><div class="heroinfo"><b>'+h[0]+'</b><small>'+h[1]+' · '+h[2]+'</small><small>'+(own?'Уровень '+own.level+' · ⭐ '+own.star:'Не получен')+'</small>'+(own?'<button class="act" data-action="squad" data-id="'+id+'">'+(inSquad?'Убрать из отряда':'В отряд')+'</button><button class="act orange" data-action="heroUp" data-id="'+id+'" '+(!affordable(p)?'disabled':'')+'>Улучшить · '+costText(p)+'</button>':'<button class="act" data-action="hire" data-id="'+id+'" '+(!affordable([0,0,0,25+id*5,0])?'disabled':'')+'>Призвать · 💎 '+(25+id*5)+'</button>')+'</div></div>'}).join('');
+return '<div class="hero-banner"><div><div class="section-title">ГЕРОИ КОРОЛЕВСТВА</div><small>Собирай отряд до 5 героев</small></div><span class="pill">⚔️ '+n(power())+' силы</span></div><div class="panel"><div class="panelhead"><b>Отряд '+s.squad.length+'/5</b><span class="muted">Герои усиливают оборону и походы</span></div><div class="chipline">'+(s.squad.length?s.squad.map(function(id){return '<span class="chip">'+heroes[id][0]+'</span>'}).join(''):'Выбери героев ниже')+'</div></div><div class="panel"><div class="hero-grid">'+cards+'</div></div>'}
+function journeyTab(){complete();return '<div class="hero-banner"><div><div class="section-title">ПОХОДЫ И ЭКСПЕДИЦИИ</div><small>Герои добывают ресурсы и сокровища</small></div><span class="pill">⚔️ '+n(power())+'</span></div><div class="panel"><div class="panelhead"><b class="section-title">🧭 АКТИВНЫЕ ПОХОДЫ</b><span class="pill">'+s.expeditions.length+'/2</span></div>'+(s.expeditions.length?s.expeditions.map(function(e){var j=journeys[e.id],left=Math.max(0,Math.ceil((e.ends-now())/1000));return '<div class="item"><div class="pic">'+j.ic+'</div><div class="details"><b>'+j.n+'</b><small>Вернутся через '+Math.floor(left/60)+'м '+left%60+'с</small><div class="bar"><i style="width:'+Math.max(1,100-left/(j.duration/1000)*100)+'%"></i></div></div></div>'}).join(''):'<div class="empty-note">Отряды сейчас отдыхают в замке</div>')+'</div><div class="panel"><div class="panelhead"><b class="section-title">🗺️ ВЫБЕРИ НАПРАВЛЕНИЕ</b></div><div class="list">'+journeys.map(function(j,id){var can=s.expeditions.length<2&&s.food>=j.food&&s.squad.length&&power()>=Math.round(j.power*.6);return '<div class="item"><div class="pic">'+j.ic+'</div><div class="details"><b>'+j.n+'</b><small>Длительность '+Math.round(j.duration/60000)+' мин · 🍖 '+j.food+'</small><small>Рекомендуемая сила '+j.power+' · Награда: '+costText(j.reward)+'</small></div><button class="act green" data-action="journey" data-id="'+id+'" '+(!can?'disabled':'')+'>В поход</button></div>'}).join('')+'</div></div><div class="panel"><b class="section-title">🐉 БОССЫ РУИН</b><p>Сражайся с древними чудовищами за кристаллы и опыт героев.</p><button class="act orange" style="width:100%" data-action="boss">Сразиться с боссом · 🍖 60</button></div>'}
+function defenseTab(){var threat=125+s.defenses*42+s.castle*32,p=defense();return '<div class="hero-banner"><div><div class="section-title">ОБОРОНА КОРОЛЕВСТВА</div><small>Готовь башни и героев к нападению</small></div><span class="pill">🛡️ '+n(p)+'</span></div><div class="panel"><div class="panelhead"><b class="section-title">⚔️ НАБЕГ МОНСТРОВ</b><span class="pill">Угроза '+n(threat)+'</span></div><div class="bar"><i style="width:'+Math.min(100,p/threat*100)+'%"></i></div><p>Твоя защита: <b class="strong">'+n(p)+'</b>. Сила нападающих: <b>'+n(threat)+'</b>. Башни и подготовленные герои определяют исход боя.</p><button class="act orange" style="width:100%;padding:13px" data-action="defend">⚔️ Отразить нападение · 🍖 30</button></div><div class="panel"><div class="panelhead"><b class="section-title">🛡️ УКРЕПЛЕНИЯ</b><button class="mini" data-tab="city">На карту</button></div><div class="list">'+s.buildings.filter(function(b){return types[b.type].def}).map(function(b){return '<div class="item"><span class="pic">'+types[b.type].ic+'</span><div class="details"><b>'+types[b.type].n+'</b><small>Уровень '+b.level+' · +'+types[b.type].def*b.level+' защиты</small></div></div>'}).join('')+'</div>'+(s.buildings.some(function(b){return types[b.type].def})?'':'<p>Построй оборонительную башню на карте королевства.</p>')+'</div><div class="panel"><div class="stats"><div class="statbox"><b>'+s.defenses+'</b><small>Защит</small></div><div class="statbox"><b>'+s.wins+'</b><small>Побед</small></div><div class="statbox"><b>'+s.bosses+'</b><small>Боссов</small></div></div></div>'}
+var questList=[['builder','Строитель','Построй не менее 7 зданий',function(){return s.buildings.length>=7},[180,120,80,0,0]],['castle','Владыка','Улучши замок до уровня 2',function(){return s.castle>=2},[300,100,150,6,0]],['army','Сильный отряд','Увеличь силу отряда до 250',function(){return power()>=250},[260,0,60,8,0]],['war','Защитник','Отрази хотя бы один набег',function(){return s.defenses>=1},[280,100,100,5,0]],['explore','Исследователь','Открой вторую территорию',function(){return s.zones.length>=2},[250,140,140,6,0]],['hero','Коллекционер','Собери минимум 5 героев',function(){return s.heroes.length>=5},[400,0,0,8,60]]];
+function questsTab(){return '<div class="hero-banner"><div><div class="section-title">ЗАДАНИЯ И НАГРАДЫ</div><small>Достигай целей и развивай своё королевство</small></div></div><div class="panel"><div class="panelhead"><b class="section-title">🎁 ЕЖЕДНЕВНЫЙ ПОДАРОК</b></div><p>Подарок доступен один раз в день.</p><button class="act orange" data-action="daily" '+(s.lastDaily===s.dayStamp?'disabled':'')+'>Получить · 🪙 180 · 🪵 80 · 💎 3</button></div><div class="panel"><div class="panelhead"><b class="section-title">📜 ЗАДАНИЯ КОРОЛЕВСТВА</b></div><div class="list">'+questList.map(function(q){var done=q[3](),claimed=s.claimed.includes(q[0]);return '<div class="item"><span class="pic">'+(claimed?'✅':done?'🎁':'📜')+'</span><div class="details"><b>'+q[1]+'</b><small>'+q[2]+'</small><small>'+costText(q[4])+'</small></div><button class="act" data-action="claim" data-id="'+q[0]+'" '+(!done||claimed?'disabled':'')+'>'+(claimed?'Получено':done?'Забрать':'В пути')+'</button></div>'}).join('')+'</div></div><div class="panel"><b class="section-title">👑 ДОСТИЖЕНИЯ</b><div class="stats"><div class="statbox"><b>'+s.level+'</b><small>Уровень</small></div><div class="statbox"><b>'+s.days+'</b><small>Дней в игре</small></div><div class="statbox"><b>'+s.zones.length+'</b><small>Зон открыто</small></div></div></div>'}
+function shopTab(){return '<div class="hero-banner"><div><div class="section-title">РЫНОК И КОРОЛЕВСКАЯ ЛАВКА</div><small>Обмен материалов и украшения</small></div></div><div class="panel"><b class="section-title">⚖️ ОБМЕН РЕСУРСОВ</b><p>Торговля происходит за внутриигровую валюту. Реальные платежи здесь не включены.</p><div class="list">'+[[150,0,100,0,0],[140,100,0,0,0],[100,0,0,0,90],[280,0,0,3,0]].map(function(c,i){return '<div class="item"><span class="pic">'+icons[(i+1)%5]+'</span><div class="details"><b>'+['Купить дерево','Купить камень','Купить провизию','Купить кристаллы'][i]+'</b><small>За 🪙 '+c[0]+' · +' +(i===0?'100 🪵':i===1?'100 🪨':i===2?'90 🍖':'3 💎')+'</small></div><button class="act" data-action="trade" data-id="'+i+'" '+(s.gold<c[0]?'disabled':'')+'>Обмен</button></div>'}).join('')+'</div></div><div class="panel"><b class="section-title">✨ ДЕКОР КОРОЛЕВСТВА</b><p>Магические фонтаны можно размещать на свободных участках карты. Они немного усиливают оборону.</p><button class="act" data-tab="city">Перейти к строительству</button></div><div class="panel"><b class="section-title">🔒 ДОНАТ</b><p>В этой версии покупки за реальные деньги отключены. Существующие платёжные настройки старой игры не перенесены.</p></div>'}
+function full(){return '<header class="top"><div class="identity"><div class="crest">👑</div><div><strong>ЛЕГЕНДЫ БАШЕН</strong><div class="subtitle">КОРОЛЕВСТВА · НОВАЯ ЭРА 1.0</div></div><div class="level">⭐ '+s.level+' ур.</div></div><div class="wallet">'+resource.map(function(k,i){return '<div class="res"><span>'+icons[i]+'</span><b id="res-'+k+'">'+n(s[k])+'</b></div>'}).join('')+'</div></header><main>'+({city:city,heroes:heroTab,journeys:journeyTab,defense:defenseTab,quests:questsTab,shop:shopTab}[tab]||city)()+'</main><nav class="nav">'+[['city','🏰','Город'],['heroes','🦸','Герои'],['journeys','🧭','Походы'],['defense','🛡️','Оборона'],['shop','⚖️','Магазин']].map(function(x){return '<button class="'+(tab===x[0]?'on':'')+'" data-tab="'+x[0]+'"><span>'+x[1]+'</span>'+x[2]+'</button>'}).join('')+'</nav>'}
+function render(){if(!modalOpen)$('app').innerHTML=full();else{resource.forEach(function(k){var el=$('res-'+k);if(el)el.textContent=n(s[k])})}}
+function upgrade(tile){var b=building(tile);if(!b)return;var cost=price(types[b.type].cost,b.level);if(!pay(cost))return;b.level++;if(b.type===0)s.castle=b.level;xp(20+b.level*10);persist();clearModal();render();notify(types[b.type].n+' улучшено до уровня '+b.level)}
+function researchModal(){if(!contains(11)){notify('Сначала построй Академию');return}showModal('📜 Древо исследований','Каждую технологию можно изучить один раз.','<div class="list">'+researches.map(function(r,i){var cost=[180+i*110,90+i*55,90+i*65,4+i*3,0];return '<div class="item"><div class="pic">🔬</div><div class="details"><b>'+r[0]+'</b><small>'+r[1]+'</small><small>'+costText(cost)+'</small></div><button class="act" data-action="study" data-id="'+i+'" '+(s.research.includes(i)||!affordable(cost)?'disabled':'')+'>'+(s.research.includes(i)?'Изучено':'Изучить')+'</button></div>'}).join('')+'</div>')}
+function action(el){var a=el.dataset.action,id=Number(el.dataset.id),tile=Number(el.dataset.tile);if(a==='close'){clearModal();return}if(a==='tile'){tileClick(tile);return}if(a==='castle'){var b=building(12);if(b)showModal('🏰 Королевский замок','Главная постройка открывает новые области и магические здания.',buildInfo(b));return}if(a==='build'){if(building(tile)||!unlocked(tile))return;var typ=types[id];if(!typ||id===0)return;if(!pay(typ.cost))return;s.buildings.push({tile:tile,type:id,level:1});xp(18);persist();clearModal();render();notify('Построено: '+typ.n);return}if(a==='upgrade'){upgrade(tile);return}if(a==='unlock'){var cost=[450+id*300,220+id*130,180+id*120,0];if(s.zones.includes(id)||s.castle<id+1||!pay(cost))return;s.zones.push(id);xp(60);persist();clearModal();render();notify('Открыта новая территория!');return}if(a==='collect'){production();persist();render();notify('Доход зданий начислен автоматически');return}if(a==='research'){researchModal();return}if(a==='study'){var cost=[180+id*110,90+id*55,90+id*65,4+id*3,0];if(!contains(11)||s.research.includes(id)||!pay(cost))return;s.research.push(id);xp(35);persist();clearModal();render();notify('Исследование завершено');return}
+if(a==='hire'){var cost=[0,0,0,25+id*5,0];if(ownedHero(id)||!pay(cost))return;s.heroes.push({id:id,level:1,star:1});if(s.squad.length<5)s.squad.push(id);xp(40);persist();render();notify('Герой вступил в королевство!');return}
+if(a==='heroUp'){var h=ownedHero(id);if(!h||h.level>=100)return;var cost=price([90,25,25,0],h.level);if(!pay(cost))return;h.level++;if(h.level%10===0&&h.star<5)h.star++;xp(10);persist();render();notify('Герой улучшен до '+h.level+' уровня');return}
+if(a==='squad'){if(!ownedHero(id))return;var p=s.squad.indexOf(id);if(p>=0){if(s.squad.length<=1){notify('В отряде нужен хотя бы один герой');return}s.squad.splice(p,1)}else{if(s.squad.length>=5){notify('В отряде максимум 5 героев');return}s.squad.push(id)}persist();render();return}
+if(a==='journey'){complete();var j=journeys[id];if(!j||s.expeditions.length>=2||!s.squad.length||power()<j.power*.6||s.food<j.food)return;s.food-=j.food;s.expeditions.push({id:id,ends:now()+j.duration,power:Math.round(power())});persist();render();notify('Отряд отправлен в поход!');return}
+if(a==='defend'){if(s.food<30){notify('Не хватает провизии');return}var enemy=125+s.defenses*42+s.castle*32,p=defense();s.food-=30;s.defenses++;var win=p>=enemy*(.8+Math.random()*.4);if(win){s.gold+=120+s.castle*55;s.wood+=45;s.stone+=35;s.wins++;xp(45);notify('🏆 Победа! Королевство защищено')}else{var loss=Math.min(s.gold,Math.round(45+s.castle*10));s.gold-=loss;xp(12);notify('⚔️ Нападение отбито с потерями: -'+loss+' 🪙')}persist();render();return}
+if(a==='boss'){if(s.food<60)return;var need=140+s.bosses*65,safe=power()>=need;s.food-=60;if(safe){s.bosses++;s.wins++;s.crystal+=12;s.gold+=240;xp(70);notify('🐉 Босс побеждён! +12 💎')}else{xp(10);notify('Босс слишком силён. Улучши героев')}persist();render();return}
+if(a==='daily'){if(s.lastDaily===s.dayStamp)return;s.lastDaily=s.dayStamp;s.gold+=180;s.wood+=80;s.crystal+=3;persist();render();notify('Ежедневная награда получена!');return}
+if(a==='claim'){var q=questList.find(function(q){return q[0]===el.dataset.id});if(!q||!q[3]()||s.claimed.includes(q[0]))return;q[4].forEach(function(v,i){s[resource[i]]+=v});s.claimed.push(q[0]);xp(35);persist();render();notify('Награда за задание получена!');return}
+if(a==='trade'){var prices=[150,140,100,280],gains=[[1,100],[2,100],[4,90],[3,3]];if(s.gold<prices[id])return;s.gold-=prices[id];s[resource[gains[id][0]]]+=gains[id][1];persist();render();notify('Обмен выполнен');return}
 }
-function validCloudState(x){
- return !!x&&x.gameVersion===89&&x.state&&Array.isArray(x.state.board)&&x.state.board.length===15&&Array.isArray(x.state.deck)&&x.state.deck.length===5&&Array.isArray(x.state.unlocked);
-}
-function applyCloudSave(x){
- if(!validCloudState(x))return false;
- const s=x.state;
- d={...d,...s,deck:[...s.deck],unlocked:[...s.unlocked],board:s.board.map(t=>t?{hero:t.hero,rank:t.rank}:null)};
- try{localStorage.setItem(KEY,JSON.stringify(d))}catch(e){console.warn('Local save unavailable',e)}
- hud();return true;
-}
-function cloudHeaders(){return {'Content-Type':'application/json','X-VK-Launch-Params':vkLaunchParams}}
-function queueCloudSave(){
- if(!cloud.enabled||!cloud.ready)return;
- cloud.dirty=true;
- if(cloud.timer)clearTimeout(cloud.timer);
- cloud.timer=setTimeout(pushCloudSave,1100);
-}
-async function pushCloudSave(){
- if(!cloud.enabled||!cloud.ready||cloud.saving||!cloud.dirty)return;
- cloud.saving=true;cloud.dirty=false;
- const sent=JSON.stringify(cloudSnapshot());
- try{
-  const response=await fetch(CLOUD_API,{method:'PUT',headers:cloudHeaders(),body:JSON.stringify({revision:cloud.revision,save:JSON.parse(sent)})});
-  const result=await response.json().catch(()=>({}));
-  if(response.status===409){
-   const latest=await fetch(CLOUD_API,{headers:cloudHeaders(),cache:'no-store'});
-   const remote=await latest.json();
-   cloud.revision=Number(remote.revision)||0;
-   if(validCloudState(remote.save)&&JSON.stringify(cloudSnapshot())===sent)applyCloudSave(remote.save);
-   else if(validCloudState(remote.save)&&JSON.stringify(cloudSnapshot())!==sent){cloud.dirty=true}
-   if(cloud.dirty)cloud.timer=setTimeout(pushCloudSave,500);
-  }else if(!response.ok)throw new Error(result.error||'CLOUD_SAVE_FAILED');
-  else{cloud.revision=Number(result.revision)||cloud.revision+1;if(JSON.stringify(cloudSnapshot())!==sent)queueCloudSave()}
- }catch(e){cloud.dirty=true;cloud.timer=setTimeout(pushCloudSave,5000);console.warn('Cloud save deferred',e)}
- finally{cloud.saving=false}
-}
-async function initCloudSave(){
- if(!cloud.enabled)return;
- cloud.loading=true;
- const localAtStart=JSON.stringify(cloudSnapshot());
- try{
-  const response=await fetch(CLOUD_API,{headers:cloudHeaders(),cache:'no-store'});
-  if(!response.ok)throw new Error('CLOUD_LOAD_'+response.status);
-  const remote=await response.json();
-  cloud.revision=Number(remote.revision)||0;
-  const localChanged=JSON.stringify(cloudSnapshot())!==localAtStart;
-  if(validCloudState(remote.save)&&!localChanged)applyCloudSave(remote.save);
-  cloud.ready=true;
-  if(!remote.save||localChanged)queueCloudSave();
-  toast('☁️ Облачное сохранение подключено');
- }catch(e){console.warn('Cloud save unavailable; local progress remains active',e);toast('💾 Локальное сохранение активно')}
- finally{cloud.loading=false}
-}
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(d))}catch(e){console.warn('Cannot save',e)}if(cloud.ready)queueCloudSave()};
-const canvas=$('field'),ctx=canvas.getContext('2d');let W=400,H=350,enemyId=0,enemies=[],shots=[],effects=[],floaters=[],running=false,spawned=0,waveTotal=0,spawnClock=0,selected=-1,speed=1,last=0,time=0,modal=false,spellCD={fire:0,freeze:0,shock:0},dragFrom=-1;
-const clamp=(n,a,b)=>Math.min(b,Math.max(a,n)),rand=(a,b)=>a+Math.random()*(b-a);
-function toast(t){$('hint').textContent=t}
-function open(title,html){modal=true;$('mtitle').textContent=title;$('mbody').innerHTML=html;$('shade').classList.remove('hide')}
-function close(){modal=false;$('shade').classList.add('hide')}
-$('mclose').onclick=close;$('mcloseTop').onclick=close;
-function resize(){const r=canvas.getBoundingClientRect(),pixel=Math.min(devicePixelRatio||1,2);W=Math.max(1,r.width);H=Math.max(1,r.height);canvas.width=Math.floor(W*pixel);canvas.height=Math.floor(H*pixel);ctx.setTransform(pixel,0,0,pixel,0,0)}
-window.addEventListener('resize',resize);
-// 9.8: smooth spline shared by stone road, enemies and projectiles.
-const TRACK_POINTS=[[.055,.20],[.87,.29],[.23,.53],[.83,.70],[.25,.88]];
-function pos(t){
- t=clamp(t,0,1);
- const index=Math.min(3,Math.floor(t*4)),u=Math.min(1,t*4-index);
- const p0=TRACK_POINTS[Math.max(0,index-1)],p1=TRACK_POINTS[index],
-       p2=TRACK_POINTS[index+1],p3=TRACK_POINTS[Math.min(4,index+2)];
- function cubic(k){const a=p1[k],b=p2[k],m0=(p2[k]-p0[k])*.38,m1=(p3[k]-p1[k])*.38;
-  return (2*u*u*u-3*u*u+1)*a+(u*u*u-2*u*u+u)*m0+(-2*u*u*u+3*u*u)*b+(u*u*u-u*u)*m1;}
- return {x:W*cubic(0),y:H*cubic(1)};
-}
-function path(){ctx.beginPath();for(let i=0;i<=130;i++){const p=pos(i/130);if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)}ctx.lineCap='round';ctx.lineJoin='round'}
-const arenaArt=new Image();let arenaArtReady=false;arenaArt.onload=()=>{arenaArtReady=true};arenaArt.onerror=()=>{arenaArtReady=false};arenaArt.src='./assets/fantasy-arena-v99.webp?v=99';
-// 9.6: purely visual ambience; no timers, randomness or saved-state changes
-
-// 10.0 — low-contrast atmospheric lens effects, independent of game state.
-function drawAtmosphere(){
- if(!arenaArtReady)return;
- const t=performance.now()*.001;
- ctx.save();
- const sources=[
-   [.815,.46,.055,'#9aeeff'],
-   [.13,.72,.042,'#ffcd75'],
-   [.88,.73,.043,'#ffbd59'],
-   [.54,.25,.05,'#b76dff']
- ];
- for(let i=0;i<sources.length;i++){
-  const [x,y,r,col]=sources[i],cx=x*W,cy=y*H,rad=r*W;
-  const pulse=.66+.18*Math.sin(t*1.4+i*2.1);
-  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,rad);
-  g.addColorStop(0,col+'63');g.addColorStop(1,col+'00');
-  ctx.globalAlpha=pulse;ctx.fillStyle=g;
-  ctx.beginPath();ctx.arc(cx,cy,rad,0,Math.PI*2);ctx.fill();
- }
- ctx.restore();
-}
-function drawSceneAmbience(){
-  if(!arenaArtReady)return;
-  const t=performance.now()/1000;
-  ctx.save();
-  // Subtle moving water highlights over the right-hand waterfall
-  ctx.beginPath();ctx.rect(W*.79,H*.2,W*.14,H*.66);ctx.clip();
-  for(let i=0;i<7;i++){
-    const shift=(t*(22+i*4)+i*31)%(H*.82);
-    ctx.globalAlpha=.11+Math.sin(t*1.5+i)*.04;
-    ctx.strokeStyle=i%2?'#a7efff':'#e7ffff';
-    ctx.lineWidth=1+i%3;
-    ctx.beginPath();
-    const xx=W*(.827+.01*Math.sin(t*.9+i));
-    ctx.moveTo(xx,H*.16+shift-H*.08);ctx.lineTo(xx+W*.012,H*.21+shift);
-    ctx.stroke();
-  }
-  ctx.restore();
-  // Fireflies and crystal motes remain behind the combat actors
-  ctx.save();
-  for(let i=0;i<16;i++){
-    const ax=((i*73+39)%349)/349;
-    const ay=((i*61+27)%211)/211;
-    const x=W*(.035+ax*.93)+Math.sin(t*(.55+i*.07)+i)*3;
-    const y=H*(.17+ay*.72)+Math.cos(t*(.75+i*.08)+i)*3;
-    const alpha=.22+.24*(.5+.5*Math.sin(t*1.4+i*2.1));
-    ctx.globalAlpha=alpha;
-    ctx.fillStyle=i%3===0?'#ffc97a':i%3===1?'#ecb9ff':'#8df6ed';
-    ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=5;
-    ctx.beginPath();ctx.arc(x,y,i%5===0?1.8:1.1,0,Math.PI*2);ctx.fill();
-  }
-  ctx.restore();
-}
-function draw(){ctx.clearRect(0,0,W,H);if(arenaArtReady){ctx.drawImage(arenaArt,0,0,W,H)}else{const bg=ctx.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#191435');bg.addColorStop(1,'#19495a');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H)}
-drawSceneAmbience();drawAtmosphere();
-const roadW=clamp(W*.039,12,21);
-ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
-ctx.shadowColor='#0c0b25';ctx.shadowBlur=11;ctx.shadowOffsetY=4;
-path();ctx.strokeStyle='#19223b';ctx.lineWidth=roadW+8;ctx.stroke();
-ctx.shadowBlur=0;ctx.shadowOffsetY=0;
-path();ctx.strokeStyle='#726d8b';ctx.lineWidth=roadW+4;ctx.stroke();
-path();ctx.strokeStyle='#bca19a';ctx.lineWidth=roadW+1;ctx.stroke();
-const stoneGradient=ctx.createLinearGradient(0,0,0,H);
-stoneGradient.addColorStop(0,'#f4d9a8');stoneGradient.addColorStop(.48,'#dbc29f');stoneGradient.addColorStop(1,'#c9ae91');
-path();ctx.strokeStyle=stoneGradient;ctx.lineWidth=roadW-3;ctx.stroke();
-// Fine stone seams along the existing gameplay route, without broad stripes.
-ctx.save();ctx.globalAlpha=.38;ctx.strokeStyle='#8d7365';ctx.lineWidth=.72;
-for(let i=2;i<73;i++){
- const t=i/73,p=pos(t),p0=pos(Math.max(0,t-.001)),p1=pos(Math.min(1,t+.001));
- const dx=p1.x-p0.x,dy=p1.y-p0.y,dist=Math.hypot(dx,dy)||1,nx=-dy/dist,ny=dx/dist;
- const half=Math.max(2,(roadW-5)*.43);
- ctx.beginPath();
- ctx.moveTo(p.x-nx*half,p.y-ny*half);
- ctx.lineTo(p.x+nx*half,p.y+ny*half);
- ctx.stroke();
-}
-ctx.restore();
-// Inner road highlights and irregular small masonry details.
-ctx.save();ctx.globalAlpha=.24;ctx.strokeStyle='#fff8d2';ctx.lineWidth=1.1;
-for(let i=4;i<85;i+=3){
- const t=i/85,p=pos(t),p0=pos(Math.max(0,t-.002)),p1=pos(Math.min(1,t+.002));
- const dx=p1.x-p0.x,dy=p1.y-p0.y,dist=Math.hypot(dx,dy)||1,nx=-dy/dist,ny=dx/dist;
- const side=i%2?1:-1;
- ctx.beginPath();ctx.moveTo(p.x+nx*side*roadW*.25,p.y+ny*side*roadW*.25);
- ctx.lineTo(p.x+nx*side*roadW*.38+dx/dist*3,p.y+ny*side*roadW*.38+dy/dist*3);ctx.stroke();
-}
-ctx.restore();ctx.restore();
-for(const e of enemies){const p=pos(e.t),r=e.boss?19:e.elite?13:10;ctx.save();ctx.translate(p.x,p.y);ctx.shadowColor=e.boss?'#ff8b7b':'#3e1526';ctx.shadowBlur=e.boss?17:6;ctx.fillStyle=e.boss?'#82385e':e.kind==='runner'?'#b66a51':e.kind==='armored'?'#556b86':'#714b74';ctx.strokeStyle=e.boss?'#ffd48e':'#f3bb9e';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,r,0,7);ctx.fill();ctx.stroke();ctx.shadowBlur=0;ctx.save();ctx.rotate(Math.sin(performance.now()/230+e.t*15)*.055);ctx.fillStyle=e.boss?'#f7d7a4':e.kind==='armored'?'#c4d8e5':'#e9cbb4';ctx.strokeStyle='#263448';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-r*.65,-r*.2);ctx.lineTo(-r*.44,-r*.88);ctx.lineTo(0,-r*.54);ctx.lineTo(r*.44,-r*.88);ctx.lineTo(r*.65,-r*.2);ctx.lineTo(r*.48,r*.56);ctx.lineTo(0,r*.85);ctx.lineTo(-r*.48,r*.56);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle=e.boss?'#a6294d':e.kind==='runner'?'#cc6c37':'#455b79';ctx.beginPath();ctx.moveTo(-r*.65,-r*.2);ctx.lineTo(0,-r*.8);ctx.lineTo(r*.65,-r*.2);ctx.lineTo(r*.38,r*.05);ctx.lineTo(-r*.38,r*.05);ctx.closePath();ctx.fill();ctx.fillStyle='#1b2432';ctx.beginPath();ctx.ellipse(-r*.22,r*.04,r*.12,r*.14,0,0,7);ctx.ellipse(r*.22,r*.04,r*.12,r*.14,0,0,7);ctx.fill();ctx.fillStyle='#ffba63';ctx.beginPath();ctx.arc(-r*.22,r*.03,r*.055,0,7);ctx.arc(r*.22,r*.03,r*.055,0,7);ctx.fill();if(e.boss){ctx.strokeStyle='#ffcf8c';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-r*.45,-r*.6);ctx.lineTo(-r*.8,-r*1.25);ctx.lineTo(-r*.05,-r*.85);ctx.moveTo(r*.45,-r*.6);ctx.lineTo(r*.8,-r*1.25);ctx.lineTo(r*.05,-r*.85);ctx.stroke()}if(e.kind==='armored'){ctx.strokeStyle='#a7d9eb';ctx.lineWidth=2;ctx.strokeRect(-r*.4,-r*.36,r*.8,r*.72)}ctx.restore();ctx.fillStyle='#401e30';ctx.fillRect(-r,-r-10,r*2,4);ctx.fillStyle=e.boss?'#ffbc7a':'#a9f1be';ctx.fillRect(-r,-r-10,r*2*clamp(e.hp/e.max,0,1),4);ctx.restore()}
-for(const s of shots){const t=clamp(1-s.life/s.max,0,1),x=s.x+(s.tx-s.x)*t,y=s.y+(s.ty-s.y)*t;ctx.strokeStyle=s.color;ctx.globalAlpha=.35;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(x,y);ctx.stroke();ctx.globalAlpha=1;ctx.fillStyle=s.color;ctx.shadowColor=s.color;ctx.shadowBlur=13;ctx.beginPath();ctx.arc(x,y,4.5,0,7);ctx.fill();ctx.shadowBlur=0}
-for(const p of effects){ctx.globalAlpha=clamp(p.life/.5,0,1);ctx.strokeStyle=p.color;ctx.lineWidth=3;ctx.beginPath();ctx.arc(p.x,p.y,p.radius*(1-p.life/.5),0,7);ctx.stroke()}ctx.globalAlpha=1;
-ctx.save();ctx.font='900 11px system-ui';ctx.textAlign='center';
-for(const f of floaters){const a=clamp(f.life/f.max,0,1),fy=f.y-(1-a)*22;ctx.globalAlpha=a;ctx.strokeStyle='#0d0921';ctx.lineWidth=3;ctx.fillStyle=f.color;ctx.strokeText(f.value,f.x,fy);ctx.fillText(f.value,f.x,fy)}
-ctx.restore();
-ctx.fillStyle='#140b30e6';ctx.beginPath();ctx.roundRect(8,8,Math.min(W-16,226),27,8);ctx.fill();ctx.strokeStyle='#a05aff';ctx.lineWidth=1;ctx.stroke();ctx.font='bold 12px system-ui';ctx.fillStyle='#fff0cf';ctx.fillText(running?'⚔️ Бой · '+(waveTotal-spawned+enemies.length)+' осталось':'🛡️ Подготовка к волне',18,26)}
-function renderBoard(){const el=$('board');el.innerHTML='';for(let i=0;i<15;i++){const t=d.board[i],node=document.createElement('div');node.className='cell'+(!t?' empty':'')+(selected===i?' selected':'')+(selected>=0&&t&&d.board[selected]&&i!==selected&&t.hero===d.board[selected].hero&&t.rank===d.board[selected].rank?' match':'');node.dataset.slot=i;if(t){const h=HEROES[t.hero];node.style.setProperty('--shine',h.color);node.innerHTML='<div class="unit" style="--shine:'+h.color+'">'+heroArt(t.hero)+'<span class="rank">'+t.rank+'</span>'+(t.rank>=4?'<small>★</small>':'')+'</div>'}node.onclick=()=>clickCell(i);node.addEventListener('pointerdown',e=>{dragFrom=i;node.classList.add('dragging')});el.append(node)}}
-let ignoreNextClick=false;document.addEventListener('pointerup',e=>{if(dragFrom<0)return;const from=dragFrom;dragFrom=-1;const target=document.elementFromPoint(e.clientX,e.clientY)?.closest?.('[data-slot]');if(target&&Number(target.dataset.slot)!==from){selected=from;clickCell(Number(target.dataset.slot));ignoreNextClick=true;setTimeout(()=>ignoreNextClick=false,0)}document.querySelectorAll('.cell.dragging').forEach(n=>n.classList.remove('dragging'))});function clickCell(i){if(ignoreNextClick)return;const t=d.board[i];if(selected<0){if(t){selected=i;const h=HEROES[t.hero];toast(h.icon+' '+h.name+' · ранг '+t.rank+' · '+h.role+' — выбери место или такого же героя')}else toast('Сначала выбери башню');renderBoard();return}
-if(i===selected){selected=-1;renderBoard();return}
-const from=d.board[selected];if(!from){selected=-1;renderBoard();return}
-if(!t){d.board[i]=from;d.board[selected]=null;toast('Башня перемещена')}
-else if(t.hero===from.hero&&t.rank===from.rank&&t.rank<7){const next=t.hero;d.board[i]={hero:next,rank:t.rank+1};d.board[selected]=null;effects.push({x:W*(.13+(i%5)*.185),y:H*.72,life:.5,radius:90,color:HEROES[next].color});toast('✨ '+HEROES[next].name+' усилен до ранга '+(t.rank+1))}
-else{selected=i;toast('Для слияния нужны одинаковые персонажи и ранги');renderBoard();return}
-selected=-1;save();hud()}
-function summon(){const free=d.board.map((t,i)=>t?-1:i).filter(i=>i>=0),cost=40+Math.floor(d.board.filter(Boolean).length/3)*20;if(!free.length){toast('Поле заполнено — объединяй башни');return}if(d.mana<cost){toast('Недостаточно маны');return}d.mana-=cost;const hero=d.deck[Math.floor(Math.random()*d.deck.length)],slot=free[Math.floor(Math.random()*free.length)];d.board[slot]={hero,rank:1};if(hero===8)d.mana+=20;save();hud();toast('✨ Призван '+HEROES[hero].name)}
-function begin(){if(running||modal)return;if(!d.board.some(Boolean)){toast('Призови хотя бы одного героя');return}running=true;spawned=0;spawnClock=0;waveTotal=8+d.wave*3;enemies=[];shots=[];floaters=[];cooldown.fill(0);toast(d.wave%5===0?'⚠️ Внимание: волна с боссом!':'⚔️ Волна началась');hud()}
-function enemySpawn(){const boss=d.wave%5===0&&spawned===waveTotal-1;const kind=boss?'boss':spawned%6===0?'armored':spawned%4===0?'runner':'grunt';const hp=(30+d.wave*18)*(boss?8:kind==='armored'?1.6:1);enemies.push({id:++enemyId,t:0,hp,max:hp,boss,kind,elite:false,slow:0,poison:0,weak:0,speed:(kind==='runner'?.062:.045)*(boss?.55:1)*(1+d.wave*.025),phase:1});spawned++}
-function hitEnemy(e,amount,hero){const h=HEROES[hero];let damage=amount*(e.kind==='armored'&&hero!==6?.72:1);if(hero===5&&e.hp<e.max*.5)damage*=1.65;if(hero===11&&e.boss)damage*=1.6;if(e.weak>0)damage*=1.2;e.hp-=damage;if(hero===1)e.slow=Math.max(e.slow,2.2);if(hero===3)e.poison=Math.max(e.poison,3.6);if(hero===10)e.weak=Math.max(e.weak,3);if(hero===2){let n=0;for(const o of enemies)if(o!==e&&Math.abs(o.t-e.t)<.12&&n++<2)o.hp-=damage*.32}if(hero===0){for(const o of enemies)if(o!==e&&Math.abs(o.t-e.t)<.07)o.hp-=damage*.3}}
-let cooldown=Array(15).fill(0);
-function step(dt){time+=dt;for(const k of Object.keys(spellCD))spellCD[k]=Math.max(0,spellCD[k]-dt);for(const e of effects)e.life-=dt;effects=effects.filter(x=>x.life>0);for(const f of floaters)f.life-=dt;floaters=floaters.filter(f=>f.life>0);if(!running)return;
-spawnClock+=dt;if(spawned<waveTotal&&spawnClock>.8){spawnClock=0;enemySpawn()}
-for(const e of enemies){e.t+=dt*e.speed*(e.slow>0?.5:1);e.slow=Math.max(0,e.slow-dt);e.poison=Math.max(0,e.poison-dt);e.weak=Math.max(0,e.weak-dt);if(e.poison>0)e.hp-=dt*(6+d.wave*1.3);if(e.boss){const phase=e.hp/e.max<.33?3:e.hp/e.max<.67?2:1;if(phase>e.phase){e.phase=phase;e.speed*=1.14;effects.push({x:pos(e.t).x,y:pos(e.t).y,life:.5,radius:95,color:'#ff9eaa'});toast('👹 Босс перешёл в фазу '+phase)}}}
-for(let i=0;i<15;i++){const t=d.board[i];if(!t)continue;cooldown[i]-=dt;if(cooldown[i]>0)continue;const targets=enemies.filter(e=>e.t<1&&e.hp>0);if(!targets.length)continue;
-const h=HEROES[t.hero],towerX=.13+(i%5)*.185;
-const nearby=targets.filter(e=>Math.abs(pos(e.t).x/W-towerX)<.24);
-const choices=nearby.length?nearby:targets;
-choices.sort((a,b)=>{
- if(t.hero===11&&a.boss!==b.boss)return a.boss?-1:1;
- if(t.hero===4&&(a.kind==='runner')!==(b.kind==='runner'))return a.kind==='runner'?-1:1;
- if(t.hero===5){const ar=a.hp/a.max,br=b.hp/b.max;if(Math.abs(ar-br)>.15)return ar-br}
- if(t.hero===1){const as=a.slow>0,bs=b.slow>0;if(as!==bs)return as?1:-1}
- return b.t-a.t;
-});
-const target=choices[0];let boost=1+d.upgrade*.17;const rank=1+(t.rank-1)*.72;let rate=h.rate;const x=i%5,y=Math.floor(i/5);for(let j=0;j<15;j++){const o=d.board[j];if(!o||j===i)continue;if(Math.abs(j%5-x)+Math.abs(Math.floor(j/5)-y)!==1)continue;if(o.hero===9)rate*=.92;if(o.hero===7)boost*=1.04}cooldown[i]=Math.max(.18,rate/rank);const damage=h.damage*boost*rank;hitEnemy(target,damage,t.hero);const p=pos(target.t),fromX=W*(.13+(i%5)*.185),fromY=H*(.88-(Math.floor(i/5)*.065));
-shots.push({x:fromX,y:fromY,tx:p.x,ty:p.y,color:h.color,life:.23,max:.23});
-if(floaters.length<28)floaters.push({x:p.x+rand(-5,5),y:p.y-10,life:.58,max:.58,value:Math.round(damage),color:h.color});}
-shots.forEach(s=>s.life-=dt);shots=shots.filter(s=>s.life>0);
-for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(e.hp<=0){enemies.splice(i,1);d.kills++;d.mana+=e.boss?130:11+d.wave*2;d.coins+=e.boss?100:4;const p=pos(e.t);effects.push({x:p.x,y:p.y,life:.5,radius:e.boss?60:22,color:e.boss?'#ffc478':'#b1ffd1'})}else if(e.t>=1){enemies.splice(i,1);d.hp-=e.boss?5:1;if(d.hp<=0){d.hp=20;running=false;d.wave=1;d.upgrade=0;save();hud();open('💔 Оборона прорвана','<p>Монстры прорвались к замку. Начинается новый поход, но твоя коллекция, колода и собранные башни сохраняются.</p><p>Попробуй другую расстановку героев или усили их за ману.</p>');return}}}
-if(spawned>=waveTotal&&enemies.length===0){running=false;const completed=d.wave;d.wins++;d.gems+=completed%5===0?15:3;d.coins+=75+completed*12;d.wave=completed===10?1:completed+1;d.highest=Math.max(d.highest,completed);d.upgrade=0;d.mana+=100;save();hud();open('🏆 Волна '+completed+' пройдена!','<p>Твои герои удержали оборону. Следующая волна: <b>'+d.wave+'/10</b>.</p><div class="stat"><span>🪙 Награда</span><b>+'+(75+completed*12)+'</b></div><div class="stat"><span>💎 Кристаллы</span><b>+'+(completed%5===0?15:3)+'</b></div><div class="stat"><span>🔮 Мана для призыва</span><b>+100</b></div><p>Объединяй героев и улучшай колоду перед следующей волной.</p>');return}
-hud(false)}
-function spell(type){if(!running||spellCD[type]>0)return;const target=enemies.filter(e=>e.hp>0);if(!target.length){toast('Врагов пока нет');return}const cool={fire:14,freeze:17,shock:19};spellCD[type]=cool[type];for(const e of target){if(type==='fire')e.hp-=65+d.wave*9;else if(type==='freeze')e.slow=Math.max(e.slow,3.5);else e.hp-=43+d.wave*6}effects.push({x:W/2,y:H*.45,life:.5,radius:130,color:type==='fire'?'#ffab6b':type==='freeze'?'#8bdfff':'#e5bcff'});toast(type==='fire'?'🔥 Огненный шторм':type==='freeze'?'❄️ Массовая заморозка':'⚡ Цепная гроза')}
-function hud(board=true){$('coins').innerHTML=uiIcon('coin')+' '+d.coins;$('gems').innerHTML=uiIcon('gem')+' '+d.gems;$('hp').innerHTML=uiIcon('heart')+' '+d.hp;$('mana').innerHTML=uiIcon('mana')+' Мана '+d.mana;$('wave').textContent='Волна '+d.wave+'/10';$('foecount').innerHTML=uiIcon('sword')+' '+enemies.length+' врагов';$('progress').style.width=(running?Math.round(100*spawned/Math.max(1,waveTotal)):Math.round(100*Math.max(0,d.wave-1)/10))+'%';$('power').innerHTML=uiIcon('spark')+' Сила '+d.board.reduce((a,t)=>a+(t?Math.round(HEROES[t.hero].damage*(1+(t.rank-1)*.72)):0),0);$('summon').innerHTML=uiIcon('spark')+' Призвать · '+uiIcon('mana')+' '+(40+Math.floor(d.board.filter(Boolean).length/3)*20);$('summon').disabled=d.mana<40+Math.floor(d.board.filter(Boolean).length/3)*20||d.board.every(Boolean);$('start').innerHTML=running?uiIcon('sword')+' Бой идёт':uiIcon('play')+' Начать волну';$('start').disabled=running;$('upgrade').innerHTML=uiIcon('up')+' Сила '+(d.upgrade+1);$('upgrade').disabled=d.mana<65+d.upgrade*40||d.upgrade>=5;$('speed').innerHTML=uiIcon('fast')+' ×'+speed;for(const k of Object.keys(spellCD))$(k).disabled=!running||spellCD[k]>0;const boss=enemies.find(e=>e.boss);$('bosswrap').classList.toggle('hide',!boss);if(boss){$('bosslabel').innerHTML=uiIcon('skull')+' БОСС · ФАЗА '+boss.phase+'/3';$('bosshp').style.width=clamp(boss.hp/boss.max*100,0,100)+'%'}if(board)renderBoard()}
-let deckReplaceIndex=-1;
-function deckMenu(keepScroll=false){
- if(running){toast('Колоду можно менять только между волнами');return}
- const prevScroll=keepScroll?$('mbody').scrollTop:0;
- const replacement=deckReplaceIndex>=0?HEROES[deckReplaceIndex]:null;
- const help=replacement
-  ?'Выбран для замены: <b>'+replacement.name+'</b>. Теперь нажми на доступного героя вне колоды. Нажми на выбранного ещё раз, чтобы отменить.'
-  :'Сначала нажми на одного из <b>5 героев в колоде</b>, которого хочешь заменить. Затем выбери нового героя.';
- const body='<div class="deck-help">'+help+'</div><div class="cards">'+HEROES.map((h,i)=>{
-  const chosen=d.deck.includes(i),unlocked=d.unlocked.includes(i),replacing=deckReplaceIndex===i;
-  const state=chosen?(replacing?'↩ Отменить замену':'✓ В колоде · нажми для замены'):(unlocked?(replacement?'＋ Добавить вместо '+replacement.name:'Сначала выбери заменяемого'):'🔒 Закрыт');
-  return '<button type="button" class="card '+(chosen?'chosen ':'')+(replacing?'deck-replace':'')+'" data-hero="'+i+'" '+(!unlocked?'disabled':'')+' aria-pressed="'+replacing+'"><span class="art">'+heroArt(i)+'</span><strong>'+h.name+'</strong><small>'+h.role+'</small><span class="deck-pill '+(replacing?'replace':chosen?'':'available')+'">'+state+'</span></button>';
- }).join('')+'</div><p class="tag">Новых героев можно открыть в коллекции за игровые монеты.</p>';
- open('🃏 Моя колода · '+d.deck.length+'/5',body);
- $('mbody').scrollTop=prevScroll;
- document.querySelectorAll('#mbody [data-hero]').forEach(b=>b.onclick=()=>{
-  const id=+b.dataset.hero;
-  if(!d.unlocked.includes(id))return;
-  if(d.deck.includes(id)){
-   deckReplaceIndex=deckReplaceIndex===id?-1:id;
-   deckMenu(true);return;
-  }
-  if(deckReplaceIndex<0){toast('Сначала выбери героя из своей колоды для замены');return}
-  const slot=d.deck.indexOf(deckReplaceIndex);
-  if(slot<0){deckReplaceIndex=-1;deckMenu(true);return}
-  const previous=HEROES[deckReplaceIndex].name;
-  d.deck[slot]=id;
-  deckReplaceIndex=-1;
-  save();hud();deckMenu(true);
-  toast('✅ '+HEROES[id].name+' заменил героя '+previous);
- });
-}
-function collection(keepScroll=false){
- const prevScroll=keepScroll?$('mbody').scrollTop:0;
- const owned=d.unlocked.length;
- const body='<div class="collection-summary"><b>Герои: '+owned+' / '+HEROES.length+'</b><span>Монеты: '+d.coins+' 🪙</span></div><p class="collection-intro">Открывай героев за игровые монеты. Покупки сохраняются, а новых персонажей можно добавить в колоду между волнами.</p><div class="cards">'+HEROES.map((h,i)=>{
-  const unlocked=d.unlocked.includes(i),price=450+i*80,canBuy=d.coins>=price;
-  return '<div class="card collection-card '+(unlocked?'owned':'')+'"><span class="art">'+heroArt(i)+'</span><strong>'+h.name+'</strong><small>'+h.role+' · '+h.trait+'</small>'+(unlocked?'<span class="collection-status owned-status">✓ Герой открыт</span>':'<span class="collection-status">🔒 Цена: '+price+' 🪙</span><button type="button" class="btn collection-buy" data-unlock="'+i+'" '+(!canBuy?'disabled':'')+'>'+(canBuy?'Открыть за '+price:'Не хватает '+(price-d.coins))+'</button>')+'</div>';
- }).join('')+'</div>';
- open('📚 Коллекция · '+owned+'/'+HEROES.length,body);
- $('mbody').scrollTop=prevScroll;
- document.querySelectorAll('#mbody [data-unlock]').forEach(b=>b.onclick=()=>{
-  const id=+b.dataset.unlock,price=450+id*80;
-  if(d.unlocked.includes(id)){collection(true);return}
-  if(d.coins<price){toast('Недостаточно монет');collection(true);return}
-  d.coins-=price;d.unlocked.push(id);save();hud();collection(true);
-  toast('✨ Открыт герой: '+HEROES[id].name);
- });
-}
-$('tabdeck').onclick=deckMenu;$('tabcollection').onclick=collection;$('tabbattle').onclick=()=>{close();toast('⚔️ Перетащи одинаковых героев друг на друга')};$('summon').onclick=summon;$('start').onclick=begin;$('speed').onclick=()=>{speed=speed===1?2:speed===2?3:1;hud()};$('upgrade').onclick=()=>{const cost=65+d.upgrade*40;if(d.mana<cost||d.upgrade>=5)return;d.mana-=cost;d.upgrade++;save();hud();toast('⬆️ Урон всех героев усилен')};for(const k of ['fire','freeze','shock'])$(k).onclick=()=>spell(k);
-function frame(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;if($('shade').classList.contains('hide'))step(dt*speed);draw();requestAnimationFrame(frame)}
-resize();hud();requestAnimationFrame(frame);initCloudSave();toast('🃏 Собери колоду из 5 героев — затем призывай и объединяй');
+document.addEventListener('click',function(e){var el=e.target.closest('[data-action],[data-tab]');if(!el)return;if(el.dataset.tab){clearModal();transition(el.dataset.tab)}else action(el)});
+$('modal').addEventListener('click',function(e){if(e.target===$('modal'))clearModal()});
+var launch=location.search.replace(/^\?/,'');cloudEnabled=!!(new URLSearchParams(launch).get('vk_user_id')&&new URLSearchParams(launch).get('vk_app_id'));
+function headers(){return {'Content-Type':'application/json','X-VK-Launch-Params':launch}}
+function snapshot(){return {gameVersion:120,state:s}}
+async function cloudInit(){if(!cloudEnabled)return;try{cloudBusy=true;var response=await fetch('/api/kingdom/save',{headers:headers(),cache:'no-store'});if(!response.ok)throw Error('Cloud '+response.status);var data=await response.json();cloudRev=data.revision||0;if(data.save&&data.save.gameVersion===120&&data.save.state){var remote=data.save.state; if(remote.updated>=s.updated||!localStorage.getItem(K)){s=Object.assign(fresh(),remote);try{localStorage.setItem(K,JSON.stringify(s))}catch(e){}}else dirty=true}else dirty=true;cloudReady=true;cloudBusy=false;production();daily();complete();render();if(dirty)saveTimer=setTimeout(upload,750);notify('☁️ Облако королевства подключено')}catch(e){cloudBusy=false;notify('💾 Локальное сохранение активно');console.warn('Kingdom cloud not ready',e)}}
+async function upload(){if(!cloudReady||!dirty||saving)return;saving=true;var sent=JSON.stringify(snapshot());try{var response=await fetch('/api/kingdom/save',{method:'PUT',headers:headers(),body:JSON.stringify({revision:cloudRev,save:JSON.parse(sent)})});if(response.status===409){cloudReady=false;setTimeout(cloudInit,1300);return}if(!response.ok)throw Error('Save '+response.status);var data=await response.json();cloudRev=data.revision;dirty=JSON.stringify(snapshot())!==sent}catch(e){console.warn('Kingdom save pending',e);dirty=true}finally{saving=false;if(dirty&&cloudReady)saveTimer=setTimeout(upload,4500)}}
+production();daily();complete();render();cloudInit();
+setInterval(function(){production();complete();if(tab==='city'||tab==='journeys')render();if(now()-lastSave>30000)persist()},15000);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){production();complete();daily();render()}else{persist()}});
 })();
 </script></body></html>
