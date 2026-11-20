@@ -28,3 +28,12 @@ CREATE TABLE IF NOT EXISTS purchases (
   UNIQUE(provider,provider_transaction_id)
 );
 CREATE INDEX IF NOT EXISTS purchases_player_id_idx ON purchases(player_id);
+
+-- Single-player save snapshots are separate from the authoritative payment ledger.
+-- The API also creates this table automatically on first cloud-save request.
+CREATE TABLE IF NOT EXISTS game_saves (
+  player_id TEXT PRIMARY KEY REFERENCES players(player_id) ON DELETE CASCADE,
+  save JSONB NOT NULL,
+  revision BIGINT NOT NULL DEFAULT 1 CHECK (revision > 0),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
