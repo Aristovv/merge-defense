@@ -31,6 +31,31 @@
 .world-caption{bottom:9px}
 @keyframes kingdom-arrive{from{opacity:.4;transform:translateY(-8px) scale(.89)}to{opacity:1;transform:none}}
 @media(max-width:365px){.world{height:360px!important}.building-sprite{min-width:54px}}
+
+/* Kingdoms 1.1 live battle visualization: individual hero portraits, fortress and animated enemies. */
+.battleart{position:relative;height:clamp(210px,58vw,280px);overflow:hidden;isolation:isolate;margin:8px 0 15px;background:radial-gradient(ellipse at 36% 45%,#6e667855,transparent 54%),url("./assets/kingdom-landscape.svg?v=1") center 57%/cover no-repeat}
+.battleart:after{content:"";pointer-events:none;position:absolute;inset:0;background:linear-gradient(0deg,#091b35b9,transparent 42%,#15213c4f);z-index:1}
+.battle-ground{position:absolute;inset:auto 0 0;height:30%;background:linear-gradient(4deg,#24493fc9,#658761aa 48%,transparent);transform:skewY(-4deg);z-index:0}
+.battle-sky{position:absolute;left:10%;top:9%;width:60%;height:70%;background:radial-gradient(circle,#f7d99c47,transparent 70%);filter:blur(9px)}
+.battle-fort{position:absolute;left:3%;bottom:16%;height:72%;width:34%;z-index:3;filter:drop-shadow(2px 7px 5px #081321a0)}
+.battle-fort img{height:100%;width:100%;object-fit:contain}
+.battle-heroes{position:absolute;bottom:5%;left:16%;width:42%;height:46%;display:flex;gap:0;align-items:flex-end;justify-content:center;z-index:5}
+.battle-heroes img{width:29%;height:83%;min-width:0;object-fit:cover;object-position:center 15%;border:2px solid #e5c78b;border-radius:11px;box-shadow:0 0 11px #8f83ddaa,0 4px 13px #061b29aa;transform:rotate(calc((var(--delay) - 1.5)*3deg));animation:battle-ready 1.5s ease-in-out infinite alternate;animation-delay:calc(var(--delay)*-.2s)}
+.battle-enemy{position:absolute;right:2%;bottom:9%;width:42%;height:75%;object-fit:contain;z-index:4;filter:drop-shadow(0 9px 9px #0b102f);animation:enemy-ready 1.45s ease-in-out infinite alternate}
+.battle-enemy.is-boss{width:53%;height:90%;right:-5%;bottom:4%}
+.battle-missile{position:absolute;left:37%;bottom:36%;width:13px;height:13px;border-radius:50%;background:radial-gradient(circle,#fff8cb 0,#f7a94d 41%,#d357f8 73%,transparent 80%);box-shadow:0 0 10px #ffdc9a,0 0 18px #b57eff;z-index:7;animation:magic-shot .95s linear infinite}
+.battleart.battle-frost .battle-enemy{filter:drop-shadow(0 0 12px #75eaff) saturate(.5);animation-duration:3s}
+.battleart.magic-fire:before,.battleart.magic-ice:before,.battleart.magic-ward:before{content:"";position:absolute;inset:0;z-index:8;pointer-events:none;animation:spell-flash .7s ease-out both}
+.battleart.magic-fire:before{background:radial-gradient(circle at 76% 55%,#ff9e62c4,transparent 50%)}
+.battleart.magic-ice:before{background:radial-gradient(circle at 70% 53%,#9dedffb6,transparent 55%)}
+.battleart.magic-ward:before{background:radial-gradient(circle at 29% 60%,#8af5c28c,transparent 50%)}
+.sheet:has(.battleart) .close{display:none}
+.battleabilities .act{min-height:44px}
+@keyframes magic-shot{0%{transform:translate(0,8px) scale(.6);opacity:0}13%{opacity:1}73%{opacity:1}100%{transform:translate(150px,-48px) scale(1.9);opacity:0}}
+@keyframes enemy-ready{from{transform:translateY(0) rotate(-2deg)}to{transform:translateY(-7px) rotate(2deg)}}
+@keyframes battle-ready{from{translate:0 0}to{translate:0 -5px}}
+@keyframes spell-flash{0%{opacity:0}15%{opacity:1}100%{opacity:0}}
+@media(max-width:360px){.battle-missile{animation-name:magic-shot-small}@keyframes magic-shot-small{to{transform:translate(95px,-35px);opacity:0}}}
 </style><!-- VK Mini Apps: initialize the host before loading the playable game.
      Independent of gameplay: failing to load the bridge must never block the game. -->
 <script>
@@ -142,7 +167,7 @@ function battleStart(boss){
  var enemy=boss?Math.round(140+s.bosses*65):Math.round(125+s.defenses*42+s.castle*32);
  s.food-=cost;persist();
  combat={boss:boss,enemyName:boss?'🐉 Дракон Древних руин':'👹 Орда гоблинов',castle:strength*2+60,maxCastle:strength*2+60,hp:enemy*3,maxHp:enemy*3,damage:Math.max(12,strength*.23),enemyDamage:Math.max(10,enemy*.19),slow:0,seconds:0,spell:3};
- showModal(boss?'🐉 Легендарный босс':'⚔️ Оборона королевства','Управляй способностями отряда во время боя. Победа зависит от подготовки и своевременной магии.','<div class="battleart"><span class="fight-side">🏰</span><span class="vs">⚔️</span><span class="fight-side">'+(boss?'🐉':'👹')+'</span></div><div class="battlebar-label"><span>❤️ Защитники</span><b id="our-hp"></b></div><div class="battlebar"><i id="our-fill" style="background:linear-gradient(90deg,#349c6c,#8ceab0)"></i></div><div class="battlebar-label"><span>'+combat.enemyName+'</span><b id="their-hp"></b></div><div class="battlebar"><i id="their-fill" style="background:linear-gradient(90deg,#a84668,#f4b770)"></i></div><p id="battle-status">Подготовка атаки...</p><div class="battleabilities"><button class="act orange" data-action="magic" data-id="0">🔥 Огненный удар</button><button class="act" data-action="magic" data-id="1">❄️ Заморозка</button><button class="act green" data-action="magic" data-id="2">🛡️ Щит</button></div><p class="muted" id="battle-mana">Заряды магии: 3</p>');
+ showModal(boss?'🐉 Легендарный босс':'⚔️ Оборона королевства','Управляй способностями отряда во время боя. Победа зависит от подготовки и своевременной магии.','<div class="battleart"><div class="battle-sky"></div><div class="battle-ground"></div><div class="battle-fort"><img alt="Замок" src="./assets/kingdom-castle.svg?v=2"></div><div class="battle-heroes">'+s.squad.slice(0,4).map(function(id,i){return '<img loading="eager" alt="'+heroes[id][0]+'" title="'+heroes[id][0]+'" style="--delay:'+i+'" src="'+heroPicture(id)+'">' }).join('')+'</div><div class="battle-missile"></div><img class="battle-enemy '+(boss?'is-boss':'')+'" alt="'+(boss?'Дракон':'Орда гоблинов')+'" src="./assets/enemies/'+(boss?'dragon':'goblin')+'.svg?v=2"></div><div class="battlebar-label"><span>❤️ Защитники</span><b id="our-hp"></b></div><div class="battlebar"><i id="our-fill" style="background:linear-gradient(90deg,#349c6c,#8ceab0)"></i></div><div class="battlebar-label"><span>'+combat.enemyName+'</span><b id="their-hp"></b></div><div class="battlebar"><i id="their-fill" style="background:linear-gradient(90deg,#a84668,#f4b770)"></i></div><p id="battle-status">Подготовка атаки...</p><div class="battleabilities"><button class="act orange" data-action="magic" data-id="0">🔥 Огненный удар</button><button class="act" data-action="magic" data-id="1">❄️ Заморозка</button><button class="act green" data-action="magic" data-id="2">🛡️ Щит</button></div><p class="muted" id="battle-mana">Заряды магии: 3</p>');
  battlePaint();
  combatTimer=setInterval(battleTick,200);
 }
@@ -161,6 +186,8 @@ function battleTick(){
  combat.seconds+=.2;
  combat.hp-=combat.damage*.2;
  combat.castle-=combat.enemyDamage*(combat.slow>0?.3:1)*.2;
+ var scene=document.querySelector('.battleart');
+ if(scene){scene.style.setProperty('--battle-time',String(combat.seconds));scene.classList.toggle('battle-frost',combat.slow>0)}
  combat.slow=Math.max(0,combat.slow-.2);
  var status=$('battle-status');
  if(status)status.textContent=combat.slow>0?'❄️ Вражеские силы заморожены':'⚔️ Герои сражаются с '+combat.enemyName;
@@ -182,6 +209,8 @@ function magic(which){
  if(which===0){combat.hp-=Math.max(35,combat.damage*1.7);notify('🔥 Пламя поражает врагов!')}
  if(which===1){combat.slow=Math.max(combat.slow,5);notify('❄️ Вражеская атака замедлена!')}
  if(which===2){combat.castle=Math.min(combat.maxCastle,combat.castle+combat.maxCastle*.25);notify('🛡️ Защитники восстановлены!')}
+ var scene=document.querySelector('.battleart');
+ if(scene){var fx=['magic-fire','magic-ice','magic-ward'];scene.classList.remove('magic-fire','magic-ice','magic-ward');void scene.offsetWidth;scene.classList.add(fx[which]);setTimeout(function(){if(scene.isConnected)scene.classList.remove(fx[which])},700)}
  battlePaint();
 }
 
