@@ -19,7 +19,8 @@ function makeAction(row,{type,from,to,slot}){
   const free=Array.from({length:12},(_,i)=>i).filter(i=>occupied(i)<0);
   const chosen=free[choose(free.length)],element=choose(4);
   const roll=choose(10000)/100;
-  const rarity=pity>=9?1+choose(3):roll<1?3:roll<7?2:roll<30?1:0;
+  const guaranteed=choose(3000)/100;
+  const rarity=pity>=9?(guaranteed<1?3:guaranteed<7?2:1):roll<1?3:roll<7?2:roll<30?1:0;
   const tower={slot:chosen,type:element,rarity,level:1,cd:0};
   towers.push(tower);coins-=price;summons++;pity=rarity===0?pity+1:0;
   const key=element+':'+rarity;
