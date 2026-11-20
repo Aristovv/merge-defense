@@ -476,8 +476,8 @@ function recruit(){
 }
 function manaPowerMenu(){
  if(modal)return;
- const rows=names.map((name,i)=>'<button type="button" data-mana-up="'+i+'" '+(d.mana<manaUpgradeCost(i)||d.manaPower[i]>=5?'disabled':'')+'>'+signs[i]+' '+name+' · '+(d.manaPower[i]+1)+'/6<small>'+(d.manaPower[i]>=5?'Максимальный уровень':'🔮 '+manaUpgradeCost(i)+' · +18% урона стихии')+'</small></button>').join('');
- show('🔮 Усиление стихий','<p>Боевая мана: <b>'+d.mana+'</b>. Получай её за монстров и трать на призыв или улучшение стихии. Улучшения сохраняются до завершения похода из 10 волн.</p><div class="mana-power-grid">'+rows+'</div><p class="note">Слияние башен одинаковой стихии и ранга даёт случайную стихию следующего ранга. Призывать и объединять можно во время сражения.</p>');
+ const rows=names.map((name,i)=>'<button type="button" data-mana-up="'+i+'" '+(d.mana<manaUpgradeCost(i)||d.manaPower[i]>=5?'disabled':'')+'>'+signs[i]+' '+name+'<small>Уровень '+(d.manaPower[i]+1)+'/6 · бонус +'+(d.manaPower[i]*18)+'%<span style="display:block;margin-top:5px;color:#b8fff1">'+(d.manaPower[i]>=5?'✓ Максимум':'🔮 '+manaUpgradeCost(i)+' маны → +18%')+'</span></small></button>').join('');
+ show('🔮 Усиление стихий','<p><b>🔮 '+d.mana+' маны</b> · усиливай урон каждой стихии.</p><div class="mana-power-grid">'+rows+'</div><p class="note">Каждая покупка даёт +18% урона. Усиления действуют до конца похода. Призыв и слияние доступны во время боя.</p>');
  document.querySelectorAll('[data-mana-up]').forEach(btn=>btn.onclick=()=>{
   const type=Number(btn.dataset.manaUp);
   if(!Number.isInteger(type)||type<0||type>3||d.manaPower[type]>=5)return;
@@ -540,7 +540,7 @@ function merge(i){
   if(busy){battleBanner='✨ СЛИЯНИЕ → '+names[target.type].toUpperCase();battleBannerLeft=1}
   else alert('✨ '+signs[target.type]+' '+names[target.type]+' · ранг '+target.level);
  }else alert('Для слияния нужны одинаковые стихия и ранг. Новая стихия случайна!');
- selection=-1;$('hint').textContent='Слияние доступно между волнами · комбинации светятся зелёным';
+ selection=-1;$('hint').textContent='✅ Слияние доступно и во время боя · подходящие башни подсвечиваются';
 }
 function autoMerge(){
  if(cloudLoading){alert('☁️ Проверяем сохранение');return}
@@ -839,6 +839,26 @@ for(let j=0;j<34;j++){const p=point((j+.37)/34);ctx.fillStyle=j%3===0?'#e1cfac':
  const base=ctx.createLinearGradient(0,gy,0,height);base.addColorStop(0,'#2a516b');base.addColorStop(.14,'#1a3857');base.addColorStop(1,'#101d38');rect(0,gy-11,width,height-gy+14,12,base);
 ctx.fillStyle='#5bc5d7a6';ctx.fillRect(0,gy-13,width,3);
 for(let i=0;i<12;i++){const p=pos(i),z=tile*.90;rect(p.x-z/2+1,p.y-z/2+5,z,z,12,'#090c1d');rect(p.x-z/2,p.y-z/2,z,z,12,selection===i?'#3ccacb':selection>=0&&find(selection)>=0&&find(i)>=0&&d.towers[find(selection)].type===d.towers[find(i)].type&&d.towers[find(selection)].level===d.towers[find(i)].level&&d.towers[find(i)].level<30?'#328a75':'#263e63');rect(p.x-z*.44,p.y-z*.44,z*.88,z*.88,9,'#476486');const tileLight=ctx.createLinearGradient(p.x-z*.45,p.y-z*.45,p.x+z*.4,p.y+z*.4);tileLight.addColorStop(0,'#b5ddff4f');tileLight.addColorStop(.5,'#64b4d019');tileLight.addColorStop(1,'#060e2da8');rect(p.x-z*.44,p.y-z*.44,z*.88,z*.88,9,tileLight);ctx.strokeStyle='#8baed8a8';ctx.lineWidth=1;ctx.strokeRect(p.x-z*.39,p.y-z*.39,z*.78,z*.78);if(sellMode&&find(i)>=0){ctx.fillStyle='#f18769';ctx.font='bold '+Math.round(tile*.20)+'px system-ui';ctx.textAlign='left';ctx.fillText('−',p.x-z*.36,p.y-z*.17)}}
+// Show matching merge targets on the field, even while a wave is running.
+const activeTower=selection>=0?d.towers[find(selection)]:null;
+for(const t of d.towers){
+ let matching=false;
+ if(activeTower&&t!==activeTower)matching=t.type===activeTower.type&&t.level===activeTower.level&&t.level<30;
+ else if(!activeTower)matching=t.level<30&&d.towers.some(o=>o!==t&&o.type===t.type&&o.level===t.level);
+ if(!matching&&!activeTower)continue;
+ const p=pos(t.slot),pulse=.55+.35*Math.sin(elapsed*4+t.slot*.7);
+ ctx.save();
+ ctx.lineWidth=matching?3:2;
+ ctx.strokeStyle=matching?'#88ffd5':'#a9e9ff';
+ ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=matching?13:8;
+ ctx.globalAlpha=matching?pulse:.65;
+ ctx.strokeRect(p.x-tile*.41,p.y-tile*.41,tile*.82,tile*.82);
+ if(matching){
+  ctx.fillStyle='#a6ffe1';ctx.font='bold '+Math.round(Math.max(10,tile*.2))+'px system-ui';
+  ctx.textAlign='center';ctx.fillText('⇧',p.x,p.y-tile*.45)
+ }
+ ctx.restore();
+}
 for(const t of d.towers)tower(pos(t.slot),t);
 for(const f of foes){monster(f)}
 for(const fx of mergeFx){
@@ -891,7 +911,7 @@ if(battleBannerLeft>0){
 if(!busy){let y=Math.max(13,gy*.19);rect(width*.17,y,width*.66,35,12,'#123b5cdd');ctx.strokeStyle='#5bdccc';ctx.lineWidth=1.3;ctx.strokeRect(width*.17+2,y+2,width*.66-4,31);ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#b6fff0';ctx.fillText('⚔ ГОТОВ К СРАЖЕНИЮ',width/2,y+18)}
 if(busy&&battleObjective){ctx.save();ctx.globalAlpha=.88;rect(8,Math.max(55,gy*.12),Math.min(width-16,325),28,8,'#0d2942d9');ctx.fillStyle=missionMet()?'#91f6cc':'#e0efff';ctx.font='bold 10px system-ui';ctx.textBaseline='middle';ctx.fillText((missionMet()?'✅ ':'🎯 ')+battleObjective.label,18,Math.max(55,gy*.12)+14);ctx.restore()}
 if(busy){const boss=foes.find(f=>f.boss);if(boss){const label='👹 '+(boss.isFinal?'ВЛАДЫКА РАЗЛОМА':'СТРАЖ РАЗЛОМА')+' · '+Math.ceil(boss.hp/boss.max*100)+'%';const bw=Math.min(width*.73,295),bx=(width-bw)/2,by=14;rect(bx,by,bw,31,10,'#1b132ee8');rect(bx+7,by+22,bw-14,4,2,'#5c2942');rect(bx+7,by+22,Math.max(0,(bw-14)*boss.hp/boss.max),4,2,boss.shield?'#bc99ff':'#ff8c6d');ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 11px system-ui';ctx.fillStyle='#fff4dc';ctx.fillText(label,width/2,by+12)}}ctx.restore()}
-function resize(){const b=c.getBoundingClientRect(),scale=Math.min(2,window.devicePixelRatio||1);width=b.width;height=b.height;c.width=Math.round(width*scale);c.height=Math.round(height*scale);ctx.setTransform(scale,0,0,scale,0,0);tile=Math.min(width*.235,height*.115,76);gx=(width-tile*4)/2;gy=height-tile*3-17}function cell(e){const b=c.getBoundingClientRect(),i=Math.floor((e.clientX-b.left-gx)/tile),j=Math.floor((e.clientY-b.top-gy)/tile);return i>=0&&i<4&&j>=0&&j<3?j*4+i:-1}
+function resize(){const b=c.getBoundingClientRect(),scale=Math.min(2,window.devicePixelRatio||1);width=b.width;height=b.height;c.width=Math.round(width*scale);c.height=Math.round(height*scale);ctx.setTransform(scale,0,0,scale,0,0);tile=Math.min(width*.242,height*.145,82);gx=(width-tile*4)/2;gy=height-tile*3-17}function cell(e){const b=c.getBoundingClientRect(),i=Math.floor((e.clientX-b.left-gx)/tile),j=Math.floor((e.clientY-b.top-gy)/tile);return i>=0&&i<4&&j>=0&&j<3?j*4+i:-1}
 c.addEventListener('pointerdown',e=>{const i=cell(e);if(i>=0){drag={from:i,x:e.offsetX,y:e.offsetY,moved:false};c.setPointerCapture(e.pointerId)}});
 c.addEventListener('pointermove',e=>{if(drag){drag.x=e.offsetX;drag.y=e.offsetY;if(Math.hypot(drag.x-pos(drag.from).x,drag.y-pos(drag.from).y)>tile*.3)drag.moved=true}});
 c.addEventListener('pointerup',e=>{if(!drag)return;const from=drag.from,to=cell(e),moved=drag.moved;drag=null;if(moved&&to>=0&&to!==from){if(sellMode){alert('Нажми на башню для продажи');return}selection=from;merge(to)}else if(!moved)merge(from)});
