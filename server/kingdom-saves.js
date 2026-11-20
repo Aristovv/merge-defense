@@ -6,7 +6,7 @@ const valid=(n,min,max)=>Number.isSafeInteger(n)&&n>=min&&n<=max;
 function clean(input){
  if(!input||input.gameVersion!==120||!input.state||typeof input.state!=='object'||Array.isArray(input.state))return null;
  const s=input.state,resources=['gold','wood','stone','crystal','food'];
- for(const k of resources)if(!valid(s[k],0,1e9))return null;
+ for(const k of resources)if(typeof s[k]!=='number'||!Number.isFinite(s[k])||s[k]<0||s[k]>1e9)return null;
  for(const k of ['castle','level','xp','energy','wins','defenses','bosses','days'])if(!valid(s[k],k==='castle'||k==='level'?1:0,1e8))return null;
  if(!valid(s.updated,0,1e16)||typeof s.lastDaily!=='string'||s.lastDaily.length>24||typeof s.dayStamp!=='string'||s.dayStamp.length>24)return null;
  if(!Array.isArray(s.squad)||s.squad.length>5||s.squad.some(v=>!valid(v,0,11))||new Set(s.squad).size!==s.squad.length)return null;
