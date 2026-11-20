@@ -140,6 +140,7 @@ function initVK(){
  }
  if(!vkParams.get('sign')){setCloudBadge('VK · отсутствует подпись · локальное сохранение');return}
  cloudAccount=vkParams.get('vk_user_id');
+ cloudLoading=true;hud();
  setCloudBadge('VK · проверяем аккаунт на VPS…');
  fetch('https://merge.89-23-115-251.sslip.io/api/me',{
   method:'GET',headers:{'X-VK-Launch-Params':location.search.slice(1)},
@@ -153,7 +154,7 @@ function initVK(){
   await loadCloud();
  }).catch(err=>{
   console.warn('VK cloud handshake:',err.message);
-  cloudLastError=err.message;
+  cloudLastError=err.message;cloudLoading=false;hud();
   setCloudBadge('⚠️ VK-сервер недоступен · локальное сохранение')
  });
 }
