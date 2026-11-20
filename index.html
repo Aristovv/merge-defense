@@ -545,7 +545,7 @@ function merge(i){
  if(busy&&sellMode){alert('Продажа доступна после боя');return}
  const idx=find(i);
  if(sellMode){
-  if(idx<0){alert('Выбери башню для продажи');return;}
+  towerToolbar();if(idx<0){alert('Выбери башню для продажи');return;}
   const selected=d.towers[idx],level=selected.level,kind=selected.type,value=Math.round(24*Math.pow(2.05,level-1)*rarityPower[selected.rarity||0]);
   show('Продать башню?','<p>'+signs[kind]+' '+names[kind]+' · уровень '+level+'</p><p>Получишь 🪙 '+value+'. Действие нельзя отменить.</p>','Отмена');
   const btn=document.createElement('button');
@@ -557,19 +557,19 @@ function merge(i){
    d.towers.splice(current,1);d.coins+=value;sellMode=false;
    $('sellmode').classList.remove('active');
    $('hint').textContent='Разные стихии рядом усиливают урон';
-   selection=-1;save();hud();$('overlay').classList.add('hidden');modal=false;
+   selection=-1;save();hud();$('overlay').classList.add('hidden');modal=false;towerToolbar();
    alert('Башня продана: +'+value+' монет');
   };
   return;
  }
  if(idx<0){
   if(selection>=0&&find(selection)>=0){d.towers[find(selection)].slot=i;save();alert('Башня перемещена');}
-  selection=-1;$('hint').textContent='Башня перемещена. Собирай сочетания стихий';return;
+  selection=-1;towerToolbar();$('hint').textContent='Башня перемещена. Собирай сочетания стихий';return;
  }
  if(selection===-1){selection=i;const t=d.towers[idx],matches=d.towers.filter(o=>o!==t&&o.type===t.type&&o.level===t.level&&t.level<30).length;
  $('hint').textContent=signs[t.type]+' '+names[t.type]+' · ур. '+t.level+' · '+rarityNames[t.rarity||0]+' · резонанс +'+resonance(t)*8+'% · пар: '+matches+'. Нажми другую клетку.';
- return;}
- if(selection===i){selection=-1;$('hint').textContent='Выбери башню для перестановки или слияния';return;}
+ towerToolbar();return;}
+ if(selection===i){selection=-1;towerToolbar();$('hint').textContent='Выбери башню для перестановки или слияния';return;}
  const srcIndex=find(selection),source=d.towers[srcIndex],target=d.towers[idx];
  if(source&&target&&source.type===target.type&&source.level===target.level&&source.level<30){
   const oldType=target.type,oldRarity=target.rarity||0;
@@ -587,7 +587,7 @@ function merge(i){
   if(busy){battleBanner='✨ СЛИЯНИЕ → '+names[target.type].toUpperCase();battleBannerLeft=1}
   else alert('✨ '+signs[target.type]+' '+names[target.type]+' · ранг '+target.level);
  }else alert('Для слияния нужны одинаковые стихия и ранг. Новая стихия случайна!');
- selection=-1;$('hint').textContent='✅ Слияние доступно и во время боя · подходящие башни подсвечиваются';
+ selection=-1;towerToolbar();$('hint').textContent='✅ Слияние доступно и во время боя · подходящие башни подсвечиваются';
 }
 function autoMerge(){
  if(cloudLoading){alert('☁️ Проверяем сохранение');return}
@@ -605,7 +605,7 @@ function autoMerge(){
   sparks.push({x:pos(target.slot).x,y:pos(target.slot).y,t:1});
   d.towers.splice(a,1);total++;
  }
- selection=-1;
+ selection=-1;towerToolbar();
  if(!total){alert('Нет одинаковых башен для слияния');return}
  d.bestLevel=Math.max(d.bestLevel||1,highest);save();hud();$('hint').textContent='Объединено '+total+' пар · освободилось '+total+' клеток';
  alert('✨ Объединено пар: '+total+' · уровень до '+highest);
@@ -697,7 +697,13 @@ function begin(){if(modal)return;if(d.perkPending){perkMenu();return}if(cloudLoa
   if(available.length){available[0].locked=2.5;burst(pos(available[0].slot),'#b37fff',12)}
   battleBanner='👹 ВЛАДЫКА БЛОКИРУЕТ БАШНЮ';battleBannerLeft=1.9;
  }
-}}f.p+=dt*f.speed*encounterSpeed*(f.kind==='runner'?1.35:1)*(f.slow>0?(f.boss?.78:.55):1)*(f.frozen>0?(f.boss?.45:.02):1);f.slow=Math.max(0,f.slow-dt);if(f.burn>0||f.poison>0){f.hp-=dt*((f.burn>0?Math.min(35,9+d.wave*1.1+buff('ember')*3):0)+(f.poison>0?Math.min(27,5+d.wave*.9+buff('venom')*2.5):0));f.burn=Math.max(0,f.burn-dt);f.poison=Math.max(0,f.poison-dt)}}for(let i=foes.length-1;i>=0;i--)if(foes[i].hp<=0){let f=foes.splice(i,1)[0];battleKill(f);burst(point(f.p),'#9ce8a3',8)}for(let i=foes.length-1;i>=0;i--)if(foes[i].p>=1){const escaped=foes.splice(i,1)[0];battleStats.escaped++;const blocked=(buff('guardian')>d.guardianUsed)||prepShield>0;if(blocked){if(buff('guardian')>d.guardianUsed)d.guardianUsed++;else prepShield--;burst(point(escaped.p),'#9fffd8',14);battleBanner='💚 БАЗА ОТРАЗИЛА ПРОРЫВ';battleBannerLeft=1.4}else d.hp-=escaped.kind==='sapper'?2:1;if(escaped.kind==='sapper'&&!blocked){battleEnergy=Math.max(0,battleEnergy-25);screenShake=Math.max(screenShake,3);burst(point(escaped.p),'#ffb55b',18);alert('💥 Сапёр: -2 ❤️ и -25 энергии')}if(d.hp<=0){lose();return}}for(const t of d.towers){t.cd-=dt;if(t.cd<=0&&(t.locked||0)<=0){const p=pos(t.slot);let best,dist=Infinity;for(const f of foes){const q=point(f.p),r=Math.hypot(q.x-p.x,q.y-p.y);if(r<tile*6&&(!best||f.p>best.p||(f.p===best.p&&r<dist))){best=f;dist=r}}if(best){t.cd=Math.max(.18,(.92-t.level*.055)/(1+buff('haste')*.12+(battlePrep==='haste'?.20:0)))*(bossJamLeft>0?1.65:1);t.flash=.18;shots.push({x:p.x,y:p.y,vx:0,vy:0,id:best.id,type:t.type,dmg:(7+4*(t.level-1))*1.7**(t.level-1)*(1+d.power*.13)*rarityPower[t.rarity||0]*(1+resonance(t)*(.08+buff('rally')*.04))*(1+buff('strength')*.15)*manaDamageBoost(t.type)*(battlePrep==='power'?1.20:1)*encounterDamage*(surgeLeft>0?1.4:1)})}}}for(let i=shots.length-1;i>=0;i--){const s=shots[i],f=foes.find(x=>x.id===s.id);if(!f){shots.splice(i,1);continue}const p=point(f.p),dx=p.x-s.x,dy=p.y-s.y,dist=Math.hypot(dx,dy);if(dist<16){f.hit=.16;impactFx.push({x:p.x,y:p.y,life:.32,type:s.type});if(impactFx.length>55)impactFx.shift();f.hp-=s.dmg*(f.kind==='armored'?.7+buff('fortify')*.05:f.kind==='wraith'?(s.type===2?1.25:.72):1)*(f.shield?.5:1)*(f.poison>0?1+buff('venom')*.12:1)*(f.hp/f.max<.5?1+buff('focus')*.25:1);sparks.push({x:p.x,y:p.y,t:.24});if(particles.length<180)for(let z=0;z<5;z++){let angle=z*6.283/5+elapsed;particles.push({x:p.x,y:p.y,vx:Math.cos(angle)*65,vy:Math.sin(angle)*65,life:.40,color:colors[s.type]})}if(s.type===0){f.burn=Math.max(f.burn,3+buff('ember')*.6);
+}}f.p+=dt*f.speed*encounterSpeed*(f.kind==='runner'?1.35:1)*(f.slow>0?(f.boss?.78:.55):1)*(f.frozen>0?(f.boss?.45:.02):1);f.slow=Math.max(0,f.slow-dt);if(f.burn>0||f.poison>0){f.hp-=dt*((f.burn>0?Math.min(35,9+d.wave*1.1+buff('ember')*3):0)+(f.poison>0?Math.min(27,5+d.wave*.9+buff('venom')*2.5):0));f.burn=Math.max(0,f.burn-dt);f.poison=Math.max(0,f.poison-dt)}}for(let i=foes.length-1;i>=0;i--)if(foes[i].hp<=0){let f=foes.splice(i,1)[0];battleKill(f);burst(point(f.p),'#9ce8a3',8)}for(let i=foes.length-1;i>=0;i--)if(foes[i].p>=1){const escaped=foes.splice(i,1)[0];battleStats.escaped++;const blocked=(buff('guardian')>d.guardianUsed)||prepShield>0;if(blocked){if(buff('guardian')>d.guardianUsed)d.guardianUsed++;else prepShield--;burst(point(escaped.p),'#9fffd8',14);battleBanner='💚 БАЗА ОТРАЗИЛА ПРОРЫВ';battleBannerLeft=1.4}else d.hp-=escaped.kind==='sapper'?2:1;if(escaped.kind==='sapper'&&!blocked){battleEnergy=Math.max(0,battleEnergy-25);screenShake=Math.max(screenShake,3);burst(point(escaped.p),'#ffb55b',18);alert('💥 Сапёр: -2 ❤️ и -25 энергии')}if(d.hp<=0){lose();return}}for(const t of d.towers){t.cd-=dt;if(t.cd<=0&&(t.locked||0)<=0){const p=pos(t.slot);let best,bestScore=-Infinity;for(const f of foes){
+ const q=point(f.p),r=Math.hypot(q.x-p.x,q.y-p.y);
+ if(r>=tile*6)continue;
+ const mode=t.targetMode||'front';
+ const score=mode==='strong'?f.max+f.p*.001:mode==='boss'?(f.boss?1000000:0)+f.p:mode==='weak'?(1-Math.max(0,f.hp)/Math.max(1,f.max))*100+f.p*.01:f.p;
+ if(score>bestScore){best=f;bestScore=score}
+}if(best){t.cd=Math.max(.18,(.92-t.level*.055)/(1+buff('haste')*.12+(battlePrep==='haste'?.20:0)))*(bossJamLeft>0?1.65:1);t.flash=.18;shots.push({x:p.x,y:p.y,vx:0,vy:0,id:best.id,type:t.type,dmg:(7+4*(t.level-1))*1.7**(t.level-1)*(1+d.power*.13)*rarityPower[t.rarity||0]*(1+resonance(t)*(.08+buff('rally')*.04))*(1+buff('strength')*.15)*manaDamageBoost(t.type)*(battlePrep==='power'?1.20:1)*encounterDamage*(surgeLeft>0?1.4:1)})}}}for(let i=shots.length-1;i>=0;i--){const s=shots[i],f=foes.find(x=>x.id===s.id);if(!f){shots.splice(i,1);continue}const p=point(f.p),dx=p.x-s.x,dy=p.y-s.y,dist=Math.hypot(dx,dy);if(dist<16){f.hit=.16;impactFx.push({x:p.x,y:p.y,life:.32,type:s.type});if(impactFx.length>55)impactFx.shift();f.hp-=s.dmg*(f.kind==='armored'?.7+buff('fortify')*.05:f.kind==='wraith'?(s.type===2?1.25:.72):1)*(f.shield?.5:1)*(f.poison>0?1+buff('venom')*.12:1)*(f.hp/f.max<.5?1+buff('focus')*.25:1);sparks.push({x:p.x,y:p.y,t:.24});if(particles.length<180)for(let z=0;z<5;z++){let angle=z*6.283/5+elapsed;particles.push({x:p.x,y:p.y,vx:Math.cos(angle)*65,vy:Math.sin(angle)*65,life:.40,color:colors[s.type]})}if(s.type===0){f.burn=Math.max(f.burn,3+buff('ember')*.6);
  if(buff('ember'))for(const o of foes){if(o!==f&&Math.abs(o.p-f.p)<.075){o.hp-=s.dmg*(.14+buff('ember')*.07);o.burn=Math.max(o.burn,1.7)}}
 }
 if(s.type===1){f.slow=Math.max(f.slow,f.boss?1.3:2.6+buff('frost')*.45);f.chill=(f.chill||0)+1;if(f.chill>=Math.max(2,3-buff('frost'))){f.chill=0;f.frozen=Math.max(f.frozen||0,f.boss?.35:1.0+buff('frost')*.18);burst(p,'#a7f0ff',5)}}
@@ -962,7 +968,7 @@ function resize(){const b=c.getBoundingClientRect(),scale=Math.min(2,window.devi
 c.addEventListener('pointerdown',e=>{const i=cell(e);if(i>=0){drag={from:i,x:e.offsetX,y:e.offsetY,moved:false};c.setPointerCapture(e.pointerId)}});
 c.addEventListener('pointermove',e=>{if(drag){drag.x=e.offsetX;drag.y=e.offsetY;if(Math.hypot(drag.x-pos(drag.from).x,drag.y-pos(drag.from).y)>tile*.3)drag.moved=true}});
 c.addEventListener('pointerup',e=>{if(!drag)return;const from=drag.from,to=cell(e),moved=drag.moved;drag=null;if(moved&&to>=0&&to!==from){if(sellMode){alert('Нажми на башню для продажи');return}selection=from;merge(to)}else if(!moved)merge(from)});
-c.addEventListener('pointercancel',()=>drag=null);document.querySelectorAll('[data-spell]').forEach(b=>b.addEventListener('click',()=>cast(b.dataset.spell)));$('sellmode').onclick=()=>{if(busy){alert('Продавать башни можно между волнами');return}sellMode=!sellMode;selection=-1;$('sellmode').classList.toggle('active',sellMode);$('hint').textContent=sellMode?'Нажми на башню, которую хочешь продать':'Перетащи башню на другую или свободную клетку'};function showRules(){show('❔ Как играть','<p>Призывай случайные башни за 🔮 ману даже во время битвы. Ману получай за уничтожение монстров. Перетаскивай башню на другую того же типа и ранга: результатом становится случайная стихия следующего ранга, а исходные две башни исчезают. Редкость результата не снижается. Усиливай каждую стихию за ману кнопкой «Стихии».</p><p>Перетаскивание на пустую клетку перемещает башню. Продавать и автоматически объединять можно только между волнами. Необязательно ждать завершения волны, чтобы призвать новое подкрепление.</p><p>Волны 3+ включают регенерирующих врагов, волны 4+ — призраков, устойчивых к большинству стихий, кроме молнии. Волны с «Натиском» ускоряют поток врагов, «Броня» усиливает защищённых противников. После каждой победной волны 1–9 выбери одно из трёх усилений: разные бонусы меняют стихии, способности, скорость, экономику и тактику. Они действуют до окончания похода из 10 волн и не уничтожают собранные башни. На поздних волнах появляются элитные враги. Босс 5-й волны призывает подкрепление, а Владыка на 10-й временно блокирует одну башню. С 6-й волны появляются сапёры: при прорыве они отнимают 2 здоровья базы и 25 энергии. Подсвеченные зелёным клетки означают возможность слияния. На пятой волне босс временно замедляет башни. У стихий разные роли: огонь поджигает, лёд замедляет (на боссов слабее), молния эффективнее против призраков, яд ослабляет регенерацию. Во время волны используй три способности с перезарядкой. За уничтожение врагов получай энергию: 60 единиц включают Импульс (+40% урона на 8 секунд). Разные стихии башен по соседству создают резонанс: +8% урона за каждую соседнюю башню другой стихии, максимум +24%. Это собственная механика игры «Легенды Башен». У боссов бывает защитный щит.</p><p class="note">Прогресс сохраняется на этом устройстве. Реальные платежи ещё не подключены.</p>')};$('tips').onclick=tacticsMenu;async function refreshServerGems(){
+c.addEventListener('pointercancel',()=>drag=null);document.querySelectorAll('[data-spell]').forEach(b=>b.addEventListener('click',()=>cast(b.dataset.spell)));$('sellmode').onclick=()=>{if(busy){alert('Продавать башни можно между волнами');return}sellMode=!sellMode;selection=-1;towerToolbar();$('sellmode').classList.toggle('active',sellMode);$('hint').textContent=sellMode?'Нажми на башню, которую хочешь продать':'Перетащи башню на другую или свободную клетку'};function showRules(){show('❔ Как играть','<p>Призывай случайные башни за 🔮 ману даже во время битвы. Ману получай за уничтожение монстров. Перетаскивай башню на другую того же типа и ранга: результатом становится случайная стихия следующего ранга, а исходные две башни исчезают. Редкость результата не снижается. Усиливай каждую стихию за ману кнопкой «Стихии».</p><p>Перетаскивание на пустую клетку перемещает башню. Продавать и автоматически объединять можно только между волнами. Необязательно ждать завершения волны, чтобы призвать новое подкрепление.</p><p>Волны 3+ включают регенерирующих врагов, волны 4+ — призраков, устойчивых к большинству стихий, кроме молнии. Волны с «Натиском» ускоряют поток врагов, «Броня» усиливает защищённых противников. После каждой победной волны 1–9 выбери одно из трёх усилений: разные бонусы меняют стихии, способности, скорость, экономику и тактику. Они действуют до окончания похода из 10 волн и не уничтожают собранные башни. На поздних волнах появляются элитные враги. Босс 5-й волны призывает подкрепление, а Владыка на 10-й временно блокирует одну башню. С 6-й волны появляются сапёры: при прорыве они отнимают 2 здоровья базы и 25 энергии. Подсвеченные зелёным клетки означают возможность слияния. На пятой волне босс временно замедляет башни. У стихий разные роли: огонь поджигает, лёд замедляет (на боссов слабее), молния эффективнее против призраков, яд ослабляет регенерацию. Во время волны используй три способности с перезарядкой. За уничтожение врагов получай энергию: 60 единиц включают Импульс (+40% урона на 8 секунд). Разные стихии башен по соседству создают резонанс: +8% урона за каждую соседнюю башню другой стихии, максимум +24%. Это собственная механика игры «Легенды Башен». У боссов бывает защитный щит.</p><p class="note">Прогресс сохраняется на этом устройстве. Реальные платежи ещё не подключены.</p>')};$('tips').onclick=tacticsMenu;async function refreshServerGems(){
  if(!vkContext||!vkParams.get('sign')){alert('Открой игру внутри ВКонтакте');return}
  try {
   const headers={'X-VK-Launch-Params':location.search.slice(1)};
