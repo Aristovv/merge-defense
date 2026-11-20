@@ -8,6 +8,9 @@ import {vkPaymentsCallback} from './vk-payments.js';
 
 const app=express();
 app.disable('x-powered-by');
+// Requests reach this API through exactly one trusted local Caddy proxy.
+// This allows express-rate-limit to read the real client IP from X-Forwarded-For.
+app.set('trust proxy', 1);
 app.use(express.json({limit:'12kb'}));
 app.use('/api/vk/payments/callback',express.urlencoded({extended:false,limit:'12kb'}));
 const origin=process.env.CLIENT_ORIGIN||'https://merge-defense.onrender.com';
