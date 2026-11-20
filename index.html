@@ -424,17 +424,32 @@ function resonance(t){let links=0;for(const other of d.towers){if(other===t||oth
 function battleKill(f){const p=point(f.p);if(elapsed-streakLast<2.6)killStreak++;else killStreak=1;streakLast=elapsed;battleStats.combo=Math.max(battleStats.combo||0,killStreak);if(killStreak>=5&&killStreak%5===0){battleBanner='⚡ КОМБО ×'+killStreak;battleBannerLeft=1.2;}deathFx.push({x:p.x,y:p.y,life:f.boss?.85:.52,max:f.boss?.85:.52,boss:!!f.boss,kind:f.kind,color:f.boss?'#ffcb7a':f.kind==='wraith'?'#b2a0ff':f.kind==='sapper'?'#ff9a51':f.kind==='regenerator'?'#98f0ac':'#b6d7d0',seed:f.id});if(deathFx.length>26)deathFx.shift();battleStats.kills++;d.kills++;daily().tasks.kills++;d.coins+=Math.round((6+d.income*2)*(1+buff('bounty')*.25));battleEnergy=Math.min(100,battleEnergy+(f.boss?24:7));if(f.boss){d.bosses=(d.bosses||0)+1;save()}}
 function activateSurge(){if(!busy||surgeLeft>0||battleEnergy<60)return;battleEnergy-=60;surgeLeft=8;battleStats.surges=(battleStats.surges||0)+1;burst({x:width/2,y:gy+tile},'#ffdf89',24);alert('✨ Импульс: +40% урона на 8 секунд');hud()}
 function recruit(){
- if(cloudLoading){alert('☁️ Проверяем сохранение');return}
- if(busy){alert('Призывать можно между волнами');return}
- if(d.towers.length>=12){alert('Сетка заполнена: объедини или продай башню');return}
+ if(modal||cloudLoading)return;
+ if(d.towers.length>=12){alert('Поле заполнено — объедини две одинаковые стихии и ранг');return}
  const price=cost();
- if(d.coins<price){alert('Не хватает '+(price-d.coins)+' монет');return}
+ if(d.mana<price){alert('🔮 Нужно ещё '+(price-d.mana)+' маны');return}
  const free=Array.from({length:12},(_,i)=>i).filter(i=>find(i)<0);
  if(!free.length)return;
  const slot=free[Math.floor(Math.random()*free.length)],type=Math.floor(Math.random()*4),rarity=rarityPick();
- d.coins-=price;d.summons++;daily().tasks.summons++;d.pity=rarity===0?(d.pity||0)+1:0;d.towers.push({slot,level:1,type,rarity,cd:0});const key=type+':'+rarity;if(!d.discovered.includes(key))d.discovered.push(key);
- save();hud();burst(pos(slot),rarityColors[rarity],18);
- alert(signs[type]+' '+rarityNames[rarity]+' башня выпала!');
+ d.mana-=price;d.waveSummons++;d.summons++;daily().tasks.summons++;
+ d.pity=rarity===0?(d.pity||0)+1:0;
+ d.towers.push({slot,level:1,type,rarity,cd:0});
+ const key=type+':'+rarity;if(!d.discovered.includes(key))d.discovered.push(key);
+ save();hud();burst(pos(slot),rarityColors[rarity],14);
+ if(busy){battleBanner='🔮 ПРИЗВАНА '+names[type].toUpperCase();battleBannerLeft=.8}
+ else alert(signs[type]+' '+rarityNames[rarity]+' башня призвана');
+}
+function manaPowerMenu(){
+ if(modal)return;
+ const rows=names.map((name,i)=>'<button type="button" data-mana-up="'+i+'" '+(d.mana<manaUpgradeCost(i)||d.manaPower[i]>=5?'disabled':'')+'>'+signs[i]+' '+name+' · '+(d.manaPower[i]+1)+'/6<small>'+(d.manaPower[i]>=5?'Максимальный уровень':'🔮 '+manaUpgradeCost(i)+' · +18% урона стихии')+'</small></button>').join('');
+ show('🔮 Усиление стихий','<p>Боевая мана: <b>'+d.mana+'</b>. Получай её за монстров и трать на призыв или улучшение стихии. Улучшения сохраняются до завершения похода из 10 волн.</p><div class="mana-power-grid">'+rows+'</div><p class="note">Слияние башен одинаковой стихии и ранга даёт случайную стихию следующего ранга. Призывать и объединять можно во время сражения.</p>');
+ document.querySelectorAll('[data-mana-up]').forEach(btn=>btn.onclick=()=>{
+  const type=Number(btn.dataset.manaUp);
+  if(!Number.isInteger(type)||type<0||type>3||d.manaPower[type]>=5)return;
+  const price=manaUpgradeCost(type);if(d.mana<price)return;
+  d.mana-=price;d.manaPower[type]++;save();hud();
+  $('overlay').classList.add('hidden');modal=false;manaPowerMenu();
+ });
 }
 function startMergeFx(from,to,level){
  const p=pos(to),q=pos(from);
@@ -444,7 +459,8 @@ function startMergeFx(from,to,level){
 }
 function merge(i){
  if(cloudLoading){alert('☁️ Проверяем сохранение');return}
- if(busy){alert('Управление башнями между волнами');return;}
+ if(modal)return;
+ if(busy&&sellMode){alert('Продажа доступна после боя');return}
  const idx=find(i);
  if(sellMode){
   if(idx<0){alert('Выбери башню для продажи');return;}
@@ -468,17 +484,27 @@ function merge(i){
   if(selection>=0&&find(selection)>=0){d.towers[find(selection)].slot=i;save();alert('Башня перемещена');}
   selection=-1;$('hint').textContent='Башня перемещена. Собирай сочетания стихий';return;
  }
- if(selection===-1){selection=i;const t=d.towers[idx],matches=d.towers.filter(o=>o!==t&&o.type===t.type&&o.level===t.level&&(o.rarity||0)===(t.rarity||0)&&t.level<30).length;
+ if(selection===-1){selection=i;const t=d.towers[idx],matches=d.towers.filter(o=>o!==t&&o.type===t.type&&o.level===t.level&&t.level<30).length;
  $('hint').textContent=signs[t.type]+' '+names[t.type]+' · ур. '+t.level+' · '+rarityNames[t.rarity||0]+' · резонанс +'+resonance(t)*8+'% · пар: '+matches+'. Нажми другую клетку.';
  return;}
  if(selection===i){selection=-1;$('hint').textContent='Выбери башню для перестановки или слияния';return;}
  const srcIndex=find(selection),source=d.towers[srcIndex],target=d.towers[idx];
- if(source&&target&&source.type===target.type&&source.level===target.level&&(source.rarity||0)===(target.rarity||0)&&source.level<30){
-  target.level++;startMergeFx(selection,target.slot,target.level);d.towers.splice(srcIndex,1);
+ if(source&&target&&source.type===target.type&&source.level===target.level&&source.level<30){
+  const oldType=target.type,oldRarity=target.rarity||0;
+  target.type=Math.floor(Math.random()*4);
+  target.level++;
+  target.rarity=Math.max(oldRarity,source.rarity||0);
+  target.cd=0;target.flash=.16;
+  startMergeFx(selection,target.slot,target.level);
+  d.towers.splice(srcIndex,1);
+  const key=target.type+':'+target.rarity;
+  if(!d.discovered.includes(key))d.discovered.push(key);
   d.bestLevel=Math.max(d.bestLevel||1,target.level);
-  save();hud();sparks.push({x:pos(target.slot).x,y:pos(target.slot).y,t:1});
-  alert('✨ Башня уровня '+target.level);
- }else alert('Нужны одинаковые стихия, редкость и уровень (максимум 30)');
+  save();hud();
+  sparks.push({x:pos(target.slot).x,y:pos(target.slot).y,t:1});
+  if(busy){battleBanner='✨ СЛИЯНИЕ → '+names[target.type].toUpperCase();battleBannerLeft=1}
+  else alert('✨ '+signs[target.type]+' '+names[target.type]+' · ранг '+target.level);
+ }else alert('Для слияния нужны одинаковые стихия и ранг. Новая стихия случайна!');
  selection=-1;$('hint').textContent='Слияние доступно между волнами · комбинации светятся зелёным';
 }
 function autoMerge(){
@@ -490,10 +516,10 @@ function autoMerge(){
   let a=-1,b=-1;
   for(let i=0;i<d.towers.length&&a<0;i++)for(let j=i+1;j<d.towers.length;j++){
    const x=d.towers[i],y=d.towers[j];
-   if(x.type===y.type&&x.level===y.level&&(x.rarity||0)===(y.rarity||0)&&x.level<30){a=i;b=j;break}
+   if(x.type===y.type&&x.level===y.level&&x.level<30){a=i;b=j;break}
   }
   if(a<0)break;
-  const target=d.towers[b];target.level++;startMergeFx(d.towers[a].slot,target.slot,target.level);highest=Math.max(highest,target.level);
+  const target=d.towers[b];target.type=Math.floor(Math.random()*4);target.rarity=Math.max(target.rarity||0,d.towers[a].rarity||0);target.level++;target.cd=0;const key=target.type+':'+target.rarity;if(!d.discovered.includes(key))d.discovered.push(key);startMergeFx(d.towers[a].slot,target.slot,target.level);highest=Math.max(highest,target.level);
   sparks.push({x:pos(target.slot).x,y:pos(target.slot).y,t:1});
   d.towers.splice(a,1);total++;
  }
