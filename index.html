@@ -1050,6 +1050,18 @@ for(const t of d.towers){
  }
  ctx.restore();
 }
+// Subtle living links between different neighboring elemental towers.
+ctx.save();
+for(let i=0;i<d.towers.length;i++)for(let j=i+1;j<d.towers.length;j++){
+ const a=d.towers[i],b=d.towers[j];
+ if(a.type===b.type)continue;
+ if(Math.abs(a.slot%4-b.slot%4)+Math.abs(Math.floor(a.slot/4)-Math.floor(b.slot/4))!==1)continue;
+ const p=pos(a.slot),q=pos(b.slot),glow=.24+.10*Math.sin(elapsed*3+i+j);
+ ctx.globalAlpha=glow;ctx.lineWidth=2;ctx.strokeStyle=colors[a.type];
+ ctx.setLineDash([3,5]);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();
+ ctx.strokeStyle=colors[b.type];ctx.lineDashOffset=4;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();
+}
+ctx.setLineDash([]);ctx.restore();
 for(const t of d.towers)tower(pos(t.slot),t);
 for(const f of foes){monster(f)}
 for(const fx of mergeFx){
