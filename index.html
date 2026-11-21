@@ -1341,7 +1341,17 @@ function renderCasinoLeaderboard(){
 async function loadCasinoRanking(){const host=document.getElementById('casino-top-list');if(!host)return;if(!CASINO_LAUNCH_PARAMS){host.innerHTML='<div class="panel"><p class="subline">Нет параметров запуска VK. Открой Casino City из раздела игр ВКонтакте (не по прямой ссылке на сайт).</p></div>';return}try{const synced=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/sync',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify(casinoRankPayload()),cache:'no-store'});if(!synced.ok){let detail='';try{const d=await synced.json();detail=d.error||''}catch(_){}throw Error('Сохранение игрока: HTTP '+synced.status+(detail?' / '+detail:''))}const r=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/top',{cache:'no-store'});if(!r.ok)throw Error('ranking');const d=await r.json(),me=new URLSearchParams(CASINO_LAUNCH_PARAMS).get('vk_user_id');casinoLeaderboardPlayers=Array.isArray(d.top)?d.top:[];renderCasinoLeaderboard();}catch(e){host.innerHTML='<div class="panel"><p class="subline">Ошибка общего рейтинга: '+rankEsc(e?.message||'Нет соединения с сервером')+'.</p></div>';console.warn('Casino leaderboard:',e)}}
 function save(){state.stamp=Date.now();try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}syncCasinoRanking()}
 function message(s){$('toast').textContent=s;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,2800)}
-function grant(chips=0,coins=0){state.chips=Math.max(0,Math.floor(state.chips+chips));state.coins=Math.max(0,Math.floor(state.coins+coins));if(chips>0){state.earned+=chips;state.wins++}if(chips>state.best)state.best=chips;save()}
+function grant(chips=0,coins=0,gamePayout=false){
+ state.chips=Math.max(0,Math.floor(state.chips+chips));
+ state.coins=Math.max(0,Math.floor(state.coins+coins));
+ // Bonuses, gifts and quests must not count as gambling wins in the global leaderboard.
+ if(gamePayout&&chips>0){
+  state.earned=Math.max(0,Number(state.earned)||0)+chips;
+  state.wins=Math.max(0,Math.floor(Number(state.wins)||0))+1;
+  if(chips>state.best)state.best=chips;
+ }
+ save();
+}
 
 // Level milestone prizes are claimable once and independent of the existing VIP currency.
 const CASINO_MILESTONES=[
@@ -1454,7 +1464,7 @@ if(kind==='horseshoe')return wrap(p('M26 18V59Q26 91 50 91 74 91 74 59V18H59V60Q
 return wrap(p('M12 50L50 10 88 50 50 90Z'));
 }
 function startCost(){if(busy||round)return false;if(state.chips<bet){message('Мало фишек. Забери подарок или обменяй городские монеты.');return false}roundBet=bet;state.chips-=bet;state.plays++;xp(4);save();return true}
-function finish(prize,info){prize=Math.max(0,Math.floor(prize));if(prize)grant(prize,0);rewardCollection();save();render();let output=$('game-result');if(output)output.textContent=info+(prize?' · +'+fmt(prize)+' фишек':'');if(tab==='game'&&selected>=0&&selected<6&&prize>=roundBet*5)showSlotBigWin(prize,roundBet);}
+function finish(prize,info){prize=Math.max(0,Math.floor(prize));if(prize)grant(prize,0,true);rewardCollection();save();render();let output=$('game-result');if(output)output.textContent=info+(prize?' · +'+fmt(prize)+' фишек':'');if(tab==='game'&&selected>=0&&selected<6&&prize>=roundBet*5)showSlotBigWin(prize,roundBet);}
 const SLOT_LINES=[
  [[0,1],[1,1],[2,1]],[[0,2],[1,2],[2,2]],[[0,0],[1,0],[2,0]],[[0,3],[1,3],[2,3]],
  [[0,0],[1,1],[2,2]],[[0,3],[1,2],[2,1]],[[0,1],[1,2],[2,3]],
@@ -1627,8 +1637,25 @@ const CASHOUT_RATE=1.6;
 function cashoutCoins(chips){return Math.floor(chips*CASHOUT_RATE)}
 function cashout(){collectPassive();const input=$('cashout-amount');const raw=input?.value?.trim()||'';if(!/^\d+$/.test(raw))return message('Введите целое количество фишек');const amount=Number(raw);if(!Number.isSafeInteger(amount)||amount<CASHOUT_MIN)return message('Минимальный обмен — 3 000 фишек');if(amount>state.chips)return message('Недостаточно фишек для обмена');const coins=cashoutCoins(amount);if(!Number.isSafeInteger(coins)||!Number.isSafeInteger(state.coins+coins))return message('Слишком большая сумма');state.chips-=amount;state.coins+=coins;save();render();message('Обменено '+fmt(amount)+' фишек на '+fmt(coins)+' монет')}
 function updateCashoutPreview(){const input=$('cashout-amount'),preview=$('cashout-preview'),button=$('cashout-submit');if(!input||!preview||!button)return;const raw=input.value.trim(),amount=/^\d+$/.test(raw)?Number(raw):NaN;const valid=Number.isSafeInteger(amount)&&amount>=CASHOUT_MIN&&amount<=state.chips&&Number.isSafeInteger(state.coins+cashoutCoins(amount));preview.textContent=!raw?'Введите количество фишек':!Number.isSafeInteger(amount)?'Введите целое число':amount<CASHOUT_MIN?'Минимум 3 000 фишек':amount>state.chips?'Недостаточно фишек':'Получите '+fmt(cashoutCoins(amount))+' монет';button.disabled=!valid}
-function rewardCollection(){if(state.plays===0||state.plays%12!==0||state.collect.includes('slot-'+Math.floor(state.plays/12)))return;const i=Math.floor(state.plays/12),name='slot-'+i;state.collect.push(name);state.vip+=1;save();message('Новая коллекционная награда! +1 VIP')}
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 12.7</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function rewardCollection(){
+ const played=Math.max(0,Math.floor(Number(state.plays)||0));
+ const eligible=Math.min(10000,Math.floor(played/12));
+ if(!Array.isArray(state.collect))state.collect=[];
+ const existing=new Set(state.collect);
+ let newlyClaimed=0;
+ for(let i=1;i<=eligible;i++){
+  const key='slot-'+i;
+  if(existing.has(key))continue;
+  state.collect.push(key);
+  existing.add(key);
+  newlyClaimed++;
+ }
+ if(!newlyClaimed)return;
+ state.vip=Math.max(0,Math.floor(Number(state.vip)||0))+newlyClaimed;
+ save();
+ message('Коллекция: +'+newlyClaimed+' VIP за завершённые серии партий');
+}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 12.8</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 let expandedDistrict=false;
 function cityScreen(){
@@ -1686,7 +1713,7 @@ function collectionScreen(){
       '<div class="collection-card-foot"><span>'+(owned?'В твоей коллекции':remaining+' партий до открытия')+'</span><b>'+Math.round(pct)+'%</b></div>'+
       '<div class="collection-card-progress"><span style="width:'+pct+'%"></span></div></div></article>';
    }).join('')+'</div>'+
-  '<div class="collection-explainer">'+ic('gift')+'<div><strong>Как открыть трофеи?</strong><p>Играй в мини-игры Casino City. Каждые 12 партий открывают новый предмет и дают 1 коллекционный VIP-балл. Уже полученные предметы сохраняются.</p></div></div>'+
+  '<div class="collection-explainer">'+ic('gift')+'<div><strong>Как открыть трофеи?</strong><p>За каждые 12 завершённых партий начисляется 1 коллекционный VIP-балл. Первые 8 серий также открывают трофеи. При запуске сразу нескольких шариков в Plinko пропущенные серии учитываются автоматически.</p></div></div>'+
  '</div>';
 }
 function questsScreen(){let quests=[['Сыграть 5 партий',state.plays,5,150],['Сыграть 20 партий',state.plays,20,500],['Победить 10 раз',state.wins,10,600],['Построить 4 уровня зданий',state.buildings.reduce((a,b)=>a+b,0),4,400],['Достичь 5 уровня',state.level,5,1000]];return '<div class="page"><h2 class="title">Задания и награды</h2><div class="panel"><div class="sectionhead"><h2>Ежедневный подарок</h2>'+ic('gift')+'</div><p class="subline">400 фишек и 700 монет каждый день.</p><button class="btn purple" data-action="daily" '+(state.lastGift===today()?'disabled':'')+'>'+(state.lastGift===today()?'Уже получено':'Забрать подарок')+'</button></div>'+quests.map((q,i)=>'<div class="panel"><strong>'+q[0]+'</strong><div class="subline">'+Math.min(q[1],q[2])+' / '+q[2]+' · награда '+fmt(q[3])+' фишек</div><div class="progress"><span style="width:'+Math.min(100,q[1]/q[2]*100)+'%"></span></div><button class="btn" data-quest="'+i+'" '+(q[1]<q[2]||state.quests.includes(i)?'disabled':'')+'>'+(state.quests.includes(i)?'Получено':'Забрать')+'</button></div>').join('')+'</div>'}
