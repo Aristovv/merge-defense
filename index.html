@@ -925,6 +925,29 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 }
 @keyframes casinoBonusPulse{from{filter:brightness(1)}to{filter:brightness(1.25)}}
 @media(prefers-reduced-motion:reduce){.slot-reel-holder-3x3 .slot-cell-bonus,.slot-reel-holder-3x3 .casino-winning-payline{animation:none!important}}
+
+/* Casino City 8.1: elegant short-lived paylines */
+.slot-reel-holder-3x3 .casino-winning-payline{
+ stroke-width:3.5!important;stroke-opacity:.96!important;stroke-linecap:round!important;stroke-linejoin:round!important;
+ filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 4px currentColor)!important;
+ vector-effect:non-scaling-stroke;
+}
+@keyframes casinoLineQuickShow{
+ 0%{opacity:0;stroke-dashoffset:430;stroke-width:2}
+ 15%{opacity:1;stroke-dashoffset:0;stroke-width:4}
+ 55%{opacity:.96;stroke-dashoffset:0;stroke-width:3.5}
+ 78%{opacity:.6;stroke-dashoffset:0;stroke-width:3}
+ 100%{opacity:0;stroke-dashoffset:0;stroke-width:2}
+}
+@media(prefers-reduced-motion:no-preference){
+ .slot-reel-holder-3x3 .casino-winning-payline{
+ animation:casinoLineQuickShow 1.65s ease-in-out both!important;
+ animation-delay:calc(min(var(--line-order,0),4) * .18s)!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .slot-reel-holder-3x3 .casino-winning-payline{animation:none!important;opacity:.8!important;stroke-width:3!important}
+}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge)window.vkBridge.send('VKWebAppInit').catch(function(){})}catch(_){}
@@ -1141,7 +1164,7 @@ function cashoutCoins(chips){return Math.floor(chips*CASHOUT_RATE)}
 function cashout(){collectPassive();const input=$('cashout-amount');const raw=input?.value?.trim()||'';if(!/^\d+$/.test(raw))return message('Введите целое количество фишек');const amount=Number(raw);if(!Number.isSafeInteger(amount)||amount<CASHOUT_MIN)return message('Минимальный обмен — 3 000 фишек');if(amount>state.chips)return message('Недостаточно фишек для обмена');const coins=cashoutCoins(amount);if(!Number.isSafeInteger(coins)||!Number.isSafeInteger(state.coins+coins))return message('Слишком большая сумма');state.chips-=amount;state.coins+=coins;save();render();message('Обменено '+fmt(amount)+' фишек на '+fmt(coins)+' монет')}
 function updateCashoutPreview(){const input=$('cashout-amount'),preview=$('cashout-preview'),button=$('cashout-submit');if(!input||!preview||!button)return;const raw=input.value.trim(),amount=/^\d+$/.test(raw)?Number(raw):NaN;const valid=Number.isSafeInteger(amount)&&amount>=CASHOUT_MIN&&amount<=state.chips&&Number.isSafeInteger(state.coins+cashoutCoins(amount));preview.textContent=!raw?'Введите количество фишек':!Number.isSafeInteger(amount)?'Введите целое число':amount<CASHOUT_MIN?'Минимум 3 000 фишек':amount>state.chips?'Недостаточно фишек':'Получите '+fmt(cashoutCoins(amount))+' монет';button.disabled=!valid}
 function rewardCollection(){if(state.plays===0||state.plays%12!==0||state.collect.includes('slot-'+Math.floor(state.plays/12)))return;const i=Math.floor(state.plays/12),name='slot-'+i;state.collect.push(name);state.vip+=1;save();message('Новая коллекционная награда! +1 VIP')}
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 8.0</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 8.1</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 let expandedDistrict=false;
 function cityScreen(){
