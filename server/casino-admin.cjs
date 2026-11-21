@@ -21,7 +21,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
   const vkId=String(req.body?.vkId||'');
   const field=req.body?.field;
   const amount=req.body?.amount;
-  if(!/^[1-9][0-9]{0,18}$/.test(vkId)||!['chips','coins','vip'].includes(field)||
+  if(!/^[1-9][0-9]{0,18}$/.test(vkId)||!['chips','coins','vip','xp'].includes(field)||
      !Number.isSafeInteger(amount)||amount<1||amount>1000000000)
    return res.status(400).json({error:'INVALID_GRANT'});
   let client;
@@ -42,6 +42,16 @@ function registerCasinoAdmin(app,pool,requireAuth){
    await client.query('COMMIT');res.json({ok:true,vkId,field,amount});
   }catch(e){if(client)await client.query('ROLLBACK').catch(()=>{});console.error('casino grant failed',e.code||e.message);res.status(503).json({error:'GRANT_UNAVAILABLE'})}
   finally{client?.release()}
+ });
+ app.get('/api/casino/admin/audit',guard,async(req,res)=>{
+  if(!pool)return res.status(503).json({error:'DATABASE_UNAVAILABLE'});
+  try{
+   await pool.query(`CREATE TABLE IF NOT EXISTS public.casino_city_admin_audit(
+    id BIGSERIAL PRIMARY KEY,admin_vk_id BIGINT NOT NULL,target_vk_id BIGINT NOT NULL,
+    action TEXT NOT NULL,details JSONB NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+   const {rows}=await pool.query('SELECT id,target_vk_id::text AS vk_id,action,details,created_at FROM public.casino_city_admin_audit ORDER BY id DESC LIMIT 30');
+   res.set('Cache-Control','no-store');res.json({entries:rows});
+  }catch(e){console.error('casino audit read',e.code||e.message);res.status(503).json({error:'AUDIT_UNAVAILABLE'})}
  });
  // No write endpoints until server-owned balances and client-save reconciliation
  // are implemented. A ranking-only reset would be overwritten by the next sync.
