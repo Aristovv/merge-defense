@@ -705,6 +705,36 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 .slot-reel-holder-3x3 .slot-reel-stopped{animation:casinoReelSettle .32s ease-out both}
 @media(max-width:430px){.slot-reel-holder-3x3{--slot-cell-height:clamp(42px,12vw,55px);padding:5px!important}.slot-reel-holder-3x3 .slot-grid-3x3{gap:4px!important}.slot-reel-holder-3x3 .slot-column{padding:3px!important}}
 @media(prefers-reduced-motion:reduce){.slot-reel-holder-3x3 .casino-reel-strip{animation:none!important}}
+
+/* Casino City 6.0 — compact premium slot cabinets, separate visual identities */
+.slot-scene{min-height:0!important;padding:100px 10px 13px!important;border-radius:20px;background-position:center top!important;box-shadow:inset 0 0 30px #000b,0 12px 26px #0008}
+.slot-scene:before{background:linear-gradient(180deg,#10081722 0%,#100817a6 42%,#100817f0 78%)}
+.slot-scene-art{top:18px!important;left:12px;right:12px}
+.slot-scene-title{font-size:clamp(22px,6.3vw,32px);line-height:1.12;letter-spacing:.6px}
+.slot-scene-sub{font-size:10px;letter-spacing:.7px}
+.slot-cabinet{position:relative;z-index:2;max-width:410px;margin:0 auto!important;padding:9px!important;border:2px solid var(--cabinet-edge,#c69b5d)!important;border-radius:19px!important;background:linear-gradient(140deg,var(--cabinet-top,#3b2349),#100d20 70%)!important;box-shadow:inset 0 2px 0 #ffffff2a,inset 0 -7px 20px #0008,0 12px 20px #0009!important}
+.slot-cabinet .slot-banner{border-radius:10px;padding:7px 6px;letter-spacing:1.2px;text-shadow:0 0 12px var(--cabinet-glow,#e2b66d)}
+.slot-cabinet .slot-reel-holder-3x3{border:3px solid var(--cabinet-edge,#c69b5d)!important;border-radius:13px!important;background:#1a1020!important;box-shadow:inset 0 0 16px #000b,0 0 12px var(--cabinet-glow,#e2b66d66)!important}
+.slot-cabinet .slot-column{border-radius:7px!important;border:1px solid #b4a4a2!important;background:#eee2d1!important;box-shadow:inset 0 0 10px #0002!important}
+.slot-cabinet .slot-cell{border-radius:5px!important;border:1px solid #d7c4a9!important;background:linear-gradient(180deg,#e7d9c9,#fffdf7 40%,#f8f0e4 65%,#dcc6b2)!important}
+.slot-theme-0{--cabinet-edge:#dcb56a;--cabinet-top:#51311f;--cabinet-glow:#ffd878}
+.slot-theme-1{--cabinet-edge:#f58dc9;--cabinet-top:#52204b;--cabinet-glow:#ff6fce}
+.slot-theme-2{--cabinet-edge:#81e7fb;--cabinet-top:#153b61;--cabinet-glow:#5be5ff}
+.slot-theme-3{--cabinet-edge:#f1c775;--cabinet-top:#58381d;--cabinet-glow:#f7c45e}
+.slot-theme-4{--cabinet-edge:#ff9d74;--cabinet-top:#5b2337;--cabinet-glow:#ff806b}
+.slot-theme-5{--cabinet-edge:#d2b6ff;--cabinet-top:#3b2c66;--cabinet-glow:#c6a8ff}
+.slot-cabinet .slot-bottom{gap:7px;flex-wrap:wrap}
+.slot-cabinet .slot-line-guide{max-width:100%;overflow-x:auto}
+.slot-scene .slot-payout-info{margin-top:10px}
+@media(max-width:430px){.slot-scene{padding:90px 7px 10px!important}.slot-cabinet{padding:6px!important;border-radius:14px!important}.slot-cabinet .slot-reel-holder-3x3{padding:4px!important}.slot-scene-title{font-size:23px}}
+/* Roulette tables — classic green felt and VIP black/gold finish */
+.roulette-hall{position:relative;overflow:hidden;border-radius:22px!important;padding:15px 12px!important;border:2px solid var(--table-edge,#b7a080)!important;background:radial-gradient(ellipse at 50% 30%,var(--table-light,#255943),var(--table-dark,#0e251e) 75%)!important;box-shadow:inset 0 0 0 3px #ffffff12,inset 0 0 38px #000a,0 12px 25px #0008!important}
+.roulette-classic{--table-edge:#b8a280;--table-light:#28664e;--table-dark:#0a2821}
+.roulette-vip{--table-edge:#e5c178;--table-light:#49361d;--table-dark:#14101b}
+.roulette-marquee{position:relative;z-index:2;text-align:center;font-family:Georgia,serif;font-size:clamp(15px,4.3vw,20px)!important;letter-spacing:2px!important;color:#ffe6a7!important;text-shadow:0 2px 2px #000,0 0 18px #f4c97677}
+.roulette-hall .wheel-stand{margin:8px auto!important}
+.roulette-hall .roulette-resultline{border-top:1px solid #ffffff35;padding-top:10px}
+.roulette-hall .roulette-sector-labels span{font-family:Arial,sans-serif;letter-spacing:-.5px}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge)window.vkBridge.send('VKWebAppInit').catch(function(){})}catch(_){}
