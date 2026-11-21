@@ -1268,6 +1268,18 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 .casino-quest-bottom{display:flex;align-items:center;justify-content:space-between;gap:9px}
 .casino-quest-bottom>span{font-size:10px;color:#d0b2d8;line-height:1.35}
 .casino-quest-bottom .btn{font-size:10px;padding:9px 11px;min-width:86px}
+
+/* Casino City 13.0 - compact missions dashboard and collect all */
+.casino-quest-dashboard{border:1px solid #b18c9c84;border-radius:20px;padding:17px;margin-bottom:15px;background:radial-gradient(ellipse at 95% 0,#71477a55,transparent 65%),linear-gradient(135deg,#35213d,#151326);box-shadow:0 8px 24px #0004}
+.casino-quest-dashboard-head{display:flex;align-items:start;justify-content:space-between;gap:8px}
+.casino-quest-dashboard-head h3{font-size:19px;color:#ffe5b5;margin:5px 0 0}
+.casino-quest-today{color:#d5bbd9;font-size:10px;letter-spacing:.6px;white-space:nowrap;padding:5px 8px;border:1px solid #745678;border-radius:20px}
+.casino-quest-numbers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:18px 0}
+.casino-quest-numbers div{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;padding:11px 4px;background:#140f23a8;border:1px solid #7055747a;border-radius:12px}
+.casino-quest-numbers b{font-size:16px;line-height:1.2;color:#f9dbac;font-variant-numeric:tabular-nums}
+.casino-quest-numbers small{font-size:9px;line-height:1.4;color:#bfb0c9}
+.casino-claim-all{width:100%;min-height:45px;font-size:12px;letter-spacing:.3px}
+@media(max-width:360px){.casino-quest-dashboard{padding:13px}.casino-quest-numbers{gap:5px}.casino-quest-numbers b{font-size:14px}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
@@ -1676,7 +1688,7 @@ function rewardCollection(){
  save();
  message('Коллекция: +'+newlyClaimed+' VIP за завершённые серии партий');
 }
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 12.9</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 13.0</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 let expandedDistrict=false;
 function cityScreen(){
@@ -1811,6 +1823,47 @@ function claimCasinoAchievement(index){
  state.achievementsClaimed.push(index);
  grant(item.chips,0);render();message('Достижение: '+item.title+' · +'+fmt(item.chips)+' фишек');
 }
+
+function casinoClaimableRewards(){
+ const items=[];
+ for(const scope of ['daily','weekly']){
+  const p=casinoQuestState(scope);
+  CASINO_PERIOD_QUESTS[scope].forEach((q,i)=>{
+   if(!p.claimed.includes(i)&&(Number(p.counts[q.type])||0)>=q.goal)items.push({kind:'period',scope,index:i,chips:q.chips,coins:q.coins});
+  });
+ }
+ if(!Array.isArray(state.achievementsClaimed))state.achievementsClaimed=[];
+ CASINO_ACHIEVEMENTS.forEach((q,i)=>{
+  if(!state.achievementsClaimed.includes(i)&&casinoAchievementValue(q.type)>=q.goal)items.push({kind:'achievement',index:i,chips:q.chips,coins:0});
+ });
+ const oldConditions=[state.plays>=5,state.plays>=20,state.wins>=10,state.buildings.reduce((sum,x)=>sum+Math.max(0,Number(x)||0),0)>=4,state.level>=5];
+ oldConditions.forEach((completed,i)=>{
+  if(completed&&!state.quests.includes(i))items.push({kind:'legacy',index:i,chips:[150,500,600,400,1000][i],coins:0});
+ });
+ return items;
+}
+function claimAllCasinoRewards(){
+ const items=casinoClaimableRewards();
+ if(!items.length){message('Пока нет наград для получения');return}
+ let chips=0,coins=0;
+ for(const item of items){
+  if(item.kind==='period')casinoQuestState(item.scope).claimed.push(item.index);
+  else if(item.kind==='achievement')state.achievementsClaimed.push(item.index);
+  else if(item.kind==='legacy')state.quests.push(item.index);
+  chips+=item.chips;coins+=item.coins;
+ }
+ // One atomic local save; reward grants do not count as game wins.
+ grant(chips,coins);
+ render();
+ message('Получено '+items.length+' наград · +'+fmt(chips)+' фишек'+(coins?' · +'+fmt(coins)+' монет':''));
+}
+function casinoQuestOverview(){
+ const all=[...CASINO_PERIOD_QUESTS.daily.map(q=>({scope:'daily',q})),...CASINO_PERIOD_QUESTS.weekly.map(q=>({scope:'weekly',q}))];
+ const completed=all.filter(({scope,q})=>(Number(casinoQuestState(scope).counts[q.type])||0)>=q.goal).length;
+ const claimed=casinoQuestState('daily').claimed.length+casinoQuestState('weekly').claimed.length;
+ const ready=casinoClaimableRewards().length;
+ return '<section class="casino-quest-dashboard"><div class="casino-quest-dashboard-head"><div><span class="eyebrow">ТВОЙ ПРОГРЕСС</span><h3>Цели и награды</h3></div><span class="casino-quest-today">СЕГОДНЯ · '+today().slice(8)+'.'+today().slice(5,7)+'</span></div><div class="casino-quest-numbers"><div><b>'+completed+' / '+all.length+'</b><small>целей выполнено</small></div><div><b>'+claimed+'</b><small>наград получено за период</small></div><div><b>'+ready+'</b><small>готово к получению</small></div></div><button class="btn purple casino-claim-all" data-action="claim-all" '+(!ready?'disabled':'')+'>'+(ready?'ЗАБРАТЬ ВСЕ НАГРАДЫ · '+ready:'НЕТ ГОТОВЫХ НАГРАД')+'</button></section>';
+}
 function casinoQuestCard(title,desc,progress,goal,reward,done,claimed,attr){
  const p=Math.min(goal,Math.max(0,Math.floor(progress)));
  return '<div class="casino-quest-card '+(claimed?'claimed':done?'ready':'')+'"><div class="casino-quest-top"><div><b>'+title+'</b><span>'+desc+'</span></div><strong>'+fmt(p)+' / '+fmt(goal)+'</strong></div><div class="casino-quest-track"><span style="width:'+(p/goal*100)+'%"></span></div><div class="casino-quest-bottom"><span>'+reward+'</span><button class="btn '+(done&&!claimed?'purple':'ghost')+'" '+attr+' '+(!done||claimed?'disabled':'')+'>'+(claimed?'Получено':done?'Забрать':'В процессе')+'</button></div></div>';
@@ -1825,7 +1878,7 @@ function questsScreen(){
  const oldQuests=[['Сыграть 5 партий',state.plays,5,150],['Сыграть 20 партий',state.plays,20,500],['Победить 10 раз',state.wins,10,600],['Построить 4 уровня зданий',state.buildings.reduce((a,b)=>a+b,0),4,400],['Достичь 5 уровня',state.level,5,1000]];
  return '<div class="page casino-quests-page"><div class="section-intro"><div><span class="eyebrow">CASINO CITY · ПРОГРЕСС</span><h1>Задания и достижения</h1></div><span class="catalog-count">2.0</span></div>'+
  '<div class="casino-quest-gift"><div><span class="eyebrow">КАЖДЫЙ ДЕНЬ</span><h3>Ежедневный подарок</h3><p>400 фишек и 700 монет. Забирай один раз в день.</p></div><button class="btn purple" data-action="daily" '+(state.lastGift===today()?'disabled':'')+'>'+(state.lastGift===today()?'Получено':'Забрать')+'</button></div>'+
- '<p class="casino-quest-explain">Ежедневные задания обновляются в 00:00 UTC, еженедельные — по понедельникам. Прогресс учитывается с начала текущего периода на этом устройстве.</p>'+
+ casinoQuestOverview()+'<p class="casino-quest-explain">Ежедневные задания обновляются в 00:00 UTC, еженедельные — по понедельникам. Прогресс учитывается с начала текущего периода на этом устройстве.</p>'+
  casinoQuestSection('daily','Задания на сегодня','ЕЖЕДНЕВНЫЕ')+casinoQuestSection('weekly','На эту неделю','ЕЖЕНЕДЕЛЬНЫЕ')+
  '<section class="casino-quest-group"><div class="casino-quest-heading"><div><span class="eyebrow">ПОСТОЯННЫЕ ЦЕЛИ</span><h3>Достижения</h3></div><span class="casino-quest-counter">'+state.achievementsClaimed.length+' / '+CASINO_ACHIEVEMENTS.length+'</span></div>'+
  CASINO_ACHIEVEMENTS.map((q,i)=>{const value=casinoAchievementValue(q.type);return casinoQuestCard(q.title,q.desc,value,q.goal,'+'+fmt(q.chips)+' фишек',value>=q.goal,state.achievementsClaimed.includes(i),'data-achievement="'+i+'"')}).join('')+'</section>'+
@@ -1847,7 +1900,7 @@ document.addEventListener('touchend',()=>{scratchDragging=false});document.addEv
 document.addEventListener('mousedown',e=>{if(e.target.closest('.scratches'))scratchDragging=true});
 document.addEventListener('mousemove',e=>{if(scratchDragging&&e.buttons===1)scratchAtPoint(e.clientX,e.clientY)});
 document.addEventListener('mouseup',()=>{scratchDragging=false});
-document.addEventListener('click',function(e){let x=e.target.closest('button');if(!x||x.disabled)return;const d=x.dataset;if(d.playerBack!==undefined){casinoSelectedPlayerId='';renderCasinoLeaderboard();return;}if(d.playerId!==undefined){casinoSelectedPlayerId=d.playerId;renderCasinoLeaderboard();return;}if(d.levelReward!==undefined){claimLevelReward(Number(d.levelReward));return;}if(d.periodQuest!==undefined){const [scope,index]=d.periodQuest.split(':');claimCasinoPeriodQuest(scope,Number(index));return;}if(d.achievement!==undefined){claimCasinoAchievement(Number(d.achievement));return;}if(d.tab)return switchTab(d.tab);if(d.back!==undefined)return switchTab('games');if(d.game!==undefined){if(busy)return;lastSlotResult=null;slotLastWins=0;selected=Number(d.game);tab='game';round=null;held=[];kenoSelected=[];kenoLastDraw=[];crashValue=1;render();window.scrollTo(0,0);return}if(d.crashToggle!==undefined){if(busy)return;crashAutoEnabled=!crashAutoEnabled;render();return}if(d.plinkoRisk!==undefined){if(busy)return;plinkoRisk=Math.max(0,Math.min(2,Number(d.plinkoRisk)||0));plinkoLastSector=-1;plinkoHits=[];render();return}if(d.plinkoCount!==undefined){if(busy)return;plinkoCount=Math.max(1,Math.min(10,Number(d.plinkoCount)||1));render();return}if(d.up!==undefined)return buildingUp(Number(d.up));if(d.rouletteClear!==undefined){if(busy)return;roulettePicks=[];render();return}if(d.pick){if(busy)return;roulettePick=d.pick;roulettePicks=roulettePicks.includes(d.pick)?roulettePicks.filter(x=>x!==d.pick):roulettePicks.concat(d.pick);render();return}if(d.hold!==undefined){if(busy)return;let i=Number(d.hold);held=held.includes(i)?held.filter(a=>a!==i):held.concat(i);render();return}if(d.keno!==undefined)return selectKeno(Number(d.keno));if(d.scratch!==undefined)return scratchOpen(Number(d.scratch));if(d.quest!==undefined)return claimQuest(Number(d.quest));const a=d.action;if(!a)return;switch(a){case'district':expandedDistrict=!expandedDistrict;render();break;case'collect':{let got=collectPassive();render();message(got?'Собрано '+fmt(got)+' монет':'Доход ещё накапливается');break}case'daily':daily();break;case'exchange':exchange();break;case'cashout':cashout();break;case'betdown':if(!busy&&!round){bet=Math.max(5,Math.floor(bet/2/5)*5);render()}break;case'betup':if(!busy&&!round){bet=Math.min(500,bet*2);render()}break;case'slot':playSlot();break;case'roulette':playRoulette();break;case'bjstart':startBlackjack();break;case'hit':hit();break;case'stand':stand();break;case'pokerstart':pokerStart();break;case'pokerdraw':pokerDraw();break;case'kenoplay':kenoPlay();break;case'kenoquick':kenoQuickPick();break;case'hilostart':hiloStart();break;case'higher':hiloPlay(true);break;case'lower':hiloPlay(false);break;case'plinko':plinkoPlay();break;case'crashstart':crashStart();break;case'crashcash':crashCash();break;case'under':dicePlay('under');break;case'over':dicePlay('over');break;case'scratchstart':scratchStart();break;case'scratchall':scratchRevealAll();break}})
+document.addEventListener('click',function(e){let x=e.target.closest('button');if(!x||x.disabled)return;const d=x.dataset;if(d.playerBack!==undefined){casinoSelectedPlayerId='';renderCasinoLeaderboard();return;}if(d.playerId!==undefined){casinoSelectedPlayerId=d.playerId;renderCasinoLeaderboard();return;}if(d.levelReward!==undefined){claimLevelReward(Number(d.levelReward));return;}if(d.periodQuest!==undefined){const [scope,index]=d.periodQuest.split(':');claimCasinoPeriodQuest(scope,Number(index));return;}if(d.achievement!==undefined){claimCasinoAchievement(Number(d.achievement));return;}if(d.tab)return switchTab(d.tab);if(d.back!==undefined)return switchTab('games');if(d.game!==undefined){if(busy)return;lastSlotResult=null;slotLastWins=0;selected=Number(d.game);tab='game';round=null;held=[];kenoSelected=[];kenoLastDraw=[];crashValue=1;render();window.scrollTo(0,0);return}if(d.crashToggle!==undefined){if(busy)return;crashAutoEnabled=!crashAutoEnabled;render();return}if(d.plinkoRisk!==undefined){if(busy)return;plinkoRisk=Math.max(0,Math.min(2,Number(d.plinkoRisk)||0));plinkoLastSector=-1;plinkoHits=[];render();return}if(d.plinkoCount!==undefined){if(busy)return;plinkoCount=Math.max(1,Math.min(10,Number(d.plinkoCount)||1));render();return}if(d.up!==undefined)return buildingUp(Number(d.up));if(d.rouletteClear!==undefined){if(busy)return;roulettePicks=[];render();return}if(d.pick){if(busy)return;roulettePick=d.pick;roulettePicks=roulettePicks.includes(d.pick)?roulettePicks.filter(x=>x!==d.pick):roulettePicks.concat(d.pick);render();return}if(d.hold!==undefined){if(busy)return;let i=Number(d.hold);held=held.includes(i)?held.filter(a=>a!==i):held.concat(i);render();return}if(d.keno!==undefined)return selectKeno(Number(d.keno));if(d.scratch!==undefined)return scratchOpen(Number(d.scratch));if(d.quest!==undefined)return claimQuest(Number(d.quest));const a=d.action;if(!a)return;switch(a){case'district':expandedDistrict=!expandedDistrict;render();break;case'collect':{let got=collectPassive();render();message(got?'Собрано '+fmt(got)+' монет':'Доход ещё накапливается');break}case'daily':daily();break;case'claim-all':claimAllCasinoRewards();break;case'exchange':exchange();break;case'cashout':cashout();break;case'betdown':if(!busy&&!round){bet=Math.max(5,Math.floor(bet/2/5)*5);render()}break;case'betup':if(!busy&&!round){bet=Math.min(500,bet*2);render()}break;case'slot':playSlot();break;case'roulette':playRoulette();break;case'bjstart':startBlackjack();break;case'hit':hit();break;case'stand':stand();break;case'pokerstart':pokerStart();break;case'pokerdraw':pokerDraw();break;case'kenoplay':kenoPlay();break;case'kenoquick':kenoQuickPick();break;case'hilostart':hiloStart();break;case'higher':hiloPlay(true);break;case'lower':hiloPlay(false);break;case'plinko':plinkoPlay();break;case'crashstart':crashStart();break;case'crashcash':crashCash();break;case'under':dicePlay('under');break;case'over':dicePlay('over');break;case'scratchstart':scratchStart();break;case'scratchall':scratchRevealAll();break}})
 const originalStartCost=startCost; // Preserve independent game round state; collection unlocks are awarded on completed parties.
 window.addEventListener('pagehide',save);
 setInterval(()=>{if(tab==='city'||tab==='profile'){let gained=collectPassive();if(gained&&tab==='city')render()}},30000);
