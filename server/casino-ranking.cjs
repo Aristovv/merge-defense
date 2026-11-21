@@ -1,12 +1,27 @@
 'use strict';
 
 function registerCasinoRanking(app, pool, requireAuth) {
+  // Safe additive schema migration; never changes existing player scores.
+  const avatarReady = pool ? pool.query(
+    'ALTER TABLE public.casino_city_players ADD COLUMN IF NOT EXISTS avatar_url TEXT'
+  ).catch(error => { console.error('Casino avatar schema:', error.code || error.message); throw error; }) : null;
+  const safeAvatar = value => {
+    if (typeof value !== 'string' || value.length > 650) return '';
+    try {
+      const u = new URL(value);
+      if (u.protocol !== 'https:') return '';
+      const host = u.hostname.toLowerCase();
+      if (!/(^|\.)(userapi\.com|vkcdn\.ru|vk\.com|vk\.ru)$/.test(host)) return '';
+      return u.href;
+    } catch (_) { return ''; }
+  };
   app.get('/api/casino/top', async (_req, res) => {
     if (!pool) return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
     try {
+      await avatarReady;
       const { rows } = await pool.query(`
         SELECT vk_id::text AS vk_id, display_name, score::text AS score,
-               level, plays::text AS plays, wins::text AS wins
+               level, plays::text AS plays, wins::text AS wins, avatar_url
         FROM public.casino_city_players
         ORDER BY score DESC, updated_at ASC, vk_id ASC
         LIMIT 100
@@ -22,10 +37,11 @@ function registerCasinoRanking(app, pool, requireAuth) {
   app.get('/api/casino/me', requireAuth, async (req, res) => {
     if (!pool) return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
     try {
+      await avatarReady;
       const vkId = String(req.playerId || '').replace(/^vk:/, '');
       if (!/^\d+$/.test(vkId)) return res.status(401).json({ error: 'INVALID_PLAYER' });
       const { rows } = await pool.query(
-        'SELECT vk_id::text AS vk_id, display_name, score::text AS score, level, plays::text AS plays, wins::text AS wins FROM public.casino_city_players WHERE vk_id=$1',
+        'SELECT vk_id::text AS vk_id, display_name, score::text AS score, level, plays::text AS plays, wins::text AS wins, avatar_url FROM public.casino_city_players WHERE vk_id=$1',
         [vkId]
       );
       res.set('Cache-Control', 'no-store');
@@ -46,6 +62,7 @@ function registerCasinoRanking(app, pool, requireAuth) {
     const body = req.body || {};
     const integer = (v, min, max) => Number.isSafeInteger(v) && v >= min && v <= max;
     const { plays, wins, level, buildings } = body;
+    const avatarUrl = safeAvatar(body.avatarUrl);
     if (!integer(plays, 0, 1000000000) || !integer(wins, 0, plays) ||
         !integer(level, 1, 10000) || !Array.isArray(buildings) ||
         buildings.length !== 14 || !buildings.every(v => integer(v, 0, 1000))) {
@@ -56,6 +73,7 @@ function registerCasinoRanking(app, pool, requireAuth) {
     const name = displayName || ('Игрок ' + vkId.slice(-4));
     const targetScore = plays * 15 + wins * 45 + level * 110 +
       buildings.reduce((a, b) => a + b, 0) * 30;
+    try { await avatarReady; } catch (_) { return res.status(503).json({ error: 'RANKING_SCHEMA_UNAVAILABLE' }); }
     const client = await pool.connect().catch(() => null);
     if (!client) return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
     try {
@@ -64,13 +82,13 @@ function registerCasinoRanking(app, pool, requireAuth) {
       // game save stays intact, but cannot grant an instant fabricated ranking.
       const inserted = await client.query(`
         INSERT INTO public.casino_city_players
-          (vk_id, display_name, score, level, plays, wins, updated_at)
-        VALUES ($1, $2, 110, 1, 0, 0, NOW())
+          (vk_id, display_name, score, level, plays, wins, avatar_url, updated_at)
+        VALUES ($1, $2, 110, 1, 0, 0, $3, NOW())
         ON CONFLICT (vk_id) DO NOTHING RETURNING vk_id
-      `, [vkId, name]);
+      `, [vkId, name, avatarUrl]);
       const snapshot = await client.query(`
         SELECT vk_id::text AS vk_id, display_name, score::text AS score,
-               level, plays::text AS plays, wins::text AS wins,
+               level, plays::text AS plays, wins::text AS wins, avatar_url,
                updated_at, EXTRACT(EPOCH FROM (NOW() - updated_at)) AS elapsed_seconds
         FROM public.casino_city_players WHERE vk_id=$1 FOR UPDATE
       `, [vkId]);
@@ -100,19 +118,22 @@ function registerCasinoRanking(app, pool, requireAuth) {
         // Do not refresh updated_at for no-op syncs: that would prevent legitimate
         // time allowance from accumulating.
         const nameChanged = !!displayName && displayName !== old.display_name;
-        const advanced = nameChanged || acceptedScore > Number(old.score) ||
+        const avatarChanged = !!avatarUrl && avatarUrl !== (old.avatar_url || '');
+        const advanced = nameChanged || avatarChanged || acceptedScore > Number(old.score) ||
           acceptedPlays > Number(old.plays) || acceptedWins > Number(old.wins) ||
           acceptedLevel > Number(old.level);
         if (advanced) {
           const changed = await client.query(`
             UPDATE public.casino_city_players
-            SET display_name=$2, score=$3, level=$4, plays=$5, wins=$6,
+            SET display_name=CASE WHEN $2<>'' THEN $2 ELSE display_name END,
+                avatar_url=CASE WHEN $7<>'' THEN $7 ELSE avatar_url END,
+                score=$3, level=$4, plays=$5, wins=$6,
                 updated_at=CASE WHEN score <> $3 OR level <> $4 OR plays <> $5 OR wins <> $6
                                 THEN NOW() ELSE updated_at END
             WHERE vk_id=$1
             RETURNING vk_id::text AS vk_id, display_name, score::text AS score,
-                      level, plays::text AS plays, wins::text AS wins
-          `, [vkId, name, acceptedScore, acceptedLevel, acceptedPlays, acceptedWins]);
+                      level, plays::text AS plays, wins::text AS wins, avatar_url
+          `, [vkId, name, acceptedScore, acceptedLevel, acceptedPlays, acceptedWins, avatarUrl]);
           row = changed.rows[0];
         }
       }
@@ -120,7 +141,7 @@ function registerCasinoRanking(app, pool, requireAuth) {
       res.set('Cache-Control', 'no-store');
       return res.json({ ok: true, limited, player: {
         vk_id: row.vk_id, display_name: row.display_name, score: String(row.score),
-        level: row.level, plays: String(row.plays), wins: String(row.wins)
+        level: row.level, plays: String(row.plays), wins: String(row.wins), avatar_url: row.avatar_url || ''
       } });
     } catch (error) {
       await client.query('ROLLBACK').catch(() => {});
