@@ -120,7 +120,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
      'resetEpoch',COALESCE(CASE WHEN (save->>'resetEpoch') ~ '^[0-9]{1,12}$'
        THEN (save->>'resetEpoch')::bigint ELSE 0 END,0)+1),
     revision=revision+1,updated_at=NOW()`);
-   const ranking=await client.query('DELETE FROM public.casino_city_players');
+   const ranking=await client.query('UPDATE public.casino_city_players SET score=0,level=1,plays=0,wins=0,updated_at=NOW()');
    const tournaments=await client.query('DELETE FROM public.casino_city_tournaments');
    await client.query('INSERT INTO public.casino_city_admin_audit(admin_vk_id,target_vk_id,action,details) VALUES($1,$1,$2,$3::jsonb)',
     [ADMIN_ID,'reset_all',JSON.stringify({saves:saves.rowCount,ranking:ranking.rowCount,tournaments:tournaments.rowCount})]);
