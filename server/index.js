@@ -80,6 +80,7 @@ app.get('/api/purchases/test-status',requireAuth,async(req,res)=>{
 app.post('/api/purchases/verify',requireAuth,(_req,res)=>res.status(501).json({error:'PAYMENTS_DISABLED'}));
 const casinoTournaments=(await import('./casino-tournaments.cjs')).registerCasinoTournaments(app,pool,requireAuth,optionalVkAuth);
 (await import('./casino-ranking.cjs')).registerCasinoRanking(app,pool,requireAuth,casinoTournaments.recordAcceptedAdvance);
+(await import('./casino-admin.cjs')).registerCasinoAdmin(app,pool,requireAuth);
 app.use((_req,res)=>res.status(404).json({error:'NOT_FOUND'}));
 const port=Number(process.env.PORT||3000);
 app.listen(port,'0.0.0.0',()=>console.log('Merge Defense API listening on',port));
