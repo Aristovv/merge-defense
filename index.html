@@ -2125,6 +2125,13 @@ function casinoManageRankingRefresh(){
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&tab==='top'){loadCasinoRanking();casinoTournamentLoad()}});
 /* Casino City cloud save v18.2: local-first, server revision guarded. */
 let casinoCloudRevision=null,casinoCloudDirty=false,casinoCloudBusy=false,casinoCloudTimer=null,casinoCloudStarting=false;
+function casinoCloudBackup(reason){
+ try{localStorage.setItem('casino_city_cloud_backup_'+Date.now(),JSON.stringify({reason,save:state}));}catch(_){}
+}
+function casinoCloudNotice(text){
+ console.warn(text);
+ try{message(text)}catch(_){}
+}
 async function casinoCloudFetch(method,body){
  const headers={'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS};if(body)headers['Content-Type']='application/json';
  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/save',{method,headers,body:body?JSON.stringify(body):undefined,cache:'no-store'});
@@ -2133,28 +2140,28 @@ async function casinoCloudFetch(method,body){
 }
 async function casinoCloudStart(){
  if(!CASINO_LAUNCH_PARAMS||casinoCloudStarting||casinoCloudRevision!==null)return;
- casinoCloudStarting=true;const stamp=Number(state.stamp)||0;
+ casinoCloudStarting=true;
+ const startingSnapshot=JSON.stringify(state),startingStamp=Number(state.stamp)||0;
  try{
   const result=await casinoCloudFetch('GET');
-  const localChanged=casinoCloudDirty||Number(state.stamp)!==stamp;
   if(result.save){
-   if(localChanged){
-    // Existing cloud data takes priority over unsynced local activity only after
-    // explicit reconciliation. Never silently overwrite either copy.
+   const localChanged=casinoCloudDirty||JSON.stringify(state)!==startingSnapshot;
+   const localStamp=Number(state.stamp)||0,remoteStamp=Number(result.save.stamp)||0;
+   if(localChanged||localStamp>remoteStamp){
+    // Never overwrite newer local activity or an administrator's cloud revision automatically.
+    // Keep both copies and require explicit recovery rather than destructive auto-merge.
+    casinoCloudBackup('Local progress differs from cloud revision '+result.revision);
     casinoCloudRevision=null;
-    console.warn('Casino cloud conflict: both local and server saves exist; keeping local copy without upload');
+    casinoCloudNotice('Обнаружены разные сохранения. Локальная копия сохранена; облачная синхронизация приостановлена.');
     return;
    }
    casinoCloudRevision=result.revision;
+   casinoCloudDirty=false;
    state={...fresh(),...result.save};
    try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}
    render();
   }else{
-   // New cloud account: upload the latest local state, even if it changed
-   // while the initial GET was in flight.
-   casinoCloudRevision=0;
-   casinoCloudDirty=true;
-   casinoCloudSchedule();
+   casinoCloudRevision=0;casinoCloudDirty=true;casinoCloudSchedule();
   }
  }catch(error){console.warn('Casino cloud unavailable; local save retained',error.message)}
  finally{casinoCloudStarting=false}
@@ -2167,8 +2174,11 @@ async function casinoCloudUpload(){
   const result=await casinoCloudFetch('PUT',{revision,save:JSON.parse(snapshot)});
   casinoCloudRevision=result.revision;casinoCloudDirty=JSON.stringify(state)!==snapshot;
  }catch(error){
-  if(error.status===409){casinoCloudRevision=null;console.warn('Cloud revision conflict; remote data preserved. Reopen the game to reconcile.')}
-  else console.warn('Cloud upload failed',error.message);
+  if(error.status===409){
+   casinoCloudBackup('Cloud revision conflict on upload '+revision);
+   casinoCloudRevision=null;
+   casinoCloudNotice('Облачное сохранение изменилось. Локальный прогресс сохранён отдельно; перезапусти игру для проверки.');
+  }else console.warn('Cloud upload failed',error.message);
  }finally{casinoCloudBusy=false;if(casinoCloudDirty&&casinoCloudRevision!==null)casinoCloudSchedule()}
 }
 function save(){state.stamp=Date.now();try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}casinoCloudDirty=true;casinoCloudSchedule();syncCasinoRanking()}
@@ -2698,7 +2708,7 @@ function rewardCollection(){
  save();
  message('Коллекция: +'+newlyClaimed+' VIP за завершённые серии партий');
 }
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 18.7</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 18.8</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 /* Casino City admin console v1: server-verified read-only player directory */
 function casinoAdminVisible(){try{const q=new URLSearchParams(CASINO_LAUNCH_PARAMS||'');return q.get('vk_user_id')==='523218982'}catch(_){return false}}
 function casinoAdminScreen(){return '<div class="page"><div class="section-intro"><div><span class="eyebrow">CASINO CITY · ADMIN</span><h1>Панель управления</h1></div><span class="catalog-count">OWNER</span></div><div class="panel"><h3>Игроки Casino City</h3><p class="subline">Доступ проверяется сервером по подписи ВКонтакте. Поиск показывает данные общего рейтинга.</p><div class="casino-admin-search"><input id="casino-admin-query" maxlength="64" placeholder="VK ID или имя игрока"><button class="btn purple" data-casino-admin-search="1">Найти</button></div><div id="casino-admin-results" class="subline">Загружаем игроков…</div></div><div class="panel"><h3>Выдать ресурсы</h3><p class="subline">Выдача работает только для игроков, у которых уже есть облачное сохранение. Выбери валюту и введи VK ID.</p><div class="casino-admin-search"><input id="casino-grant-vk" placeholder="VK ID игрока" inputmode="numeric"></div><div class="casino-admin-search"><select id="casino-grant-field"><option value="chips">Фишки</option><option value="coins">Монеты</option><option value="vip">VIP</option><option value="xp">Опыт (XP)</option></select><input id="casino-grant-amount" placeholder="Количество" inputmode="numeric"></div><button class="btn purple" data-casino-admin-grant="1">Выдать</button><div id="casino-grant-status" class="subline"></div></div><div class="panel"><h3>История действий</h3><p class="subline">Последние 30 операций администратора.</p><button class="btn purple" data-casino-admin-audit="1">Обновить историю</button><div id="casino-admin-audit" class="subline">Нажми «Обновить историю»</div></div><div class="panel"><h3>Сброс игроков</h3><p class="subline">Пока отключён: требуется защита от восстановления старого прогресса с устройств игроков.</p><button class="btn" disabled>Сбросить игрока — скоро</button> <button class="btn" disabled>Сбросить всех — скоро</button></div></div>'}
