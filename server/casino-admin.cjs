@@ -117,10 +117,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
      'quests',jsonb_build_array(),'lastGift','',
      'stamp',(EXTRACT(EPOCH FROM clock_timestamp())*1000)::bigint,
      'lastIncome',(EXTRACT(EPOCH FROM clock_timestamp())*1000)::bigint,
-     'resetEpoch',COALESCE(CASE WHEN (save->>'resetEpoch')~'^[0-9]{1,12}
-}
-module.exports={registerCasinoAdmin};
-
+     'resetEpoch',COALESCE(CASE WHEN (save->>'resetEpoch') ~ '^[0-9]{1,12}$'
        THEN (save->>'resetEpoch')::bigint ELSE 0 END,0)+1),
     revision=revision+1,updated_at=NOW()`);
    const ranking=await client.query('DELETE FROM public.casino_city_players');
