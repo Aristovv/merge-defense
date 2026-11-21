@@ -1336,6 +1336,9 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 .casino-favorite-track{height:5px;border-radius:20px;background:#120f1c;margin-top:12px;overflow:hidden}
 .casino-favorite-track span{display:block;height:100%;background:linear-gradient(90deg,#ac70eb,#f3c382);border-radius:20px}
 .casino-profile-empty{font-size:11px;color:#b6abc4;padding:15px;border:1px dashed #705c88;border-radius:12px;line-height:1.6}
+/* Casino City 13.4: server-confirmed leaderboard points */
+#casino-confirmed-score{color:#f9d695;font-variant-numeric:tabular-nums}
+#casino-ranking-status{line-height:1.65}.casino-ranking-sync{display:block;color:#e5bd8e;margin-top:7px}.casino-ranking-synced{color:#8debbd}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
@@ -1372,6 +1375,9 @@ let tab='city',selected=-1,bet=25,busy=false,round=null,roundBet=25,roulettePick
 const $=id=>document.getElementById(id),rand=n=>Math.floor(Math.random()*n),fmt=n=>Math.floor(Number(n)||0).toLocaleString('ru-RU'),today=()=>new Date().toISOString().slice(0,10);
 let CASINO_LAUNCH_PARAMS=(()=>{const q=window.location.search.replace(/^\?/,'');if(q.includes('sign=')&&q.includes('vk_user_id='))return q;const h=window.location.hash.replace(/^#/,'');return h.includes('sign=')&&h.includes('vk_user_id=')?h:''})();
 let casinoRankTimer=null;
+let casinoTopRefreshTimer=null;
+let casinoRankingLoading=false;
+let casinoVerifiedScore=null;
 let casinoVKDisplayName='';
 let casinoVKAvatar='';
 let casinoLeaderboardPlayers=[];
@@ -1400,7 +1406,24 @@ async function loadCasinoVKProfile(){
 async function initCasinoLaunchParams(){if(CASINO_LAUNCH_PARAMS){loadCasinoVKProfile();return;}try{const bridge=window.vkBridge;if(!bridge||typeof bridge.send!=='function'){console.warn('VK Bridge unavailable');return}const data=await bridge.send('VKWebAppGetLaunchParams');if(data?.sign&&data?.vk_user_id&&data?.vk_app_id){CASINO_LAUNCH_PARAMS=new URLSearchParams(Object.entries(data).map(([k,v])=>[k,String(v)])).toString();loadCasinoVKProfile();syncCasinoRanking();if(tab==='top')loadCasinoRanking()}else{console.warn('VKWebAppGetLaunchParams returned no signed params',data)}}catch(e){console.warn('VK launch params request failed',e?.message||e)}}
 
 function casinoRankPayload(){return {plays:Math.max(0,Math.floor(Number(state.plays)||0)),wins:Math.max(0,Math.floor(Number(state.wins)||0)),level:Math.max(1,Math.floor(Number(state.level)||1)),buildings:state.buildings.map(v=>Math.max(0,Math.floor(Number(v)||0))),displayName:casinoVKDisplayName,avatarUrl:casinoVKAvatar}}
-function syncCasinoRanking(){if(!CASINO_LAUNCH_PARAMS)return;clearTimeout(casinoRankTimer);casinoRankTimer=setTimeout(()=>fetch('https://merge.89-23-115-251.sslip.io/api/casino/sync',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify(casinoRankPayload()),cache:'no-store'}).catch(()=>{}),700)}
+function syncCasinoRanking(){if(!CASINO_LAUNCH_PARAMS)return;clearTimeout(casinoRankTimer);casinoRankTimer=setTimeout(()=>{
+ if(tab==='top'){loadCasinoRanking();return}
+ fetch('https://merge.89-23-115-251.sslip.io/api/casino/sync',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify(casinoRankPayload()),cache:'no-store'}).catch(()=>{});
+},700)}
+function casinoRankingPoints(){
+ return Math.floor(state.plays*15+state.wins*45+state.level*110+state.buildings.reduce((a,b)=>a+Math.max(0,Number(b)||0),0)*30);
+}
+function casinoRankingStatus(){
+ const host=document.getElementById('casino-ranking-status');
+ if(!host)return;
+ const local=casinoRankingPoints();
+ if(casinoVerifiedScore===null){host.innerHTML='Подключаемся к серверу. Локально накоплено <b>'+fmt(local)+'</b> очков.';return}
+ const gap=Math.max(0,local-casinoVerifiedScore);
+ host.innerHTML='Подтверждено сервером: <b>'+fmt(casinoVerifiedScore)+'</b> очков.'+
+ (gap?' <span class="casino-ranking-sync">Ещё '+fmt(gap)+' очков ожидают серверной проверки. Рейтинг синхронизируется постепенно.</span>':' <span class="casino-ranking-synced">Синхронизировано.</span>');
+ const header=document.getElementById('casino-confirmed-score');
+ if(header)header.textContent=fmt(casinoVerifiedScore);
+}
 function rankFmt(v){return Math.max(0,Number(v)||0).toLocaleString('ru-RU')}
 function rankEsc(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function renderCasinoLeaderboard(){
@@ -1426,7 +1449,33 @@ function renderCasinoLeaderboard(){
     return '<button type="button" class="rank-row casino-rank-button '+(String(p.vk_id)===String(me)?'is-self':'')+'" data-player-id="'+rankEsc(p.vk_id)+'"><span class="rank-place">'+(i+1)+'</span>'+casinoAvatarHTML(photo)+'<span class="casino-rank-name"><strong>'+rankEsc(p.display_name||('Игрок '+p.vk_id))+'</strong><small>'+rankEsc(rankAt(p.level))+' · ур. '+rankFmt(p.level)+' · '+rankFmt(p.plays)+' игр · '+rankFmt(p.wins)+' побед</small></span><b>'+rankFmt(p.score)+'</b></button>';
   }).join(''):'<div class="panel"><p class="subline">Пока нет участников. Сыграй несколько игр, чтобы появиться в рейтинге.</p></div>';
 }
-async function loadCasinoRanking(){const host=document.getElementById('casino-top-list');if(!host)return;if(!CASINO_LAUNCH_PARAMS){host.innerHTML='<div class="panel"><p class="subline">Нет параметров запуска VK. Открой Casino City из раздела игр ВКонтакте (не по прямой ссылке на сайт).</p></div>';return}try{const synced=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/sync',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify(casinoRankPayload()),cache:'no-store'});if(!synced.ok){let detail='';try{const d=await synced.json();detail=d.error||''}catch(_){}throw Error('Сохранение игрока: HTTP '+synced.status+(detail?' / '+detail:''))}const r=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/top',{cache:'no-store'});if(!r.ok)throw Error('ranking');const d=await r.json(),me=new URLSearchParams(CASINO_LAUNCH_PARAMS).get('vk_user_id');casinoLeaderboardPlayers=Array.isArray(d.top)?d.top:[];renderCasinoLeaderboard();}catch(e){host.innerHTML='<div class="panel"><p class="subline">Ошибка общего рейтинга: '+rankEsc(e?.message||'Нет соединения с сервером')+'.</p></div>';console.warn('Casino leaderboard:',e)}}
+async function loadCasinoRanking(){
+ const host=document.getElementById('casino-top-list');
+ if(!host||casinoRankingLoading||document.visibilityState==='hidden')return;
+ if(!CASINO_LAUNCH_PARAMS){host.innerHTML='<div class="panel"><p class="subline">Нет параметров запуска VK. Открой Casino City из ВКонтакте.</p></div>';return}
+ casinoRankingLoading=true;
+ try{
+  const synced=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/sync',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify(casinoRankPayload()),cache:'no-store'});
+  if(!synced.ok){let detail='';try{const d=await synced.json();detail=d.error||''}catch(_){}throw Error('Сохранение игрока: HTTP '+synced.status+(detail?' / '+detail:''))}
+  const result=await synced.json();
+  if(result.player&&Number.isFinite(Number(result.player.score)))casinoVerifiedScore=Math.max(0,Number(result.player.score));
+  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/top',{cache:'no-store'});
+  if(!response.ok)throw Error('ranking');
+  const data=await response.json();
+  casinoLeaderboardPlayers=(Array.isArray(data.top)?data.top:[]).sort((a,b)=>Number(b.score)-Number(a.score)||String(a.vk_id).localeCompare(String(b.vk_id)));
+  casinoRankingStatus();renderCasinoLeaderboard();
+ }catch(e){
+  host.innerHTML='<div class="panel"><p class="subline">Ошибка общего рейтинга: '+rankEsc(e?.message||'Нет соединения с сервером')+'.</p></div>';
+  console.warn('Casino leaderboard:',e);
+ }finally{casinoRankingLoading=false}
+}
+function casinoManageRankingRefresh(){
+ if(casinoTopRefreshTimer){clearInterval(casinoTopRefreshTimer);casinoTopRefreshTimer=null}
+ if(tab==='top')casinoTopRefreshTimer=setInterval(()=>{
+  if(tab==='top'&&document.visibilityState!=='hidden')loadCasinoRanking();
+ },15000);
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&tab==='top')loadCasinoRanking()});
 function save(){state.stamp=Date.now();try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}syncCasinoRanking()}
 function message(s){$('toast').textContent=s;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,2800)}
 function grant(chips=0,coins=0,gamePayout=false){
@@ -1822,7 +1871,7 @@ function rewardCollection(){
  save();
  message('Коллекция: +'+newlyClaimed+' VIP за завершённые серии партий');
 }
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 13.3</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 13.4</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 let expandedDistrict=false;
 function cityScreen(){
@@ -2045,9 +2094,9 @@ function casinoProfileAnalytics(){
  '<p class="casino-profile-analytics-desc foot">Нажми на игру, чтобы открыть подробную историю раундов. Прибыль и убыток отражают только игровые фишки, не реальные деньги.</p></section>';
 }
 function profileScreen(){const need=levelXpNeed(state.level),nextRank=nextRankAfter(state.level);return '<div class="page"><h2 class="title">Профиль магната</h2><div class="panel"><div class="profile-row">'+casinoAvatarHTML(casinoVKAvatar,'profile-icon profile-vk-avatar')+'<div><strong>'+rankEsc(casinoVKDisplayName||'Владелец Casino City')+'</strong><div class="subline">Уровень '+state.level+' / '+CASINO_LEVEL_CAP+' · '+rankEsc(rankAt(state.level))+'</div></div></div><div class="progress"><span style="width:'+(need?Math.min(100,state.xp/need*100):100)+'%"></span></div><div class="mini">'+(need?'Опыт '+fmt(state.xp)+' / '+fmt(need)+' XP':'Максимальный уровень достигнут')+'</div><div class="casino-rank-details"><b>Звание: '+rankEsc(rankAt(state.level))+'</b><span>'+(nextRank?'Следующее звание: '+rankEsc(nextRank[1])+' на '+nextRank[0]+' уровне':'Все звания открыты')+'</span><small>VIP: '+fmt(state.vip)+' · коллекционные очки (+1 за каждые 12 завершённых партий). Не платная подписка.</small></div></div>'+casinoMilestoneScreen()+casinoProfileAnalytics()+'<div class="panel">'+[['Сыграно партий',state.plays],['Успешных игр',state.wins],['Лучший выигрыш',fmt(state.best)],['Выиграно фишек',fmt(state.earned)],['Доход города / час',fmt(rate())]].map(x=>'<div style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #58456755"><span class="subline">'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')+'</div><div class="panel casino-bank"><h3>Банк Casino City</h3><div class="bank-exchange-grid"><section class="bank-exchange-side"><h3>Монеты → фишки</h3><p class="subline">Доступно: '+fmt(state.coins)+' монет. Курс: 2 монеты = 1 фишка.</p><label class="cashout-label" for="coin-exchange-amount">Сколько монет обменять?</label><input id="coin-exchange-amount" class="cashout-input" type="number" inputmode="numeric" min="2" step="1" placeholder="Введите монеты" autocomplete="off"><div id="coin-exchange-preview" class="cashout-preview" aria-live="polite">Введите количество монет</div><button id="coin-exchange-submit" class="btn green cashout-submit" data-action="exchange" disabled>Обменять на фишки</button></section><section class="bank-exchange-side"><h3>Фишки → монеты</h3><p class="subline">Доступно: '+fmt(state.chips)+' фишек. Минимальный обмен — 3 000 фишек. Курс: 1 фишка = 1,6 монеты.</p><label class="cashout-label" for="cashout-amount">Сколько фишек обменять?</label><input id="cashout-amount" class="cashout-input" type="number" inputmode="numeric" min="3000" step="1" placeholder="От 3 000" autocomplete="off"><div id="cashout-preview" class="cashout-preview" aria-live="polite">Введите количество фишек</div><button id="cashout-submit" class="btn purple cashout-submit" data-action="cashout" disabled>Обменять на монеты</button></section></div><p class="subline">Все операции выполняются только с внутриигровыми валютами, без вывода реальных денег.</p></div><div class="note">Сохранение на этом устройстве. Старые данные «Легенд Башен» и прежних игр не затронуты. Платные покупки и вывод денег отключены.</div></div>'}
-function topScreen(){const score=Math.floor(state.plays*15+state.wins*45+state.level*110+state.buildings.reduce((a,b)=>a+b,0)*30);return '<div class="page"><div class="section-intro"><div><span class="eyebrow">CASINO CITY · РЕЙТИНГ</span><h1>Топ игроков</h1></div><span class="catalog-count">ONLINE</span></div><div class="panel"><h3>Твой рейтинг: '+fmt(score)+' очков</h3><div class="rank-progress"><span>Общий рейтинг игроков Casino City</span><div><i style="width:'+(score%1000/10)+'%"></i></div></div><p class="subline">Результаты синхронизируются с облачной базой при запуске из ВКонтакте.</p></div><div id="casino-top-list"><div class="panel"><p class="subline">Загружаем общий рейтинг…</p></div></div></div>'}
+function topScreen(){const score=casinoRankingPoints();return '<div class="page"><div class="section-intro"><div><span class="eyebrow">CASINO CITY · РЕЙТИНГ</span><h1>Топ игроков</h1></div><span class="catalog-count">ONLINE</span></div><div class="panel"><h3>Твой рейтинг: <span id="casino-confirmed-score">'+(casinoVerifiedScore===null?'…':fmt(casinoVerifiedScore))+'</span> очков</h3><div class="rank-progress"><span>Общий рейтинг игроков Casino City</span><div><i style="width:'+(score%1000/10)+'%"></i></div></div><p class="subline" id="casino-ranking-status">Подключаемся к серверу. Локально накоплено <b>'+fmt(score)+'</b> очков.</p></div><div id="casino-top-list"><div class="panel"><p class="subline">Загружаем общий рейтинг…</p></div></div></div>'}
 function shopScreen(){return '<div class="page"><div class="section-intro"><div><span class="eyebrow">CASINO CITY · VIP</span><h1>Премиум-магазин</h1></div><span class="catalog-count">СКОРО</span></div><div class="panel"><h3>Премиум-витрина</h3><p class="subline">Каталог будущих покупок. Оплата пока не подключена: никаких списаний, обещаний выдачи и фиктивных покупок.</p></div><div class="shop-grid">'+[['Королевский VIP','Эксклюзивная рамка профиля и золотая тема','♛'],['Золотой город','Особый внешний вид городских зданий','◆'],['Коллекция Royale','Редкие декоративные предметы','✦'],['Пропуск сезона','Косметические награды и оформление','★'],['Набор фишек','Будущая покупка фишек после проверки оплаты','◈'],['Премиум-профиль','Золотой бейдж и особое оформление имени','♕']].map(x=>'<div class="shop-item"><div class="shop-symbol">'+x[2]+'</div><strong>'+x[0]+'</strong><p>'+x[1]+'</p><span class="shop-disabled">Недоступно до подключения VK Pay</span></div>').join('')+'</div><div class="note">Настоящие покупки появятся только после серверной проверки платежей и настройки VK. Сейчас это безопасная демонстрация ассортимента.</div></div>'}
-function render(){if(tab==='game'&&selected<0)tab='games';$('app').innerHTML=mainHeader()+(tab==='city'?cityScreen():tab==='games'?gamesScreen():tab==='game'?gameScreen():tab==='collection'?collectionScreen():tab==='quests'?questsScreen():tab==='top'?topScreen():tab==='shop'?shopScreen():profileScreen())+navbar();if(tab==='top'){syncCasinoRanking();loadCasinoRanking()}if(tab==='game'&&selected>=0&&selected<6&&lastSlotResult?.lines?.length)requestAnimationFrame(()=>{alignSlotWinningLines();const overlay=document.getElementById('slot-paylines');if(overlay){overlay.classList.remove('casino-lines-active');void overlay.offsetWidth;overlay.classList.add('casino-lines-active')}});}
+function render(){if(tab==='game'&&selected<0)tab='games';$('app').innerHTML=mainHeader()+(tab==='city'?cityScreen():tab==='games'?gamesScreen():tab==='game'?gameScreen():tab==='collection'?collectionScreen():tab==='quests'?questsScreen():tab==='top'?topScreen():tab==='shop'?shopScreen():profileScreen())+navbar();casinoManageRankingRefresh();if(tab==='top'){loadCasinoRanking()}if(tab==='game'&&selected>=0&&selected<6&&lastSlotResult?.lines?.length)requestAnimationFrame(()=>{alignSlotWinningLines();const overlay=document.getElementById('slot-paylines');if(overlay){overlay.classList.remove('casino-lines-active');void overlay.offsetWidth;overlay.classList.add('casino-lines-active')}});}
 function claimQuest(i){let req=[state.plays>=5,state.plays>=20,state.wins>=10,state.buildings.reduce((a,b)=>a+b,0)>=4,state.level>=5];if(state.quests.includes(i)||!req[i])return;state.quests.push(i);grant([150,500,600,400,1000][i]);render();message('Награда получена')}
 function switchTab(t){if(t!=='top')casinoSelectedPlayerId='';if(busy&&tab==='game'){message('Сначала закончи игру');return}lastSlotResult=null;if(crashTimer){clearInterval(crashTimer);crashTimer=null;busy=false}tab=t;selected=t==='game'?selected:-1;round=null;render();window.scrollTo(0,0)}
 document.addEventListener('input',function(e){if(e.target?.id==='cashout-amount')updateCashoutPreview();if(e.target?.id==='coin-exchange-amount')updateCoinExchangePreview();if(e.target?.id==='crash-auto'){const v=Number(e.target.value.replace(',','.'));crashAutoTarget=Number.isFinite(v)&&v>=1.1&&v<=11.1?v:0}});
