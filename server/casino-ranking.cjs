@@ -1,6 +1,6 @@
 'use strict';
 
-function registerCasinoRanking(app, pool, requireAuth) {
+function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
   // Optional schema feature: lack of ALTER rights cannot block existing ranking.
   const avatarReady = pool ? (async () => {
     try {
@@ -145,6 +145,11 @@ function registerCasinoRanking(app, pool, requireAuth) {
           `, avatarEnabled ? [vkId, name, acceptedScore, acceptedLevel, acceptedPlays, acceptedWins, avatarUrl] : [vkId, name, acceptedScore, acceptedLevel, acceptedPlays, acceptedWins]);
           row = changed.rows[0];
         }
+      }
+      if (typeof onScoreAdvanced === 'function' && !inserted.rowCount && Number(row.score)>Number(old.score)) {
+        // Do not credit fabricated initial snapshots. Score growth is constrained
+        // by the existing rate limits and committed alongside the ranking row.
+        await onScoreAdvanced(client,vkId,row.display_name,Number(row.score)-Number(old.score));
       }
       await client.query('COMMIT');
       res.set('Cache-Control', 'no-store');
