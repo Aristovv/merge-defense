@@ -43,6 +43,39 @@ function registerCasinoAdmin(app,pool,requireAuth){
   }catch(e){if(client)await client.query('ROLLBACK').catch(()=>{});console.error('casino grant failed',e.code||e.message);res.status(503).json({error:'GRANT_UNAVAILABLE'})}
   finally{client?.release()}
  });
+ // Administrator-only reversible resource and building adjustments.
+ app.post('/api/casino/admin/adjust',guard,async(req,res)=>{
+  if(!pool)return res.status(503).json({error:'DATABASE_UNAVAILABLE'});
+  const {vkId,field,mode,amount,buildingIndex}=req.body||{};
+  const scalar={chips:1e12,coins:1e12,vip:1e9,xp:1e12,level:10000,plays:1e9,wins:1e9,best:1e12,earned:1e12};
+  if(!/^[1-9][0-9]{0,18}$/.test(String(vkId||''))||
+   !Object.prototype.hasOwnProperty.call(scalar,field)&&field!=='building'||
+   !['add','remove','set'].includes(mode)||!Number.isSafeInteger(amount)||amount<0||amount>1e9||
+   (field==='building'&&(!Number.isInteger(buildingIndex)||buildingIndex<0||buildingIndex>13)))
+   return res.status(400).json({error:'INVALID_ADJUSTMENT'});
+  let client;
+  try{
+   client=await pool.connect();await client.query('BEGIN');
+   const q=await client.query('SELECT save FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vkId]);
+   if(!q.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'CLOUD_SAVE_NOT_FOUND'})}
+   const save=q.rows[0].save;
+   const current=field==='building'?save.buildings?.[buildingIndex]:save[field];
+   const cap=field==='building'?1000:scalar[field];
+   if(!Number.isSafeInteger(current)||current<0){await client.query('ROLLBACK');return res.status(409).json({error:'INVALID_CURRENT_VALUE'})}
+   const raw=mode==='set'?amount:mode==='add'?current+amount:current-amount;
+   const min=field==='level'?1:field==='building'&&buildingIndex===0?1:0;
+   const next=Math.max(min,Math.min(cap,raw));
+   if(field==='building')save.buildings[buildingIndex]=next;else save[field]=next;
+   // Invalidate stale device saves, as with player resets.
+   save.resetEpoch=Math.max(0,Number(save.resetEpoch)||0)+1;
+   save.stamp=Date.now();
+   await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(save)]);
+   await client.query('INSERT INTO public.casino_city_admin_audit(admin_vk_id,target_vk_id,action,details) VALUES($1,$2,$3,$4::jsonb)',
+    [ADMIN_ID,vkId,'adjust',JSON.stringify({field,buildingIndex:field==='building'?buildingIndex:null,mode,amount,before:current,after:next})]);
+   await client.query('COMMIT');res.set('Cache-Control','no-store');res.json({ok:true,vkId,field,mode,before:current,after:next});
+  }catch(e){if(client)await client.query('ROLLBACK').catch(()=>{});console.error('casino adjust failed',e.code||e.message);res.status(503).json({error:'ADJUST_UNAVAILABLE'})}
+  finally{client?.release()}
+ });
  app.get('/api/casino/admin/audit',guard,async(req,res)=>{
   if(!pool)return res.status(503).json({error:'DATABASE_UNAVAILABLE'});
   try{
