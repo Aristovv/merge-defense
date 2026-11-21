@@ -18,7 +18,7 @@ function weeklyRewards(position) {
  if(position<=10)return {chips:450,coins:200,vip:0,badge:'Финалист недели'};
  return {chips:0,coins:0,vip:0,badge:''};
 }
-function registerCasinoTournaments(app,pool,requireAuth) {
+function registerCasinoTournaments(app,pool,requireAuth,optionalAuth) {
  let ready=null;
  async function ensure() {
   if(!pool)throw new Error('DATABASE_UNAVAILABLE');
@@ -73,7 +73,7 @@ function registerCasinoTournaments(app,pool,requireAuth) {
    ORDER BY points::bigint DESC,joined_at ASC,vk_id ASC LIMIT 100`,[week]);
   return rows;
  }
- app.get('/api/casino/tournament',async(req,res)=>{
+ app.get('/api/casino/tournament',optionalAuth,async(req,res)=>{
   // The tournament table is public, just like /api/casino/top.
   // Signed VK launch params are required only for personalized details and claims.
   const id=idFor(req);
