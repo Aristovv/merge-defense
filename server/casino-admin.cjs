@@ -68,7 +68,35 @@ function registerCasinoAdmin(app,pool,requireAuth){
    res.json({vkId,cloud:c?{revision:Number(c.revision),updatedAt:c.updated_at,chips:v.chips,coins:v.coins,vip:v.vip,xp:v.xp,level:v.level,plays:v.plays,wins:v.wins,buildings:v.buildings,stamp:v.stamp}:null,ranking:p||null,reset:{available:false,reason:'RESET_DISABLED_PENDING_SAFE_RECONCILIATION'}});
   }catch(e){console.error('casino admin player',e.code||e.message);res.status(503).json({error:'PLAYER_READ_UNAVAILABLE'})}
  });
- // No write endpoints until server-owned balances and client-save reconciliation
+ // Reset only one player's cloud game progress. The reset epoch prevents older
+ // device saves from silently restoring the previous cloud progress.
+ app.post('/api/casino/admin/reset-player',guard,async(req,res)=>{
+  if(!pool)return res.status(503).json({error:'DATABASE_UNAVAILABLE'});
+  const vkId=String(req.body?.vkId||'').trim();
+  const confirmation=String(req.body?.confirmation||'');
+  if(!/^[1-9][0-9]{0,18}$/.test(vkId)||confirmation!=='RESET '+vkId)
+   return res.status(400).json({error:'RESET_CONFIRMATION_REQUIRED'});
+  let client;
+  try{
+   client=await pool.connect();await client.query('BEGIN');
+   const q=await client.query('SELECT save,revision FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vkId]);
+   if(!q.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'CLOUD_SAVE_NOT_FOUND'})}
+   const previous=q.rows[0].save;
+   const epoch=Math.max(0,Number(previous.resetEpoch)||0)+1;
+   const now=Date.now();
+   const fresh={coins:2500,chips:100000,vip:0,level:1,xp:0,buildings:[1,0,0,0,0,0,0,0,0,0,0,0,0,0],plays:0,wins:0,best:0,earned:0,collect:[],quests:[],lastGift:'',stamp:now,lastIncome:now,resetEpoch:epoch,chipsEqualization:'chips-100000-20261122'};
+   await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(fresh)]);
+   await client.query(`CREATE TABLE IF NOT EXISTS public.casino_city_admin_audit(
+    id BIGSERIAL PRIMARY KEY,admin_vk_id BIGINT NOT NULL,target_vk_id BIGINT NOT NULL,
+    action TEXT NOT NULL,details JSONB NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+   await client.query('INSERT INTO public.casino_city_admin_audit(admin_vk_id,target_vk_id,action,details) VALUES($1,$2,$3,$4::jsonb)',[ADMIN_ID,vkId,'reset_cloud_progress',JSON.stringify({resetEpoch:epoch,previousRevision:Number(q.rows[0].revision)})]);
+   await client.query('COMMIT');
+   res.set('Cache-Control','no-store');res.json({ok:true,vkId,resetEpoch:epoch,scope:'cloud_game_progress_only'});
+  }catch(e){if(client)await client.query('ROLLBACK').catch(()=>{});console.error('casino reset failed',e.code||e.message);res.status(503).json({error:'RESET_UNAVAILABLE'})}
+  finally{client?.release()}
+ });
+ // Global reset and leaderboard reset remain disabled until ranking reconciliation is implemented.
+ and client-save reconciliation
  // are implemented. A ranking-only reset would be overwritten by the next sync.
 }
 module.exports={registerCasinoAdmin};
