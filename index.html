@@ -1502,6 +1502,48 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 .slot-scene .slot-reel-holder-3x3 .slot-grid-3x4.slot-grid-5x4>.slot-column{gap:2px!important;padding:2px!important}
 .slot-scene .slot-grid-5x4 .slot-column>.slot-cell .slot-special-tag{pointer-events:none}
 @media(max-width:380px){.slot-scene .slot-reel-holder-3x3 .slot-grid-3x4.slot-grid-5x4{--slot-cell-height:clamp(42px,13.1vw,52px)!important}}
+
+/* Casino City 16.1: photorealistic roulette material pass */
+.roulette-hall{
+ position:relative;overflow:hidden;
+ background:radial-gradient(ellipse at 50% 18%,#71502e45 0%,transparent 56%),linear-gradient(135deg,#3b1b13 0%,#1c1010 36%,#100d12 75%,#302019 100%)!important;
+ border:2px solid #9d784b!important;
+ box-shadow:inset 0 1px 1px #fce6b06b,inset 0 0 28px #000b,0 12px 30px #0009!important;
+}
+.roulette-hall:before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(108deg,transparent 0 21px,#d49a5720 22px,transparent 24px 47px);opacity:.3;mix-blend-mode:screen}
+.roulette-hall .wheel-stand{perspective:950px;filter:drop-shadow(0 14px 12px #000b)}
+.roulette-hall .roulette{
+ position:relative!important;border-radius:50%!important;
+ border:12px ridge #c6a56a!important;
+ background-color:#211815!important;
+ box-shadow:0 0 0 3px #27170f,0 0 0 7px #977042,0 0 0 9px #291810,0 12px 23px #000c,inset 0 0 0 2px #fce3a4,inset 0 0 0 10px #26170e,inset 0 0 18px #000b!important;
+ transform-style:preserve-3d;
+}
+.roulette-hall .roulette:before{
+ content:"";position:absolute;inset:24%;border-radius:50%;border:5px ridge #c79b53;
+ background:repeating-conic-gradient(from 0deg,#a87634 0deg 7deg,#e7c779 8deg 10deg,#3b2617 11deg 13deg),radial-gradient(circle,#b48b4b,#241710)!important;
+ box-shadow:inset 0 0 0 6px #2c1c13,inset 0 0 16px #000,0 0 0 3px #20150f,0 3px 10px #000a;
+}
+.roulette-hall .roulette:after{
+ content:"";position:absolute;z-index:4;inset:39%;border-radius:50%;
+ border:4px ridge #d4ae6a!important;
+ background:radial-gradient(circle at 31% 22%,#fff1b5 0%,#e6bc66 15%,#91622e 39%,#24140e 62%,#d5a55d 83%,#3a2114 100%)!important;
+ box-shadow:0 3px 8px #000b,inset 0 2px 4px #fff9,0 0 0 2px #302011;
+}
+.roulette-hall .roulette-sector-labels{z-index:3}
+.roulette-hall .roulette-sector-labels span{color:#fff5d5;text-shadow:0 1px 2px #000,0 0 3px #000;font-weight:900}
+.roulette-hall .roulette-ball-track .ball{
+ background:radial-gradient(circle at 27% 23%,#fff 0%,#fffef2 23%,#c6bba2 65%,#5a554e 100%)!important;
+ box-shadow:0 0 0 1px #fff9,0 2px 5px #000e,0 0 8px #fff8!important;
+}
+.roulette-hall .wheel-pointer{filter:drop-shadow(0 3px 3px #000) drop-shadow(0 0 3px #f5dca2)}
+@media(max-width:420px){
+ .roulette-hall{padding:10px 6px!important}
+ .roulette-hall .roulette{border-width:9px!important}
+ .roulette-hall .roulette-sector-labels span{font-size:clamp(7px,2.1vw,9px)}
+}
+@media(prefers-reduced-motion:reduce){.roulette-hall .roulette,.roulette-hall .roulette-ball-track{transition:none!important}}
+
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
