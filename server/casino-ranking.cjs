@@ -101,7 +101,8 @@ function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
     const displayName = typeof body.displayName === 'string'
       ? body.displayName.replace(/[<>\u0000-\u001f]/g, '').trim().slice(0, 48) : '';
     const name = displayName || ('Игрок ' + vkId.slice(-4));
-    const targetScore = plays * 15 + wins * 45 + level * 110 +
+    const isFreshPlayer = plays===0 && wins===0 && level===1 && buildings[0]===1 && buildings.slice(1).every(v=>v===0);
+    const targetScore = isFreshPlayer ? 0 : plays * 15 + wins * 45 + level * 110 +
       buildings.reduce((a, b) => a + b, 0) * 30;
     const avatarMode = await avatarReady;
       const avatarEnabled = avatarMode === 'column';
@@ -114,7 +115,7 @@ function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
       const inserted = await client.query(`
         INSERT INTO public.casino_city_players
           (vk_id, display_name, score, level, plays, wins, ${avatarEnabled ? 'avatar_url, ' : ''}updated_at)
-        VALUES ($1, $2, 110, 1, 0, 0, ${avatarEnabled ? '$3, ' : ''}NOW())
+        VALUES ($1, $2, 0, 1, 0, 0, ${avatarEnabled ? '$3, ' : ''}NOW())
         ON CONFLICT (vk_id) DO NOTHING RETURNING vk_id
       `, avatarEnabled ? [vkId, name, avatarUrl] : [vkId, name]);
       const snapshot = await client.query(`
@@ -125,7 +126,7 @@ function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
       `, [vkId]);
       const old = snapshot.rows[0];
       if (!old) throw new Error('MISSING_CASINO_PLAYER');
-      let limited = inserted.rowCount > 0 && targetScore > 110;
+      let limited = inserted.rowCount > 0 && targetScore > 0;
       let row = old;
       if (!inserted.rowCount) {
         const elapsed = Math.max(0, Math.min(86400, Number(old.elapsed_seconds) || 0));
