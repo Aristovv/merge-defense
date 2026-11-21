@@ -70,19 +70,20 @@ function registerCasinoTournaments(app,pool,requireAuth) {
   const {rows}=await client.query(`
    SELECT vk_id::text AS vk_id,display_name,points::text AS points,claimed_at
    FROM public.casino_city_tournaments WHERE week_start=$1
-   ORDER BY points DESC,joined_at ASC,vk_id ASC LIMIT 100`,[week]);
+   ORDER BY points::bigint DESC,joined_at ASC,vk_id ASC LIMIT 100`,[week]);
   return rows;
  }
- app.get('/api/casino/tournament',requireAuth,async(req,res)=>{
+ app.get('/api/casino/tournament',async(req,res)=>{
+  // The tournament table is public, just like /api/casino/top.
+  // Signed VK launch params are required only for personalized details and claims.
   const id=idFor(req);
-  if(!id)return res.status(401).json({error:'INVALID_PLAYER'});
   try {
    await ensure();
    const active=startOfWeek(),prior=previousWeek();
    const [top,last,personalCurrent,personalPrior]=await Promise.all([
     leaders(pool,active.toISOString().slice(0,10)),leaders(pool,prior.toISOString().slice(0,10)),
-    pool.query('SELECT points::text AS points FROM public.casino_city_tournaments WHERE week_start=$1 AND vk_id=$2',[active.toISOString().slice(0,10),id]),
-    pool.query('SELECT points::text AS points,claimed_at FROM public.casino_city_tournaments WHERE week_start=$1 AND vk_id=$2',[prior.toISOString().slice(0,10),id])
+    id?pool.query('SELECT points::text AS points FROM public.casino_city_tournaments WHERE week_start=$1 AND vk_id=$2',[active.toISOString().slice(0,10),id]):Promise.resolve({rows:[]}),
+    id?pool.query('SELECT points::text AS points,claimed_at FROM public.casino_city_tournaments WHERE week_start=$1 AND vk_id=$2',[prior.toISOString().slice(0,10),id]):Promise.resolve({rows:[]})
    ]);
    const lastRank=last.findIndex(p=>p.vk_id===id)+1;
    const previous=personalPrior.rows[0]||null;
