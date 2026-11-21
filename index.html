@@ -132,6 +132,54 @@
 .scratch-ticket .scratch.revealed{background:radial-gradient(circle,#fffbdf,#c7a374);color:#3b2648}
 .ticket-footer{font-size:9px;letter-spacing:1.5px;color:#e7ca9f;border-top:1px solid #f4d8a45c;padding:11px 0 2px}
 @media(max-width:360px){.dice-cube{width:72px;height:72px}.poker-table .playing{width:16vw}.hilo-number{height:133px}}
+
+/* CASINO CITY 1.6 — six genuinely distinct artwork-backed slot experiences */
+.game-mode-slot .machine{background:linear-gradient(#1c102b,#100d20)!important;padding:0!important;border:0!important;box-shadow:none!important;overflow:visible!important}
+.game-mode-slot .machine:before,.game-mode-slot .machine:after{display:none!important}
+.game-mode-slot .machine>div:first-child,.game-mode-slot .machine>h2,.game-mode-slot .machine>p{display:none!important}
+.game-mode-slot .page,.game-layout.game-mode-slot{padding-top:9px}
+.slot-scene{position:relative;isolation:isolate;overflow:hidden;border-radius:18px;min-height:385px;padding:160px 11px 12px;background-color:#160a2b;background-size:cover;background-position:center 45%;border:1px solid #d1a563bb;box-shadow:inset 0 0 25px #04020cb8,0 15px 28px #0008}
+.slot-scene:before{content:"";position:absolute;inset:0;z-index:0;background:linear-gradient(0deg,#100a21 0,#100a213e 32%,transparent 63%)}
+.slot-scene:after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:18px;box-shadow:inset 0 0 23px #05020bd0,inset 0 0 4px #f7d89b77;z-index:4}
+.slot-scene-art{position:absolute;z-index:1;top:35px;left:8px;right:8px;text-align:center;pointer-events:none}
+.slot-scene-title{font-family:Georgia,serif;font-size:clamp(26px,7vw,40px);font-weight:900;letter-spacing:.4px;color:#ffebc0;text-shadow:0 2px #62274b,0 0 14px #f5b566,0 5px 12px #070312}
+.slot-scene-sub{font-size:11px;letter-spacing:1px;color:#e8d1cf;text-shadow:0 1px 5px #000;margin-top:3px}
+.slot-scene-classic{background-image:url("./assets/casino/slot-classic.svg")}
+.slot-scene-fruits{background-image:url("./assets/casino/slot-fruits.svg");border-color:#ee6cca}
+.slot-scene-diamonds{background-image:url("./assets/casino/slot-diamonds.svg");border-color:#7bdafa}
+.slot-scene-pharaoh{background-image:url("./assets/casino/slot-pharaoh.svg");border-color:#eec474}
+.slot-scene-vegas{background-image:url("./assets/casino/slot-vegas.svg");border-color:#ff9e72}
+.slot-scene-bells{background-image:url("./assets/casino/slot-bells.svg");border-color:#e8c869}
+.slot-scene-fruits .slot-scene-title{color:#ff95d5;text-shadow:0 0 18px #fe2bd5,0 3px 5px #180320}
+.slot-scene-diamonds .slot-scene-title{color:#c4f8ff;text-shadow:0 0 16px #42cfff,0 3px 7px #060b23}
+.slot-scene-pharaoh .slot-scene-title{color:#ffe2a2;text-shadow:0 0 16px #f4a44d,0 3px 7px #2d1606}
+.slot-scene-vegas .slot-scene-title{color:#ffe1af;text-shadow:0 0 15px #fc6b3c,0 4px 6px #330615}
+.slot-scene-bells .slot-scene-title{color:#ffe8a4;text-shadow:0 0 15px #f1cd4d,0 4px 6px #062a18}
+.slot-scene .slot-cabinet{position:relative;z-index:2;margin:0;padding:7px 6px 8px;overflow:hidden;border-radius:13px;box-shadow:0 7px 20px #000e,inset 0 0 0 2px #e8bd7b52}
+.slot-scene .slot-banner{min-height:32px;font-size:11px;letter-spacing:1.6px}
+.slot-scene .slot-reel-holder{margin:4px 2px 8px;padding:5px}
+.slot-scene .slot-reel-holder .reel{height:100px;display:grid;place-items:center;background:linear-gradient(#e1cbbc,#fffaf2 30%,#fff7f0 52%,#dac5bd);overflow:hidden}
+.reel-symbol{display:block;width:75%;max-width:85px;height:78%;overflow:visible;filter:drop-shadow(1px 2px 1px #71474b77)}
+.reel-diamond,.reel-gem{color:#66d5ff;filter:drop-shadow(0 0 6px #3dd2ff)}
+.reel-star,.reel-crown,.reel-bell,.reel-ankh,.reel-sun{color:#f4cc69}
+.reel-cherry,.reel-heart,.reel-seven{color:#f34679}
+.reel-clover{color:#43d488}
+.reel-grapes{color:#bc6bdf}
+.reel-pyramid,.reel-horseshoe,.reel-eye{color:#e8bf67}
+.slot-scene-fruits .slot-banner{color:#ffd3ee}
+.slot-scene-diamonds .slot-banner{color:#b2f5ff}
+.slot-scene-bells .slot-banner{color:#ffe7a2}
+.slot-scene .slot-bottom{font-size:8px;gap:5px}
+.slot-scene .slot-bottom strong{white-space:nowrap;color:#ffe3a7;font-size:10px}
+.game-mode-slot .result{min-height:42px}
+.game-mode-slot .spin-cta{margin-top:4px;border-radius:28px!important;border-width:2px;box-shadow:0 0 13px #b778e055,inset 0 2px #fff3}
+.game-mode-slot .slot-spin-fruits{background:linear-gradient(145deg,#ea3aa2,#912982);border-color:#ff97dd}
+.game-mode-slot .slot-spin-diamonds{background:linear-gradient(145deg,#127cc4,#134576);border-color:#76deff}
+.game-mode-slot .slot-spin-pharaoh{background:linear-gradient(145deg,#ba7b26,#684025);border-color:#ffe0a2}
+.game-mode-slot .slot-spin-vegas{background:linear-gradient(145deg,#da452d,#80212b);border-color:#ffab75}
+.game-mode-slot .slot-spin-bells{background:linear-gradient(145deg,#159563,#064f41);border-color:#c9e58e}
+@media(min-width:450px){.slot-scene{min-height:460px;padding-top:205px}.slot-scene .slot-reel-holder .reel{height:125px}}
+@media(max-width:360px){.slot-scene{min-height:345px;padding-top:140px}.slot-scene-title{font-size:26px}.slot-scene .slot-reel-holder .reel{height:78px}.reel-symbol{height:72%}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge)window.vkBridge.send('VKWebAppInit').catch(function(){})}catch(_){}
@@ -157,10 +205,49 @@ function rate(){return BUILDINGS.reduce((a,b,i)=>a+(state.buildings[i]||0)*b[3]*
 function collectPassive(){let min=Math.max(0,Math.min(480,(Date.now()-state.lastIncome)/60000));if(min<.15)return 0;let amount=Math.floor(rate()*min);state.coins+=amount;state.lastIncome=Date.now();save();return amount}
 function cost(i){return Math.floor(BUILDINGS[i][2]*Math.pow(1.75,state.buildings[i]||0))}
 function buildingUp(i){let c=cost(i);if(state.coins<c)return message('Не хватает городских монет');state.coins-=c;state.buildings[i]++;xp(25);save();render();message('Здание улучшено')}
-function slotSymbol(i){return ['7','◆','★','♣','●','▲','♥','✿'][i%8]}
+const SLOT_THEMES=[
+{name:'CLASSIC 777',scene:'classic',subtitle:'Классические барабаны',tag:'LUCKY SEVENS'},
+{name:'NEON FRUITS',scene:'fruits',subtitle:'Фруктовая неоновая ночь',tag:'FRUIT FIESTA'},
+{name:'DIAMOND RUSH',scene:'diamonds',subtitle:'Охота за бриллиантами',tag:'DIAMOND CLUB'},
+{name:'PHARAOH GOLD',scene:'pharaoh',subtitle:'Сокровища фараона',tag:'PHARAOH'},
+{name:'VEGAS HEAT',scene:'vegas',subtitle:'Огни большого Вегаса',tag:'VEGAS GOLD'},
+{name:'LUCKY BELLS',scene:'bells',subtitle:'Золотые колокола',tag:'LUCKY BELLS'}];
+const SYMBOL_SETS=[
+['seven','star','diamond','chip','heart','spade','crown','clover'],
+['cherry','watermelon','grapes','lemon','star','seven','clover','heart'],
+['diamond','crown','gem','star','seven','chip','heart','spade'],
+['ankh','eye','pyramid','scarab','sun','diamond','crown','seven'],
+['chip','spade','seven','star','heart','diamond','crown','clover'],
+['bell','clover','bell','horseshoe','seven','star','diamond','crown']];
+function slotSymbol(theme,i){
+const kind=SYMBOL_SETS[theme%6][i%8];
+const wrap=(shape)=>'<svg class="reel-symbol reel-'+kind+'" viewBox="0 0 100 100" aria-label="'+kind+'" role="img"><defs><linearGradient id="g-'+kind+'" x1=".15" y1="0" x2=".85" y2="1"><stop stop-color="#fff5ca"/><stop offset=".35" stop-color="currentColor"/><stop offset="1" stop-color="#724055"/></linearGradient></defs>'+shape+'</svg>';
+const p=(d,fill='url(#g-'+kind+')')=>'<path d="'+d+'" fill="'+fill+'" stroke="#f9dfa4" stroke-width="2.5" stroke-linejoin="round"/>';
+const circle=(x,y,r,fill='url(#g-'+kind+')')=>'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+fill+'" stroke="#ffdfac" stroke-width="2"/>';
+if(kind==='seven')return wrap('<text x="50" y="78" font-size="80" font-family="Georgia,serif" font-weight="900" text-anchor="middle" fill="#ce2a53" stroke="#ffccae" stroke-width="1">7</text>');
+if(kind==='diamond'||kind==='gem')return wrap(p('M13 36L29 15H71L87 36L50 86Z','#42bffa')+p('M13 36H87M29 15L40 36 50 86 60 36 71 15','none'));
+if(kind==='star')return wrap(p('M50 8L62 35 91 38 70 58 77 88 50 73 23 88 30 58 9 38 38 35Z','#edb342'));
+if(kind==='crown')return wrap(p('M12 31L30 47 50 16 70 47 88 31 81 82H19Z','#e0a536')+p('M19 68H81','none'));
+if(kind==='chip')return wrap(circle(50,50,38,'#cd2d48')+circle(50,50,27,'#8d1b37')+p('M42 30L50 44 58 30M42 70L50 56 58 70','none'));
+if(kind==='heart')return wrap(p('M50 85L14 49C-2 18 32 5 50 30 68 5 102 18 86 49Z','#db2d66'));
+if(kind==='spade')return wrap(p('M50 11C37 30 8 43 12 61 15 78 40 76 50 63 60 76 85 78 88 61 92 43 63 30 50 11ZM41 64L35 87H65L59 64','#25243e'));
+if(kind==='clover')return wrap(circle(35,34,18,'#35ad6f')+circle(65,34,18,'#35ad6f')+circle(35,64,18,'#35ad6f')+circle(65,64,18,'#35ad6f')+p('M50 52L54 94','none'));
+if(kind==='cherry')return wrap(p('M35 52Q27 26 56 17M65 52Q68 30 56 17','none')+circle(34,69,19,'#e72858')+circle(66,69,19,'#e72858')+p('M56 17Q26 12 28 30 45 34 56 17','#3abd7d'));
+if(kind==='watermelon')return wrap(p('M10 36Q50 96 90 36Z','#e63262')+p('M10 36H90','none')+p('M17 45Q50 93 83 45','none')+circle(40,58,2,'#26252b')+circle(59,58,2,'#26252b'));
+if(kind==='grapes')return wrap([ [43,40],[60,40],[35,56],[52,56],[68,56],[43,72],[60,72],[52,85] ].map(a=>circle(a[0],a[1],11,'#8847ce')).join('')+p('M50 20L48 33M50 21Q65 10 76 27','none'));
+if(kind==='lemon')return wrap('<ellipse cx="50" cy="52" rx="36" ry="27" fill="#f7db48" stroke="#fff0a3" stroke-width="4" transform="rotate(-22 50 52)"/>');
+if(kind==='ankh')return wrap(p('M50 11C24 11 24 43 50 49 76 43 76 11 50 11ZM50 47V93M24 67H76','none'));
+if(kind==='eye')return wrap(p('M8 52Q50 8 92 52Q50 95 8 52','#f3cf85')+circle(50,52,17,'#459bc8')+circle(50,52,6,'#1a2145'));
+if(kind==='pyramid')return wrap(p('M50 13L91 86H9Z','#d6a359')+p('M50 13V86M9 86H91','none'));
+if(kind==='scarab')return wrap(circle(50,50,25,'#1b97b7')+p('M50 25V79M20 39L5 30M80 39L95 30M20 62L5 74M80 62L95 74','none'));
+if(kind==='sun')return wrap(circle(50,50,23,'#ebb94b')+Array.from({length:8},(_,i)=>{let a=i*Math.PI/4;return '<path d="M'+(50+31*Math.cos(a))+' '+(50+31*Math.sin(a))+'L'+(50+44*Math.cos(a))+' '+(50+44*Math.sin(a))+'" fill="none" stroke="#ebbd69" stroke-width="6" stroke-linecap="round"/>'}).join(''));
+if(kind==='bell')return wrap(p('M22 65Q35 52 31 28C31 3 69 3 69 28Q65 52 78 65Z','#e7b046')+circle(50,76,9,'#c77d36')+p('M25 64H75M50 11V5','none'));
+if(kind==='horseshoe')return wrap(p('M26 18V59Q26 91 50 91 74 91 74 59V18H59V60Q59 76 50 76 41 76 41 60V18Z','#f1c157'));
+return wrap(p('M12 50L50 10 88 50 50 90Z'));
+}
 function startCost(){if(busy||round)return false;if(state.chips<bet){message('Мало фишек. Забери подарок или обменяй городские монеты.');return false}roundBet=bet;state.chips-=bet;state.plays++;xp(4);save();return true}
 function finish(prize,info){prize=Math.max(0,Math.floor(prize));if(prize)grant(prize,0);rewardCollection();save();render();let output=$('game-result');if(output)output.textContent=info+(prize?' · +'+fmt(prize)+' фишек':'');}
-function playSlot(){if(busy||!startCost())return;busy=true;const index=selected;const symbols=Array.from({length:3},()=>rand(8));const reelEls=document.querySelectorAll('.reel');let step=0;const timer=setInterval(()=>{reelEls.forEach((el,i)=>el.textContent=slotSymbol(rand(8)));if(++step>=13){clearInterval(timer);busy=false;reelEls.forEach((el,i)=>el.textContent=slotSymbol(symbols[i]));let match=symbols[0]===symbols[1]&&symbols[1]===symbols[2],pair=symbols[0]===symbols[1]||symbols[1]===symbols[2]||symbols[0]===symbols[2];let p=match?roundBet*(symbols[0]===0?35:index===2?22:14):pair?Math.floor(roundBet*1.45):0;finish(p,match?'ДЖЕКПОТ!':pair?'Совпадение двух символов':'Попробуй ещё раз')}},75)}
+function playSlot(){if(busy||!startCost())return;busy=true;const index=selected;const symbols=Array.from({length:3},()=>rand(8));const reelEls=document.querySelectorAll('.reel');let step=0;const timer=setInterval(()=>{reelEls.forEach((el,i)=>el.innerHTML=slotSymbol(index,rand(8)));if(++step>=13){clearInterval(timer);busy=false;reelEls.forEach((el,i)=>el.innerHTML=slotSymbol(index,symbols[i]));let match=symbols[0]===symbols[1]&&symbols[1]===symbols[2],pair=symbols[0]===symbols[1]||symbols[1]===symbols[2]||symbols[0]===symbols[2];let p=match?roundBet*(symbols[0]===0?35:index===2?22:14):pair?Math.floor(roundBet*1.45):0;finish(p,match?'ДЖЕКПОТ!':pair?'Совпадение двух символов':'Попробуй ещё раз')}},75)}
 function playRoulette(){if(busy||!startCost())return;busy=true;$('wheel').classList.add('spin');let rn=$('roulettenumber');if(rn)rn.textContent='••';setTimeout(()=>{busy=false;let num=rand(37),color=num===0?'green':([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36].includes(num)?'red':'black'),win=roulettePick==='odd'?num>0&&num%2===1:roulettePick==='even'?num>0&&num%2===0:roulettePick===color;finish(win?roundBet*2:0,'Выпало '+num+' ('+(color==='red'?'красное':color==='black'?'чёрное':'зеро')+')');let rn=$('roulettenumber');if(rn){rn.textContent=String(num);rn.className='roulette-numeric '+color}},1600)}
 function drawCard(){return 1+rand(13)}
 function points(arr){let total=0,aces=0;for(let c of arr){total+=Math.min(10,c);if(c===1)aces++}while(aces&&total+10<=21){total+=10;aces--}return total}
@@ -185,14 +272,14 @@ function scratchOpen(i){if(busy||!round||round.opened.includes(i))return;round.o
 function daily(){if(state.lastGift===today())return message('Сегодня подарок уже получен');state.lastGift=today();grant(400,700);xp(15);render();message('Подарок: +400 фишек и +700 монет')}
 function exchange(){if(state.coins<300)return message('Нужно 300 городских монет');state.coins-=300;state.chips+=150;save();render();message('Обмен: +150 фишек')}
 function rewardCollection(){if(state.plays===0||state.plays%12!==0||state.collect.includes('slot-'+Math.floor(state.plays/12)))return;const i=Math.floor(state.plays/12),name='slot-'+i;state.collect.push(name);state.vip+=1;save();message('Новая коллекционная награда! +1 VIP')}
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 1.5</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 1.6</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 function cityScreen(){let lvl=state.buildings.reduce((a,b)=>a+b,0);return '<div class="page"><div class="hero"><div class="photo"></div><div class="hero-content"><div><div class="eyebrow">ВАШ ИГРОВОЙ ГОРОД</div><h1>ГОРОД, КОТОРЫЙ<br>НЕ СПИТ</h1><div class="subline" style="color:#f2d9de">Стройте казино. Открывайте залы.<br>Создавайте империю развлечений.</div></div><div class="statstrip"><div class="stat"><strong>'+lvl+'</strong><span>Уровней зданий</span></div><div class="stat"><strong>'+fmt(rate())+'</strong><span>Монет / минуту</span></div></div></div></div><div class="actions"><button class="btn" data-action="collect">'+ic('coin')+' Собрать доход</button><button class="btn purple" data-tab="games">'+ic('games')+' Играть</button></div><div class="sectionhead"><h2>Здания Casino City</h2><span class="mini">14 объектов</span></div><div class="building-list">'+BUILDINGS.map((b,i)=>'<div class="building"><div class="em">'+ic(b[1])+'</div><div class="meta"><strong>'+b[0]+'</strong><small>'+(state.buildings[i]?'Уровень '+state.buildings[i]+' · '+fmt(Math.floor(b[3]*Math.pow(1.24,state.buildings[i]-1)))+'/мин':'Не построено')+'</small></div><button class="btn" data-up="'+i+'">'+(state.buildings[i]?'Улучшить':'Построить')+'<br>'+fmt(cost(i))+'</button></div>').join('')+'</div></div>'}
 function gamesScreen(){return '<div class="page"><div class="title">Игровые залы <span class="badge">16 игр</span></div><div class="subline" style="margin-bottom:13px">Все 16 залов доступны с первого дня. Выбери игру и получай виртуальные фишки.</div><div class="games">'+GAMES.map((g,i)=>'<button class="gamecard" data-game="'+i+'"><div class="gameart theme-'+g[1]+'"><span class="art-halo"></span><span class="art-stage">'+ic(g[3])+'</span><span class="art-sheen"></span><span class="art-number">'+String(i+1).padStart(2,'0')+'</span></div><h3>'+g[0]+'</h3><p>'+g[2]+'</p></button>').join('')+'</div></div>'}
 function betRow(){return '<div class="betbar"><button class="btn ghost" data-action="betdown" '+(busy||round?'disabled':'')+'>−</button><div><div class="mini">СТАВКА</div><strong>'+fmt(bet)+' '+ic('chip')+'</strong></div><button class="btn ghost" data-action="betup" '+(busy||round?'disabled':'')+'>+</button></div>'}
 function resultBox(){return '<div class="result" id="game-result">Игровые фишки не имеют денежной стоимости</div>'}
 function gameScreen(){let g=GAMES[selected],kind=g[1];let content='';
-if(kind==='slot'){content='<div class="slot-cabinet slot-theme-'+selected+'"><div class="slot-banner"><span class="slot-led"></span><span>'+(['LUCKY SEVENS','FRUIT FIESTA','DIAMOND CLUB','PHARAOH','VEGAS GOLD','LUCKY BELLS'][selected]||'CASINO CITY')+'</span><span class="slot-led"></span></div><div class="slot-reel-holder"><div class="reels">'+[0,1,2].map(i=>'<div class="reel" id="reel'+i+'">'+slotSymbol(i===1?2:0)+'</div>').join('')+'</div><div class="payline"></div></div><div class="slot-bottom">3 ОДИНАКОВЫХ = ДЖЕКПОТ <span>777 ×35</span></div></div>'+resultBox()+'<button class="btn purple spin-cta" style="width:100%" data-action="slot" '+(busy?'disabled':'')+'>ВРАЩАТЬ · '+fmt(bet)+' ФИШЕК</button>'}
+if(kind==='slot'){let theme=SLOT_THEMES[selected];content='<div class="slot-scene slot-scene-'+theme.scene+'"><div class="slot-scene-art"><div class="slot-scene-title">'+theme.name+'</div><div class="slot-scene-sub">'+theme.subtitle+'</div></div><div class="slot-cabinet slot-theme-'+selected+'"><div class="slot-banner"><span class="slot-led"></span><span>'+theme.tag+'</span><span class="slot-led"></span></div><div class="slot-reel-holder"><div class="reels">'+[0,1,2].map(i=>'<div class="reel" id="reel'+i+'">'+slotSymbol(selected,i===1?2:0)+'</div>').join('')+'</div><div class="payline"></div></div><div class="slot-bottom"><span>3 ОДИНАКОВЫХ = ДЖЕКПОТ</span><strong>777 ×35</strong></div></div></div>'+resultBox()+'<button class="btn purple spin-cta slot-spin-'+theme.scene+'" style="width:100%" data-action="slot" '+(busy?'disabled':'')+'>ВРАЩАТЬ · '+fmt(bet)+' ФИШЕК</button>'}
 if(kind==='roulette'){content='<div class="roulette-hall"><div class="roulette-marquee">EUROPEAN ROULETTE</div><div class="wheel-stand"><div class="wheel-pointer"></div><div class="roulette" id="wheel"><div class="ball"></div></div></div><div class="roulette-resultline"><span>РЕЗУЛЬТАТ</span><b class="roulette-numeric" id="roulettenumber">—</b></div></div><div class="chips">'+[['red','Красное'],['black','Чёрное'],['odd','Нечётное'],['even','Чётное']].map(x=>'<button class="choice '+(roulettePick===x[0]?'on':'')+'" data-pick="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>'+resultBox()+'<button class="btn purple" style="width:100%" data-action="roulette">ВРАЩАТЬ РУЛЕТКУ</button>'}
 if(kind==='blackjack'){content='<div class="cardtable"><div class="cardtable-title">BLACKJACK · 21</div><div class="mini">Карты дилера</div><div class="cards">'+(round?.kind==='blackjack'?round.dealer.map((c,i)=>i===1?'<div class="playing">?</div>':card(c)).join(''):'<div class="playing">?</div><div class="playing">?</div>')+'</div><div class="mini">Ваши карты · '+(round?.kind==='blackjack'?points(round.you):'—')+'</div><div class="cards">'+(round?.kind==='blackjack'?round.you.map(card).join(''):'<div class="playing">?</div><div class="playing">?</div>')+'</div>'+resultBox()+'<div class="controls">'+(round?.kind==='blackjack'?'<button class="btn" data-action="hit">Ещё карту</button><button class="btn green" data-action="stand">Хватит</button>':'<button class="btn purple" data-action="bjstart">Начать раздачу</button>')+'</div></div>'}
 if(kind==='poker'){content='<div class="poker-table"><div class="poker-sign">VIDEO POKER <span>JACKS OR BETTER</span></div><div class="mini">Нажимайте на карты, которые хотите оставить</div><div class="cards">'+(round?.kind==='poker'?round.cards.map((c,i)=>'<button class="playing '+(held.includes(i)?'held':'')+'" data-hold="'+i+'">'+(['','A','2','3','4','5','6','7','8','9','10','J','Q','K'][c])+(held.includes(i)?'<span class="tiny">ОСТАВИТЬ</span>':'')+'</button>').join(''):'<div class="playing">?</div>'.repeat(5))+'</div><div class="poker-paytable">ПАРА ×1.5 · ДВЕ ПАРЫ ×3 · ТРОЙКА ×4 · КАРЕ ×25</div></div>'+resultBox()+'<button class="btn purple" data-action="'+(round?'pokerdraw':'pokerstart')+'">'+(round?'Заменить остальные':'Сдать карты')+'</button>'}
