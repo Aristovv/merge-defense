@@ -23,7 +23,7 @@ function registerCasinoRanking(app, pool, requireAuth) {
     if (!pool) return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
     try {
       const vkId = String(req.playerId || '').replace(/^vk:/, '');
-      if (!/^\\d+$/.test(vkId)) return res.status(401).json({ error: 'INVALID_PLAYER' });
+      if (!/^\d+$/.test(vkId)) return res.status(401).json({ error: 'INVALID_PLAYER' });
       const { rows } = await pool.query(
         'SELECT vk_id::text AS vk_id, display_name, score::text AS score, level, plays::text AS plays, wins::text AS wins FROM public.casino_city_players WHERE vk_id=$1',
         [vkId]
@@ -40,7 +40,7 @@ function registerCasinoRanking(app, pool, requireAuth) {
     if (!pool) return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
     try {
       const vkId = String(req.playerId || '').replace(/^vk:/, '');
-      if (!/^\\d+$/.test(vkId)) return res.status(401).json({ error: 'INVALID_PLAYER' });
+      if (!/^\d+$/.test(vkId)) return res.status(401).json({ error: 'INVALID_PLAYER' });
       const body = req.body || {};
       const integer = (v, min, max) => Number.isSafeInteger(v) && v >= min && v <= max;
       const { plays, wins, level, buildings } = body;
