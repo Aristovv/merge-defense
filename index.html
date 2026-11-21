@@ -1015,6 +1015,17 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 @keyframes casinoSymbolGlint{0%{transform:rotate(25deg) translateX(-220%);opacity:0}18%{opacity:.85}60%{opacity:.65}100%{transform:rotate(25deg) translateX(530%);opacity:0}}
 @media(prefers-reduced-motion:no-preference){.slot-scene .slot-grid-3x5 .slot-cell-winning::after{animation:casinoSymbolGlint 1.15s ease-in-out .15s 1 both!important}}
 @media(prefers-reduced-motion:reduce){.slot-scene .slot-grid-3x5 .slot-cell-winning::after{animation:none!important}}
+
+/* Casino City: distinctive animated cabinet marquees */
+.slot-scene-classic{--cc-light:#ffd777}.slot-scene-fruits{--cc-light:#ff77da}.slot-scene-diamonds{--cc-light:#77eaff}.slot-scene-pharaoh{--cc-light:#f5b958}.slot-scene-vegas{--cc-light:#ff6d85}.slot-scene-bells{--cc-light:#adff8e}
+.slot-scene .slot-scene-art{border:2px solid var(--cc-light)!important;border-radius:20px 20px 8px 8px!important;background:radial-gradient(ellipse at 50% 0%,color-mix(in srgb,var(--cc-light),#171029 65%),#100d21 85%)!important;box-shadow:inset 0 0 25px #fff2,0 0 18px color-mix(in srgb,var(--cc-light),transparent 55%)!important}
+.slot-scene .slot-scene-title{color:var(--cc-light)!important;text-shadow:0 2px #210d28,0 0 10px var(--cc-light),0 0 23px var(--cc-light)!important;letter-spacing:1.4px!important}
+.slot-scene .slot-cabinet{border:3px solid var(--cc-light)!important;border-radius:15px 15px 23px 23px!important;box-shadow:inset 0 0 0 2px #fff5,inset 0 0 25px #0007,0 0 18px color-mix(in srgb,var(--cc-light),transparent 50%),0 12px 25px #0008!important}
+.slot-scene .slot-banner{color:var(--cc-light)!important;text-shadow:0 0 10px var(--cc-light)!important;letter-spacing:2px!important}
+.slot-scene .slot-reel-holder-3x3{border-color:var(--cc-light)!important;box-shadow:0 0 0 2px #17101d,0 0 14px color-mix(in srgb,var(--cc-light),transparent 40%)!important}
+.slot-scene .slot-bottom{border-top:1px solid var(--cc-light)!important}
+@media(prefers-reduced-motion:no-preference){.slot-scene .slot-cabinet-won{animation:ccJackpotFlash .65s ease-in-out 3 alternate}}
+@keyframes ccJackpotFlash{to{filter:brightness(1.22);box-shadow:0 0 35px var(--cc-light),inset 0 0 15px var(--cc-light)}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge)window.vkBridge.send('VKWebAppInit').catch(function(){})}catch(_){}
