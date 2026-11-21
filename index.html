@@ -15,10 +15,10 @@ const GAMES=[
 const BUILDINGS=[
 ['Стартовое казино','slot',1200,25],['Зал автоматов','games',1600,32],['Рулетка-клуб','roulette',2400,46],['Карточный салон','cards',3400,60],['Банк фишек','chip',4200,72],['Отель Royale','hotel',5400,90],['VIP-казино','vip',8200,124],['Башня джекпота','tower',10000,160],['Плинко-арена','plinko',13800,188],['Crash Lab','crash',17500,220],['Золотой пассаж','city',21000,270],['Ночной клуб','star',27000,335],['Алмазный дворец','spark',34000,420],['Зал легенд','trophy',43000,560]];
 const STORAGE='casino_city_vk_v100';
-function fresh(){return {coins:2500,chips:1200,vip:0,level:1,xp:0,buildings:[1,0,0,0,0,0,0,0,0,0,0,0,0,0],plays:0,wins:0,best:0,earned:0,collect:[],quests:[],lastGift:'',stamp:Date.now()}}
+function fresh(){return {coins:2500,chips:1200,vip:0,level:1,xp:0,buildings:[1,0,0,0,0,0,0,0,0,0,0,0,0,0],plays:0,wins:0,best:0,earned:0,collect:[],quests:[],lastGift:'',stamp:Date.now(),lastIncome:Date.now()}}
 let state;try{state={...fresh(),...JSON.parse(localStorage.getItem(STORAGE)||'null')}}catch(_){state=fresh()}
 if(!Array.isArray(state.buildings)||state.buildings.length!==14)state.buildings=fresh().buildings;
-if(!Array.isArray(state.collect))state.collect=[];
+if(!Array.isArray(state.collect))state.collect=[];if(!Number.isFinite(state.lastIncome))state.lastIncome=Date.now();if(!Array.isArray(state.quests))state.quests=[];
 let tab='city',selected=-1,bet=25,busy=false,round=null,roulettePick='red',held=[],kenoSelected=[],scratchIndices=[],crashTimer=null,crashValue=1,crashStop=0,toastTimer=null;
 const $=id=>document.getElementById(id),rand=n=>Math.floor(Math.random()*n),fmt=n=>Math.floor(Number(n)||0).toLocaleString('ru-RU'),today=()=>new Date().toISOString().slice(0,10);
 function save(){state.stamp=Date.now();try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}}
@@ -26,12 +26,12 @@ function message(s){$('toast').textContent=s;$('toast').hidden=false;clearTimeou
 function grant(chips=0,coins=0){state.chips=Math.max(0,Math.floor(state.chips+chips));state.coins=Math.max(0,Math.floor(state.coins+coins));if(chips>0){state.earned+=chips;state.wins++}if(chips>state.best)state.best=chips;save()}
 function xp(amount){state.xp+=amount;while(state.xp>=state.level*80){state.xp-=state.level*80;state.level++;grant(100+state.level*20,0);message('Новый уровень '+state.level+'!')}save()}
 function rate(){return BUILDINGS.reduce((a,b,i)=>a+(state.buildings[i]||0)*b[3]*Math.pow(1.24,Math.max(0,(state.buildings[i]||0)-1)),0)}
-function collectPassive(){let min=Math.max(0,Math.min(480,(Date.now()-state.stamp)/60000));if(min<.15)return 0;let amount=Math.floor(rate()*min);state.coins+=amount;state.stamp=Date.now();save();return amount}
+function collectPassive(){let min=Math.max(0,Math.min(480,(Date.now()-state.lastIncome)/60000));if(min<.15)return 0;let amount=Math.floor(rate()*min);state.coins+=amount;state.lastIncome=Date.now();save();return amount}
 function cost(i){return Math.floor(BUILDINGS[i][2]*Math.pow(1.75,state.buildings[i]||0))}
 function buildingUp(i){let c=cost(i);if(state.coins<c)return message('Не хватает городских монет');state.coins-=c;state.buildings[i]++;xp(25);save();render();message('Здание улучшено')}
 function slotSymbol(i){return ['7','◆','★','♣','●','▲','♥','✿'][i%8]}
 function startCost(){if(busy)return false;if(state.chips<bet){message('Мало фишек. Забери подарок или обменяй городские монеты.');return false}state.chips-=bet;state.plays++;xp(4);save();return true}
-function finish(prize,info){prize=Math.max(0,Math.floor(prize));if(prize)grant(prize,0);save();render();$('game-result').textContent=info+(prize?' · +'+fmt(prize)+' фишек':'');}
+function finish(prize,info){prize=Math.max(0,Math.floor(prize));if(prize)grant(prize,0);rewardCollection();save();render();$('game-result').textContent=info+(prize?' · +'+fmt(prize)+' фишек':'');}
 function playSlot(){if(!startCost())return;busy=true;const index=selected;const symbols=Array.from({length:3},()=>rand(8));const reelEls=document.querySelectorAll('.reel');let step=0;const timer=setInterval(()=>{reelEls.forEach((el,i)=>el.textContent=slotSymbol(rand(8)));if(++step>=13){clearInterval(timer);busy=false;reelEls.forEach((el,i)=>el.textContent=slotSymbol(symbols[i]));let match=symbols[0]===symbols[1]&&symbols[1]===symbols[2],pair=symbols[0]===symbols[1]||symbols[1]===symbols[2]||symbols[0]===symbols[2];let p=match?bet*(symbols[0]===0?35:index===2?22:14):pair?Math.floor(bet*1.45):0;finish(p,match?'ДЖЕКПОТ!':pair?'Совпадение двух символов':'Попробуй ещё раз')}},75)}
 function playRoulette(){if(!startCost())return;busy=true;$('wheel').classList.add('spin');setTimeout(()=>{busy=false;let num=rand(37),color=num===0?'green':num%2?'red':'black',win=roulettePick==='odd'?num>0&&num%2===1:roulettePick==='even'?num>0&&num%2===0:roulettePick===color;finish(win?bet*2:0,'Выпало '+num+' ('+(color==='red'?'красное':color==='black'?'чёрное':'зеро')+')')},1150)}
 function drawCard(){return 1+rand(13)}
