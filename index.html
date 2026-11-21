@@ -1529,14 +1529,16 @@ function casinoManageRankingRefresh(){
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&tab==='top')loadCasinoRanking()});
 function save(){state.stamp=Date.now();try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}syncCasinoRanking()}
 function message(s){$('toast').textContent=s;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,2800)}
-function grant(chips=0,coins=0,gamePayout=false){
+function grant(chips=0,coins=0,gamePayout=false,profitable=false){
  state.chips=Math.max(0,Math.floor(state.chips+chips));
  state.coins=Math.max(0,Math.floor(state.coins+coins));
  // Bonuses, gifts and quests must not count as gambling wins in the global leaderboard.
  if(gamePayout&&chips>0){
   state.earned=Math.max(0,Number(state.earned)||0)+chips;
-  state.wins=Math.max(0,Math.floor(Number(state.wins)||0))+1;
-  recordCasinoQuestEvent('wins',1);
+  if(profitable){
+   state.wins=Math.max(0,Math.floor(Number(state.wins)||0))+1;
+   recordCasinoQuestEvent('wins',1);
+  }
   if(chips>state.best)state.best=chips;
  }
  save();
@@ -1703,7 +1705,7 @@ function finish(prize,info){
  prize=Math.max(0,Math.floor(prize));
  const wager=Math.max(0,Math.floor(Number(casinoCurrentStake)||0));
  const net=prize-wager;
- casinoRecordRound(prize,info);if(prize)grant(prize,0,true);rewardCollection();save();render();let output=$('game-result');if(output)output.textContent=info+' · Выплата: '+fmt(prize)+' фишек · Итог раунда: '+(net>=0?'+':'−')+fmt(Math.abs(net))+' фишек';if(tab==='game'&&selected>=0&&selected<6&&prize>=roundBet*5)showSlotBigWin(prize,roundBet);}
+ casinoRecordRound(prize,info);if(prize)grant(prize,0,true,prize>wager);rewardCollection();save();render();let output=$('game-result');if(output)output.textContent=info+' · Выплата: '+fmt(prize)+' фишек · Итог раунда: '+(net>=0?'+':'−')+fmt(Math.abs(net))+' фишек';if(tab==='game'&&selected>=0&&selected<6&&prize>=roundBet*5)showSlotBigWin(prize,roundBet);}
 const SLOT_LINES=[
  [[0,1],[1,1],[2,1]],[[0,2],[1,2],[2,2]],[[0,0],[1,0],[2,0]],[[0,3],[1,3],[2,3]],
  [[0,0],[1,1],[2,2]],[[0,3],[1,2],[2,1]],[[0,1],[1,2],[2,3]],
@@ -1962,7 +1964,7 @@ function rewardCollection(){
  save();
  message('Коллекция: +'+newlyClaimed+' VIP за завершённые серии партий');
 }
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 14.6</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 14.7</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 
 /* CASINO CITY 14.0 — LIVE CITY. All rewards are virtual, locally persisted and bounded. */
@@ -2407,6 +2409,12 @@ async function casinoTournamentClaim(){
   const prize=await r.json();
   if(!prize.receipt||!prize.reward)throw Error('Неверный ответ сервера');
   if(!Array.isArray(state.tournamentReceipts))state.tournamentReceipts=[];
+  // An already-paid receipt must never mint another prize from a second device
+  // or a restored/older local save. The server decides first claim only.
+  if(prize.alreadyClaimed){
+   if(!state.tournamentReceipts.includes(prize.receipt)){state.tournamentReceipts.push(prize.receipt);save()}
+   render();message('Приз уже был получен ранее');return;
+  }
   if(!state.tournamentReceipts.includes(prize.receipt)){
    state.tournamentReceipts.push(prize.receipt);
    state.chips+=Math.max(0,Math.floor(Number(prize.reward.chips)||0));
