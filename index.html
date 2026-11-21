@@ -310,6 +310,50 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 .rarity-6 .collection-art{background:radial-gradient(ellipse at 50% 70%,#f4a6c99c,transparent 60%),linear-gradient(140deg,#612842,#1b142e)}
 .rarity-7 .collection-art{background:radial-gradient(ellipse at 50% 70%,#f5d795a5,transparent 60%),linear-gradient(140deg,#70533c,#1c1529)}
 @media(max-width:360px){.district-illustration{height:102px!important}.collection-art{height:118px}}
+
+/* CASINO CITY 1.9 — original photo pack; fallback backgrounds stay in repository */
+.city-visual{background-image:url('./assets/casino/photos/city-main.webp')!important;background-position:center 45%!important}
+.city-visual:before{background:linear-gradient(0deg,#090818e8 0%,#0b092385 22%,#0b092300 66%,#08061728 100%)!important}
+.city-visual-overlay{min-height:320px}
+.city-visual-bottom strong{text-shadow:0 3px 13px #000,0 0 19px #000b}
+.city-visual-bottom small{text-shadow:0 2px 7px #000}
+.city-stats>div{background:#100c25e8}
+.slot-scene-classic{background-image:url('./assets/casino/photos/slot-classic.webp')!important}
+.art-slot-0{background-image:url('./assets/casino/photos/slot-classic.webp')!important}
+.slot-scene-fruits{background-image:url('./assets/casino/photos/slot-fruits.webp')!important}
+.art-slot-1{background-image:url('./assets/casino/photos/slot-fruits.webp')!important}
+.slot-scene-diamonds{background-image:url('./assets/casino/photos/slot-diamonds.webp')!important}
+.art-slot-2{background-image:url('./assets/casino/photos/slot-diamonds.webp')!important}
+.slot-scene-pharaoh{background-image:url('./assets/casino/photos/slot-pharaoh.webp')!important}
+.art-slot-3{background-image:url('./assets/casino/photos/slot-pharaoh.webp')!important}
+.slot-scene-vegas{background-image:url('./assets/casino/photos/slot-vegas.webp')!important}
+.art-slot-4{background-image:url('./assets/casino/photos/slot-vegas.webp')!important}
+.slot-scene-bells{background-image:url('./assets/casino/photos/slot-bells.webp')!important}
+.art-slot-5{background-image:url('./assets/casino/photos/slot-bells.webp')!important}
+.catalog-page .featured-game .gameart{background-position:center 44%!important;background-size:cover!important}
+.catalog-page .featured-game .gameart:after{height:58%;background:linear-gradient(0deg,#140c29d4,transparent)!important}
+.catalog-page .featured-game .art-number{z-index:2;background:#110d21c7;border:1px solid #f2d2a66e}
+.slot-scene{background-position:center 42%!important}
+.slot-scene:before{background:linear-gradient(0deg,#0d0925f5 0%,#0c0925aa 24%,#100a212b 55%,#100a2160 100%)!important}
+.slot-scene-art{top:28px}
+.slot-scene-title{text-shadow:0 2px 4px #080513,0 4px 16px #080513,0 0 18px #000!important}
+.slot-scene-sub{text-shadow:0 2px 7px #000,0 0 8px #000}
+.district-0 .district-illustration{background:#151122 url('./assets/casino/photos/city-main.webp') center 53%/cover no-repeat!important}
+.district-1 .district-illustration{background:#151122 url('./assets/casino/photos/slot-classic.webp') center 50%/cover no-repeat!important}
+.district-2 .district-illustration{background:#151122 url('./assets/casino/photos/slot-fruits.webp') center 50%/cover no-repeat!important}
+.district-3 .district-illustration{background:#151122 url('./assets/casino/photos/slot-diamonds.webp') center 48%/cover no-repeat!important}
+.district-4 .district-illustration{background:#151122 url('./assets/casino/photos/chip-bank.webp') center 48%/cover no-repeat!important}
+.district-5 .district-illustration{background:#151122 url('./assets/casino/photos/vip-lounge.webp') center 48%/cover no-repeat!important}
+.district-6 .district-illustration{background:#151122 url('./assets/casino/photos/vip-lounge.webp') center 50%/cover no-repeat!important}
+.district-7 .district-illustration{background:#151122 url('./assets/casino/photos/slot-bells.webp') center 48%/cover no-repeat!important}
+.district-8 .district-illustration{background:#151122 url('./assets/casino/photos/slot-pharaoh.webp') center 48%/cover no-repeat!important}
+.district-9 .district-illustration{background:#151122 url('./assets/casino/photos/slot-vegas.webp') center 48%/cover no-repeat!important}
+.district-10 .district-illustration{background:#151122 url('./assets/casino/photos/city-boulevard.webp') center 48%/cover no-repeat!important}
+.district-11 .district-illustration{background:#151122 url('./assets/casino/photos/vip-lounge.webp') center 48%/cover no-repeat!important}
+.district-12 .district-illustration{background:#151122 url('./assets/casino/photos/city-boulevard.webp') center 48%/cover no-repeat!important}
+.district-13 .district-illustration{background:#151122 url('./assets/casino/photos/city-main.webp') center 48%/cover no-repeat!important}
+.district-illustration:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#100a23a8,transparent 62%);pointer-events:none}
+.district-rank{z-index:2}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge)window.vkBridge.send('VKWebAppInit').catch(function(){})}catch(_){}
@@ -402,7 +446,7 @@ function scratchOpen(i){if(busy||!round||round.opened.includes(i))return;round.o
 function daily(){if(state.lastGift===today())return message('Сегодня подарок уже получен');state.lastGift=today();grant(400,700);xp(15);render();message('Подарок: +400 фишек и +700 монет')}
 function exchange(){if(state.coins<300)return message('Нужно 300 городских монет');state.coins-=300;state.chips+=150;save();render();message('Обмен: +150 фишек')}
 function rewardCollection(){if(state.plays===0||state.plays%12!==0||state.collect.includes('slot-'+Math.floor(state.plays/12)))return;const i=Math.floor(state.plays/12),name='slot-'+i;state.collect.push(name);state.vip+=1;save();message('Новая коллекционная награда! +1 VIP')}
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 1.8</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 1.9</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 let expandedDistrict=false;
 function cityScreen(){
