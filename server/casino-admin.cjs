@@ -84,7 +84,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
    const previous=q.rows[0].save;
    const epoch=Math.max(0,Number(previous.resetEpoch)||0)+1;
    const now=Date.now();
-   const fresh={coins:2500,chips:100000,vip:0,level:1,xp:0,buildings:[1,0,0,0,0,0,0,0,0,0,0,0,0,0],plays:0,wins:0,best:0,earned:0,collect:[],quests:[],lastGift:'',stamp:now,lastIncome:now,resetEpoch:epoch,chipsEqualization:'chips-100000-20261122'};
+   const fresh={coins:2500,chips:1200,vip:0,level:1,xp:0,buildings:[1,0,0,0,0,0,0,0,0,0,0,0,0,0],plays:0,wins:0,best:0,earned:0,collect:[],quests:[],lastGift:'',stamp:now,lastIncome:now,resetEpoch:epoch};
    await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(fresh)]);
    await client.query(`CREATE TABLE IF NOT EXISTS public.casino_city_admin_audit(
     id BIGSERIAL PRIMARY KEY,admin_vk_id BIGINT NOT NULL,target_vk_id BIGINT NOT NULL,
