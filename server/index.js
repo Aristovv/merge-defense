@@ -34,8 +34,15 @@ function vkIdentity(raw) {
  const a=Buffer.from(sign),b=Buffer.from(expected);
  if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return null;
  const ts=Number(q.get('vk_ts'));
- if(!Number.isFinite(ts)||Math.abs(Date.now()/1000-ts)>3600)return null;
+ // VK Mini Apps may stay open for hours without a new launch signature.
+ // Accept signed launch parameters from the last 24 hours; do not accept future timestamps.
+ if(!Number.isFinite(ts)||ts>Date.now()/1000+300||ts<Date.now()/1000-86400)return null;
  return 'vk:'+id;
+}
+function optionalVkAuth(req,res,next){
+ const user=vkIdentity(req.header('X-VK-Launch-Params'));
+ if(user)req.playerId=user;
+ next();
 }
 function requireAuth(req,res,next) {
  if(!secret)return res.status(503).json({error:'VK_AUTH_NOT_CONFIGURED'});
@@ -71,7 +78,7 @@ app.get('/api/purchases/test-status',requireAuth,async(req,res)=>{
  }catch(e){return res.status(503).json({error:'DATABASE_UNAVAILABLE'})}
 });
 app.post('/api/purchases/verify',requireAuth,(_req,res)=>res.status(501).json({error:'PAYMENTS_DISABLED'}));
-const casinoTournaments=(await import('./casino-tournaments.cjs')).registerCasinoTournaments(app,pool,requireAuth);
+const casinoTournaments=(await import('./casino-tournaments.cjs')).registerCasinoTournaments(app,pool,requireAuth,optionalVkAuth);
 (await import('./casino-ranking.cjs')).registerCasinoRanking(app,pool,requireAuth,casinoTournaments.recordAcceptedAdvance);
 app.use((_req,res)=>res.status(404).json({error:'NOT_FOUND'}));
 const port=Number(process.env.PORT||3000);
