@@ -49,9 +49,24 @@ function registerCasinoAdmin(app,pool,requireAuth){
    await pool.query(`CREATE TABLE IF NOT EXISTS public.casino_city_admin_audit(
     id BIGSERIAL PRIMARY KEY,admin_vk_id BIGINT NOT NULL,target_vk_id BIGINT NOT NULL,
     action TEXT NOT NULL,details JSONB NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
-   const {rows}=await pool.query('SELECT id,target_vk_id::text AS vk_id,action,details,created_at FROM public.casino_city_admin_audit ORDER BY id DESC LIMIT 30');
+   const vkId=String(req.query.vkId||'').trim();if(vkId&&!/^[1-9][0-9]{0,18}$/.test(vkId))return res.status(400).json({error:'INVALID_VK_ID'});
+   const {rows}=await pool.query('SELECT id,target_vk_id::text AS vk_id,action,details,created_at FROM public.casino_city_admin_audit WHERE ($1=\'\' OR target_vk_id::text=$1) ORDER BY id DESC LIMIT 30',[vkId]);
    res.set('Cache-Control','no-store');res.json({entries:rows});
   }catch(e){console.error('casino audit read',e.code||e.message);res.status(503).json({error:'AUDIT_UNAVAILABLE'})}
+ });
+ app.get('/api/casino/admin/player',guard,async(req,res)=>{
+  if(!pool)return res.status(503).json({error:'DATABASE_UNAVAILABLE'});
+  const vkId=String(req.query.vkId||'').trim();
+  if(!/^[1-9][0-9]{0,18}$/.test(vkId))return res.status(400).json({error:'INVALID_VK_ID'});
+  try{
+   const [cloud,rank]=await Promise.all([
+    pool.query('SELECT save,revision::text AS revision,updated_at FROM public.casino_city_saves WHERE vk_id=$1',[vkId]),
+    pool.query('SELECT display_name,score::text AS score,level,plays::text AS plays,wins::text AS wins FROM public.casino_city_players WHERE vk_id=$1',[vkId])
+   ]);
+   const c=cloud.rows[0],p=rank.rows[0],v=c?.save;
+   res.set('Cache-Control','no-store');
+   res.json({vkId,cloud:c?{revision:Number(c.revision),updatedAt:c.updated_at,chips:v.chips,coins:v.coins,vip:v.vip,xp:v.xp,level:v.level,plays:v.plays,wins:v.wins,buildings:v.buildings,stamp:v.stamp}:null,ranking:p||null,reset:{available:false,reason:'RESET_DISABLED_PENDING_SAFE_RECONCILIATION'}});
+  }catch(e){console.error('casino admin player',e.code||e.message);res.status(503).json({error:'PLAYER_READ_UNAVAILABLE'})}
  });
  // No write endpoints until server-owned balances and client-save reconciliation
  // are implemented. A ranking-only reset would be overwritten by the next sync.
