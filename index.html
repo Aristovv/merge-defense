@@ -2136,13 +2136,26 @@ async function casinoCloudStart(){
  casinoCloudStarting=true;const stamp=Number(state.stamp)||0;
  try{
   const result=await casinoCloudFetch('GET');
-  if(casinoCloudDirty||Number(state.stamp)!==stamp){console.warn('Cloud load deferred: local state changed');return}
-  casinoCloudRevision=result.revision;
+  const localChanged=casinoCloudDirty||Number(state.stamp)!==stamp;
   if(result.save){
+   if(localChanged){
+    // Existing cloud data takes priority over unsynced local activity only after
+    // explicit reconciliation. Never silently overwrite either copy.
+    casinoCloudRevision=null;
+    console.warn('Casino cloud conflict: both local and server saves exist; keeping local copy without upload');
+    return;
+   }
+   casinoCloudRevision=result.revision;
    state={...fresh(),...result.save};
    try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}
    render();
-  }else{casinoCloudDirty=true;casinoCloudSchedule()}
+  }else{
+   // New cloud account: upload the latest local state, even if it changed
+   // while the initial GET was in flight.
+   casinoCloudRevision=0;
+   casinoCloudDirty=true;
+   casinoCloudSchedule();
+  }
  }catch(error){console.warn('Casino cloud unavailable; local save retained',error.message)}
  finally{casinoCloudStarting=false}
 }
@@ -2154,7 +2167,7 @@ async function casinoCloudUpload(){
   const result=await casinoCloudFetch('PUT',{revision,save:JSON.parse(snapshot)});
   casinoCloudRevision=result.revision;casinoCloudDirty=JSON.stringify(state)!==snapshot;
  }catch(error){
-  if(error.status===409){casinoCloudRevision=null;console.warn('Cloud revision conflict; remote data preserved')}
+  if(error.status===409){casinoCloudRevision=null;console.warn('Cloud revision conflict; remote data preserved. Reopen the game to reconcile.')}
   else console.warn('Cloud upload failed',error.message);
  }finally{casinoCloudBusy=false;if(casinoCloudDirty&&casinoCloudRevision!==null)casinoCloudSchedule()}
 }
@@ -2685,7 +2698,7 @@ function rewardCollection(){
  save();
  message('Коллекция: +'+newlyClaimed+' VIP за завершённые серии партий');
 }
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 18.2</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 18.3</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 /* Casino City admin console v1: server-verified read-only player directory */
 function casinoAdminVisible(){try{const q=new URLSearchParams(CASINO_LAUNCH_PARAMS||'');return q.get('vk_user_id')==='523218982'}catch(_){return false}}
 function casinoAdminScreen(){return '<div class="page"><div class="section-intro"><div><span class="eyebrow">CASINO CITY · ADMIN</span><h1>Панель управления</h1></div><span class="catalog-count">OWNER</span></div><div class="panel"><h3>Игроки Casino City</h3><p class="subline">Доступ проверяется сервером по подписи ВКонтакте. Поиск показывает данные общего рейтинга.</p><div class="casino-admin-search"><input id="casino-admin-query" maxlength="64" placeholder="VK ID или имя игрока"><button class="btn purple" data-casino-admin-search="1">Найти</button></div><div id="casino-admin-results" class="subline">Загружаем игроков…</div></div><div class="panel"><h3>Выдачи и сбросы</h3><p class="subline">Пока недоступны: баланс и город хранятся в локальных сохранениях. Чтобы безопасно выдавать ресурсы и обнулять одного или всех игроков, сначала потребуется серверное хранение и синхронизация.</p><button class="btn" disabled>Выдать ресурсы — скоро</button> <button class="btn" disabled>Сбросить игрока — скоро</button> <button class="btn" disabled>Сбросить всех — скоро</button></div></div>'}
