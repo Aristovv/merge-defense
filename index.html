@@ -1339,6 +1339,27 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 /* Casino City 13.4: server-confirmed leaderboard points */
 #casino-confirmed-score{color:#f9d695;font-variant-numeric:tabular-nums}
 #casino-ranking-status{line-height:1.65}.casino-ranking-sync{display:block;color:#e5bd8e;margin-top:7px}.casino-ranking-synced{color:#8debbd}
+
+/* CASINO CITY 14.0 - Living City */
+.cc14-hub{display:flex;flex-direction:column;gap:13px;margin:15px 0 22px}
+.cc14-livebar{display:flex;align-items:center;gap:9px;padding:10px 13px;background:#21152e;border:1px solid #846799;border-radius:11px;font-size:10px;color:#e5c9e2}
+.cc14-livebar b{letter-spacing:1.2px;color:#f3d09a}.cc14-livebar>span:last-child{margin-left:auto;font-size:9px;color:#bfaacb}.cc14-pulse{width:7px;height:7px;flex:none;border-radius:50%;background:#7ff1b9;box-shadow:0 0 9px #80ffd4;animation:cc14pulse 1.4s infinite}
+@keyframes cc14pulse{50%{opacity:.25;transform:scale(.72)}}
+.cc14-event{position:relative;isolation:isolate;overflow:hidden;min-height:173px;border:1px solid #c9956e;border-radius:19px;display:flex;align-items:center;gap:10px;padding:14px;background:radial-gradient(circle at 10% 50%,#a765aa77,transparent 58%),linear-gradient(120deg,#513052,#1a142c);box-shadow:0 15px 26px #070513a8}
+.cc14-event-glow{position:absolute;z-index:-1;width:200px;height:200px;right:-70px;top:-50px;border:2px solid #ffffff17;border-radius:50%;box-shadow:0 0 0 21px #edb9780d,0 0 0 51px #edb97808}
+.cc14-event-art{width:88px;flex:none;text-align:center;font-size:66px;color:#ffdf97;text-shadow:0 4px 14px #ffda7477;animation:cc14Float 4s ease-in-out infinite}
+@keyframes cc14Float{50%{transform:translateY(-7px) rotate(5deg)}}.cc14-event-body{position:relative;flex:1;min-width:0}.cc14-event-body small,.cc14-feature-grid span{font-size:10px;font-weight:900;letter-spacing:1px;color:#ffca89}.cc14-event-body h3{margin:7px 0;font-size:18px;color:#fff0d4}.cc14-event-body p{margin:0 0 12px;color:#d1c3d7;font-size:10px;line-height:1.5}.cc14-event-body .btn{font-size:11px;min-height:37px;padding:8px 12px}
+.cc14-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cc14-chest,.cc14-hot{min-height:177px;display:flex;flex-direction:column;gap:9px;padding:14px;background:linear-gradient(140deg,#3d2b42,#1a1529);border:1px solid #9f7c8e;border-radius:16px;box-shadow:inset 0 1px #ffffff16}
+.cc14-hot{background:linear-gradient(140deg,#4d2d32,#1c1528)}.cc14-feature-grid b{font-size:15px;color:#ffe5bb;line-height:1.25}.cc14-feature-grid small{font-size:10px;line-height:1.4;color:#c6b6cc;flex:1}.cc14-feature-grid .btn{font-size:10px;min-height:36px;padding:7px 6px}
+.cc14-goals-short{padding:14px;border:1px solid #876b95;border-radius:14px;background:#21172f}.cc14-goals-short>div:first-child{display:flex;justify-content:space-between;gap:8px}.cc14-goals-short strong{font-size:12px;color:#fff0d5}.cc14-goals-short span{font-size:11px;color:#c4b0d0}.cc14-goal-track,.cc14-challenge-track{height:7px;border-radius:10px;background:#130f21;margin:12px 0;overflow:hidden}.cc14-goal-track i,.cc14-challenge-track i{display:block;height:100%;border-radius:10px;background:linear-gradient(90deg,#a05bec,#efb86f)}.cc14-goals-short button{border:0;background:none;color:#ffd4a0;padding:0;font-weight:800;font-size:11px}
+.cc14-boosters{border:1px solid #695889;border-radius:17px;padding:15px;background:#191526}.cc14-boosters h3{font-size:16px;color:#f8d7ac;margin:0 0 7px}.cc14-boosters p,.cc14-boost-help{font-size:10px;color:#b9a9c8;line-height:1.5}.cc14-booster-list{display:flex;flex-direction:column;gap:8px;margin-top:13px}.cc14-booster{display:flex;align-items:center;gap:8px;border:1px solid #55496b;background:#271b37;border-radius:12px;padding:10px}.cc14-booster>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}.cc14-booster b{font-size:12px;color:#ebcf9f}.cc14-booster small{font-size:9px;line-height:1.5;color:#bbaeca}.cc14-booster button,.cc14-challenge button,.cc14-tournament button{border:1px solid #cba267;background:#513264;border-radius:9px;padding:9px;font-size:10px;font-weight:800;color:#ffdfb3}.cc14-booster button:disabled,.cc14-challenge button:disabled,.cc14-tournament button:disabled{opacity:.45}
+.cc14-challenges{margin:16px 0}.cc14-section-title{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#ffdda7;font-size:12px;font-weight:900;margin:0 0 12px}.cc14-section-title b{font-size:11px;color:#c5b0c7}
+.cc14-challenge{padding:14px;border:1px solid #80668a;border-radius:14px;background:linear-gradient(125deg,#30213d,#1b172d);margin-bottom:10px;display:flex;flex-direction:column;gap:5px}
+.cc14-challenge>strong{font-size:14px;color:#f6daa8}.cc14-challenge>small{font-size:10px;color:#c7b7cb}.cc14-challenge>div:last-child{display:flex;align-items:center;justify-content:space-between;gap:9px}.cc14-challenge>div:last-child span{color:#d9bad6;font-size:10px;line-height:1.4}.cc14-tournament{margin-top:14px;border-radius:16px;border:1px solid #d4a977;background:radial-gradient(circle at top right,#68539499,transparent 70%),#21172e;padding:16px;display:flex;gap:8px;flex-direction:column}
+.cc14-tournament>span{font-size:10px;color:#ffdb98;font-weight:900}.cc14-tournament>strong{color:#fff1db;font-size:17px}.cc14-tournament p{color:#d4c1d6;font-size:11px;line-height:1.5;margin:0}.cc14-tournament small{color:#e4c2a0}.cc14-tournament em{font-size:9px;color:#a99db5}
+.cc14-game-bonus{margin:10px 0 18px;display:flex;flex-direction:column;gap:7px;padding:14px;border:1px solid #b69281;background:linear-gradient(110deg,#4d2c45,#241a36);border-radius:15px}.cc14-game-bonus span{font-size:11px;color:#ffd4a0;font-weight:900}.cc14-game-bonus strong{font-size:18px;color:#fff1dc}.cc14-game-bonus small{font-size:10px;color:#bdb0cd}.cc14-game-bonus button{align-self:flex-start}
+.city-visual{isolation:isolate}.cc14-neon-traffic{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}.city-visual-overlay{z-index:2;position:relative}.cc14-car{position:absolute;bottom:27%;left:-50px;width:44px;height:9px;background:linear-gradient(90deg,#f6c36a 0 10%,#a985f5 40%,#27233a 100%);border-radius:5px;box-shadow:0 0 15px #d9a5ff;animation:cc14drive 9s linear infinite}.cc14-car:after{content:'';position:absolute;right:2px;top:2px;width:6px;height:4px;background:#fffbc3;box-shadow:0 0 10px #f6eab5}.cc14-car.second{bottom:17%;animation-duration:14s;animation-delay:-6s;background:linear-gradient(90deg,#dc7092,#ffe2a4)}@keyframes cc14drive{from{transform:translateX(-50px)}to{transform:translateX(700px)}}.cc14-city-beam{position:absolute;left:50%;top:0;width:90px;height:100%;transform:rotate(27deg);background:linear-gradient(90deg,transparent,#eed7ff13,transparent);animation:cc14beam 8s ease-in-out infinite}@keyframes cc14beam{50%{left:0;opacity:.4}}
+@media(prefers-reduced-motion:reduce){.cc14-pulse,.cc14-event-art,.cc14-car,.cc14-city-beam{animation:none!important}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
@@ -1519,7 +1540,7 @@ function casinoMilestoneScreen(){
 }
 function xp(amount){
  if(state.level>=CASINO_LEVEL_CAP){state.xp=0;save();return}
- state.xp+=Math.max(0,Math.floor(Number(amount)||0));
+ state.xp+=Math.max(0,Math.floor((Number(amount)||0)*(cc14BoostActive('xp')?1.5:1)));
  let leveled=false,rankChanged=false;
  while(state.level<CASINO_LEVEL_CAP&&state.xp>=levelXpNeed(state.level)){
   state.xp-=levelXpNeed(state.level);
@@ -1538,9 +1559,9 @@ const CITY_PAYBACK_HOURS=24;
 function buildingCostAtLevel(i,level){return Math.floor(BUILDINGS[i][2]*CITY_COST_FACTOR*Math.pow(1.75,level))}
 function buildingHourlyIncome(i){const level=state.buildings[i]||0;let total=0;for(let n=0;n<level;n++)total+=buildingCostAtLevel(i,n)/CITY_PAYBACK_HOURS;return total}
 function rate(){return BUILDINGS.reduce((total,_b,i)=>total+buildingHourlyIncome(i),0)}
-function collectPassive(){const now=Date.now();const elapsedHours=Math.max(0,Math.min(8,(now-state.lastIncome)/3600000));if(elapsedHours<.0025)return 0;const gross=rate()*elapsedHours+(Number.isFinite(state.incomeRemainder)?state.incomeRemainder:0);const amount=Math.floor(gross);state.incomeRemainder=gross-amount;state.coins+=amount;state.lastIncome=now;save();return amount}
+function collectPassive(){const now=Date.now();const elapsedHours=Math.max(0,Math.min(8,(now-state.lastIncome)/3600000));if(elapsedHours<.0025)return 0;const gross=rate()*elapsedHours*(cc14BoostActive('income')?1.25:1)+(Number.isFinite(state.incomeRemainder)?state.incomeRemainder:0);const amount=Math.floor(gross);state.incomeRemainder=gross-amount;state.coins+=amount;state.lastIncome=now;save();return amount}
 function cost(i){return buildingCostAtLevel(i,state.buildings[i]||0)}
-function buildingUp(i){collectPassive();let c=cost(i);if(state.coins<c){render();return message('Не хватает '+fmt(c-state.coins)+' городских монет')}state.coins-=c;state.buildings[i]++;recordCasinoQuestEvent('builds',1);xp(25);save();render();message('Здание улучшено')}
+function buildingUp(i){collectPassive();let c=cost(i);if(state.coins<c){render();return message('Не хватает '+fmt(c-state.coins)+' городских монет')}state.coins-=c;state.buildings[i]++;recordCasinoQuestEvent('builds',1);cc14RecordBuild();xp(25);save();render();message('Здание улучшено')}
 function buildingNextIncome(i){return buildingHourlyIncome(i)+cost(i)/CITY_PAYBACK_HOURS}
 function buildingPayback(i){const added=buildingNextIncome(i)-buildingHourlyIncome(i);return added>0?Math.ceil(cost(i)/added):0}
 const SLOT_THEMES=[
@@ -1620,6 +1641,7 @@ function casinoRecordRound(prize,description){
   best:Math.max(Math.max(0,Number(previous.best)||0),payout)
  };
  state.casinoGameStats[key]=stats;
+ cc14RecordGame(index,payout);
  state.casinoGameHistory.unshift({
   game:index,
   stake,payout,
@@ -1871,17 +1893,181 @@ function rewardCollection(){
  save();
  message('Коллекция: +'+newlyClaimed+' VIP за завершённые серии партий');
 }
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 13.4</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 14.0</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
+
+/* CASINO CITY 14.0 — LIVE CITY. All rewards are virtual, locally persisted and bounded. */
+const CC14_CHEST_WAIT=8*3600000;
+const CC14_EVENT_TYPES=[
+ {name:'VIP-гость в городе',icon:'♛',desc:'Важный гость посетил казино. Выбери подарок.',chips:150,coins:150},
+ {name:'Дождь фишек',icon:'✦',desc:'Вечер бесплатных подарков для жителей города.',chips:250,coins:0},
+ {name:'Золотая смена',icon:'◆',desc:'Персонал отлично поработал. Город получил премию.',chips:100,coins:250},
+ {name:'Ночь большого шоу',icon:'★',desc:'Неоновый фестиваль! Забери приз за участие.',chips:200,coins:100}
+];
+const CC14_BOOSTERS={
+ income:{title:'Золотой час',desc:'+25% к пассивному доходу в течение 30 минут',duration:30*60000},
+ xp:{title:'Мастер опыта',desc:'+50% XP от игр и строительства на 30 минут',duration:30*60000},
+ chest:{title:'Ключ коллекционера',desc:'Сразу открывает дополнительный сундук',duration:0}
+};
+function cc14Num(v){return Math.max(0,Math.min(1e12,Math.floor(Number(v)||0)))}
+function cc14Data(){
+ if(!state.liveCity14||typeof state.liveCity14!=='object')state.liveCity14={};
+ const x=state.liveCity14;
+ if(!Number.isFinite(x.nextChestAt))x.nextChestAt=Date.now();
+ if(!Array.isArray(x.inventory))x.inventory=[];
+ if(!x.boosts||typeof x.boosts!=='object')x.boosts={};
+ if(!x.daily||x.daily.key!==today())x.daily={key:today(),games:[],rounds:0,builds:0,hot:0,claims:[]};
+ if(!x.week||x.week.key!==casinoWeekKey())x.week={key:casinoWeekKey(),rounds:0,wins:0,claimed:false};
+ if(!Array.isArray(x.history))x.history=[];
+ return x;
+}
+function cc14HotGame(){
+ const n=Number(today().replace(/-/g,''))||0;
+ return (n*17+7)%GAMES.length;
+}
+function cc14Event(){
+ const day=today(),dayNum=Number(day.replace(/-/g,''))||0;
+ return {key:day,event:CC14_EVENT_TYPES[dayNum%CC14_EVENT_TYPES.length]};
+}
+function cc14BoostActive(kind){
+ return Number(cc14Data().boosts[kind])>Date.now();
+}
+function cc14Time(ms){
+ let seconds=Math.max(0,Math.ceil(ms/1000));
+ const hours=Math.floor(seconds/3600),minutes=Math.floor(seconds%3600/60);
+ return hours?hours+' ч '+minutes+' мин':minutes+' мин';
+}
+function cc14AddInventory(kind){
+ const x=cc14Data();
+ if(x.inventory.length>=25){state.chips+=80;return '80 фишек (инвентарь полон)'}
+ x.inventory.push(kind);return CC14_BOOSTERS[kind].title;
+}
+function cc14ChestReward(){
+ const roll=rand(100),x=cc14Data();
+ let label='',tier='',symbol='';
+ if(roll<57){const amount=120+rand(181);state.chips+=amount;tier='ОБЫЧНЫЙ';symbol='◈';label='+'+fmt(amount)+' фишек'}
+ else if(roll<82){const amount=150+rand(251);state.coins+=amount;tier='НЕОБЫЧНЫЙ';symbol='✦';label='+'+fmt(amount)+' монет'}
+ else if(roll<96){const kind=rand(2)?'xp':'income';tier='РЕДКИЙ';symbol='◆';label=cc14AddInventory(kind)}
+ else{tier='ЛЕГЕНДАРНЫЙ';symbol='♛';state.vip=cc14Num(state.vip)+1;label='+1 коллекционный VIP'}
+ x.history.unshift({at:Date.now(),tier,symbol,label});
+ x.history=x.history.slice(0,8);
+ return {tier,symbol,label};
+}
+function cc14OpenChest(withKey=false){
+ if(busy||round)return message('Заверши текущую игру');
+ const x=cc14Data(),now=Date.now();
+ if(withKey){
+  const i=x.inventory.indexOf('chest');
+  if(i<0)return message('Нет ключа от сундука');
+  x.inventory.splice(i,1);
+ }else{
+  if(now<x.nextChestAt)return message('Сундук ещё закрыт: '+cc14Time(x.nextChestAt-now));
+  x.nextChestAt=Math.max(now,x.nextChestAt)+CC14_CHEST_WAIT;
+ }
+ x.daily.chests=(x.daily.chests||0)+1;
+ const reward=cc14ChestReward();
+ save();render();
+ message('Сундук '+reward.tier+': '+reward.label);
+}
+function cc14ClaimEvent(){
+ if(busy||round)return message('Заверши текущую игру');
+ const x=cc14Data(),e=cc14Event();
+ if(x.eventClaimed===e.key)return message('Сегодняшнее событие уже завершено');
+ x.eventClaimed=e.key;
+ state.chips+=e.event.chips;
+ state.coins+=e.event.coins;
+ if(e.event.name==='VIP-гость в городе')cc14AddInventory('income');
+ save();render();
+ message(e.event.name+': награда получена');
+}
+function cc14ActivateBooster(kind){
+ if(busy||round)return message('Заверши текущую игру');
+ if(!Object.prototype.hasOwnProperty.call(CC14_BOOSTERS,kind))return;
+ const x=cc14Data(),i=x.inventory.indexOf(kind);
+ if(i<0)return message('Нет этого бустера');
+ if(kind==='chest')return cc14OpenChest(true);
+ // Settle all income before changing multiplier to avoid retroactive boosted earnings.
+ if(kind==='income')collectPassive();
+ x.inventory.splice(i,1);
+ x.boosts[kind]=Math.max(Date.now(),Number(x.boosts[kind])||0)+CC14_BOOSTERS[kind].duration;
+ save();render();message('Активирован бустер: '+CC14_BOOSTERS[kind].title);
+}
+function cc14RecordGame(game,paidPayout){
+ const x=cc14Data(),d=x.daily,w=x.week;
+ if(!Number.isInteger(game)||game<0||game>=GAMES.length)return;
+ d.rounds++;
+ if(!d.games.includes(game))d.games.push(game);
+ w.rounds++;
+ if(paidPayout>0)w.wins++;
+ if(game===cc14HotGame()&&d.hot<3){
+  const amount=35;d.hot++;state.chips+=amount;
+ }
+}
+function cc14RecordBuild(){
+ cc14Data().daily.builds++;
+}
+const CC14_DAILY_GOALS=[
+ {name:'Ночная прогулка',desc:'Сыграть в 4 разные мини-игры',goal:4,value:x=>x.games.length,chips:180,coins:80},
+ {name:'В центре событий',desc:'Завершить 8 игровых раундов',goal:8,value:x=>x.rounds,chips:220,coins:60},
+ {name:'Крупье дня',desc:'Открыть хотя бы один сундук',goal:1,value:x=>x.chests||0,chips:180,coins:90}
+];
+function cc14ClaimChallenge(i){
+ if(busy||round)return message('Заверши текущую игру');
+ const item=CC14_DAILY_GOALS[i],x=cc14Data().daily;
+ if(!item||x.claims.includes(i)||item.value(x)<item.goal)return;
+ x.claims.push(i);state.chips+=item.chips;state.coins+=item.coins;
+ save();render();message('Испытание выполнено: +'+item.chips+' фишек');
+}
+function cc14ClaimTournament(){
+ if(busy||round)return message('Заверши текущую игру');
+ const x=cc14Data().week;
+ if(x.claimed||x.rounds<30||x.wins<8)return;
+ x.claimed=true;state.chips+=900;state.coins+=400;cc14AddInventory('chest');
+ save();render();message('Турнирная неделя: награда получена!');
+}
+function cc14GamePanel(){
+ const x=cc14Data(),hot=cc14HotGame();
+ return '<div class="cc14-game-bonus"><span>✦ ИГРА ДНЯ</span><strong>'+rankEsc(GAMES[hot][0])+'</strong><small>Первые три завершённых раунда сегодня: +35 бонусных фишек за каждый.</small><button class="btn purple" data-game="'+hot+'">Играть</button></div>';
+}
+function cc14CityWidgets(){
+ const x=cc14Data(),e=cc14Event(),ready=Date.now()>=x.nextChestAt;
+ const step=CC14_DAILY_GOALS.filter(q=>q.value(x.daily)>=q.goal).length;
+ return '<div class="cc14-hub">'+
+ '<div class="cc14-livebar"><span class="cc14-pulse"></span><b>ГОРОД В ДВИЖЕНИИ</b><span>События · испытания · награды</span></div>'+
+ '<div class="cc14-event"><div class="cc14-event-glow"></div><div class="cc14-event-art">'+e.event.icon+'</div><div class="cc14-event-body"><small>СОБЫТИЕ ДНЯ</small><h3>'+e.event.name+'</h3><p>'+e.event.desc+'</p><button data-action="cc14-event" class="btn purple" '+(x.eventClaimed===e.key?'disabled':'')+'>'+(x.eventClaimed===e.key?'Награда получена':'Получить подарок')+'</button></div></div>'+
+ '<div class="cc14-feature-grid"><div class="cc14-chest"><span>🎁 СУНДУК УДАЧИ</span><b>'+(ready?'ГОТОВ К ОТКРЫТИЮ':cc14Time(x.nextChestAt-Date.now()))+'</b><small>Награда раз в 8 часов</small><button data-action="cc14-chest" class="btn" '+(!ready?'disabled':'')+'>'+(ready?'Открыть сундук':'Ожидание')+'</button></div>'+
+ '<div class="cc14-hot"><span>🔥 ИГРА ДНЯ</span><b>'+rankEsc(GAMES[cc14HotGame()][0])+'</b><small>'+x.daily.hot+'/3 бонусных раунда</small><button data-game="'+cc14HotGame()+'" class="btn">Играть сейчас</button></div></div>'+
+ '<div class="cc14-goals-short"><div><strong>Испытания дня</strong><span>'+step+' / '+CC14_DAILY_GOALS.length+' выполнено</span></div><div class="cc14-goal-track"><i style="width:'+(100*step/CC14_DAILY_GOALS.length)+'%"></i></div><button data-tab="quests">К испытаниям →</button></div>'+
+ cc14BoosterWidget()+'</div>';
+}
+function cc14BoosterWidget(){
+ const x=cc14Data();
+ return '<section class="cc14-boosters"><h3>Усилители и находки</h3><p>Бустеры ускоряют развитие и не меняют вероятность выигрыша в мини-играх.</p><div class="cc14-booster-list">'+Object.entries(CC14_BOOSTERS).map(([key,b])=>{
+ const amount=x.inventory.filter(v=>v===key).length;
+ const active=key!=='chest'&&cc14BoostActive(key);
+ return '<div class="cc14-booster"><div><b>'+b.title+'</b><small>'+b.desc+(active?' · ещё '+cc14Time(x.boosts[key]-Date.now()):'')+'</small></div><button data-cc14-booster="'+key+'" '+(!amount?'disabled':'')+'>'+(amount?'Применить · '+amount:'Нет')+'</button></div>';
+ }).join('')+'</div><small class="cc14-boost-help">Сундук хранится на этом устройстве. Максимум 25 предметов в инвентаре.</small></section>';
+}
+function cc14ChallengesWidget(){
+ const x=cc14Data(),d=x.daily,w=x.week;
+ return '<div class="cc14-challenges"><div class="cc14-section-title"><span>★ ИСПЫТАНИЯ ДНЯ</span><b>'+d.claims.length+' / 3 награды</b></div>'+
+ CC14_DAILY_GOALS.map((q,i)=>{
+ const progress=Math.min(q.goal,q.value(d)),claimed=d.claims.includes(i);
+ return '<div class="cc14-challenge"><strong>'+q.name+'</strong><small>'+q.desc+'</small><div class="cc14-challenge-track"><i style="width:'+(progress/q.goal*100)+'%"></i></div><div><span>'+progress+'/'+q.goal+' · +'+q.chips+' фишек / +'+q.coins+' монет</span><button data-cc14-challenge="'+i+'" '+(claimed||progress<q.goal?'disabled':'')+'>'+(claimed?'Получено':'Забрать')+'</button></div></div>';
+ }).join('')+
+ '<div class="cc14-tournament"><span>🏆 ПЕРСОНАЛЬНАЯ ТУРНИРНАЯ НЕДЕЛЯ</span><strong>Лига ночного города</strong><p>Заверши 30 раундов и получи выплаты в 8 раундах. Награда: 900 фишек, 400 монет и ключ от сундука.</p><small>Раунды '+w.rounds+'/30 · с выплатой '+w.wins+'/8</small><button data-action="cc14-tournament" '+(w.claimed||w.rounds<30||w.wins<8?'disabled':'')+'>'+(w.claimed?'Получено':'Забрать награду')+'</button><em>Личное испытание; общий турнир между игроками пока не подключён.</em></div>'+
+ '</div>';
+}
+
 let expandedDistrict=false;
 function cityScreen(){
 const level=state.buildings.reduce((a,b)=>a+b,0),have=state.buildings.filter(x=>x>0).length;
 const visible=expandedDistrict?BUILDINGS:BUILDINGS.slice(0,6);
 const district=visible.map((b,i)=>'<div class="district-card district-'+i+'"><div class="district-illustration">'+ic(b[1])+'<span class="district-rank">'+(state.buildings[i]?'УР. '+state.buildings[i]:'НОВОЕ')+'</span></div><div class="district-info"><strong>'+b[0]+'</strong><span>'+(state.buildings[i]?fmt(buildingHourlyIncome(i))+' монет / час':'Открыть объект')+'</span><small class="district-economy">+'+fmt(buildingNextIncome(i)-buildingHourlyIncome(i))+'/час после улучшения · окупаемость ~'+buildingPayback(i)+' ч</small><button class="district-upgrade" data-up="'+i+'" '+(state.coins<cost(i)?'disabled':'')+'>'+(state.buildings[i]?'Улучшить':'Построить')+' <b>'+fmt(cost(i))+'</b>'+ic('coin')+'</button></div></div>').join('');
-return '<div class="page city-page"><div class="section-intro"><div><span class="eyebrow">МОЯ ИМПЕРИЯ</span><h1>Город казино</h1></div><span class="city-rank">'+ic('vip')+' '+level+' уровень</span></div><div class="city-visual"><div class="city-visual-overlay"><span class="city-sign">'+ic('star')+' CASINO CITY <span class="live-dot"></span></span><div class="city-visual-bottom"><strong>ГОРОД, КОТОРЫЙ<br>НЕ СПИТ</strong><small>Твой путь от первого зала до столицы развлечений</small></div></div><div class="city-stats"><div><span>ПОСТРОЕНО</span><strong>'+have+' <small>/ 14</small></strong></div><div><span>ДОХОД / ЧАС</span><strong>'+fmt(rate())+'</strong></div></div></div><div class="city-progress"><div class="city-progress-head"><strong>Развитие города</strong><span>'+have+'/14 объектов</span></div><div class="city-progress-track"><span style="width:'+(have/14*100)+'%"></span></div><small>Доход начисляется по часовой ставке, даже пока игра закрыта (до 8 часов). Строй новые районы и улучшай существующие.</small></div><div class="city-cta"><button class="btn gold-action" data-action="collect">'+ic('coin')+' Собрать доход</button><button class="btn purple" data-tab="games">'+ic('games')+' Играть</button></div><div class="casino-strip"><span class="casino-strip-mark">'+ic('spark')+'</span><div><strong>ТВОЯ ИМПЕРИЯ РАСТЁТ</strong><small>Улучшай объекты — открывай возможности</small></div><span class="casino-strip-right">'+have+'/14</span></div><div class="sectionhead district-heading"><h2>Мои заведения</h2><span class="mini">'+(expandedDistrict?'Все объекты':'Первые шесть объектов')+'</span></div><div class="district-grid">'+district+'</div><button class="all-buildings-btn" data-action="district">'+(expandedDistrict?'Свернуть список':'Показать все 14 зданий')+ic(expandedDistrict?'back':'up')+'</button></div>';
+return '<div class="page city-page"><div class="section-intro"><div><span class="eyebrow">МОЯ ИМПЕРИЯ</span><h1>Город казино</h1></div><span class="city-rank">'+ic('vip')+' '+level+' уровень</span></div><div class="city-visual"><div class="city-visual-overlay"><span class="city-sign">'+ic('star')+' CASINO CITY <span class="live-dot"></span></span><div class="city-visual-bottom"><strong>ГОРОД, КОТОРЫЙ<br>НЕ СПИТ</strong><small>Твой путь от первого зала до столицы развлечений</small></div></div><div class="cc14-neon-traffic"><span class="cc14-car"></span><span class="cc14-car second"></span><span class="cc14-city-beam"></span></div><div class="city-stats"><div><span>ПОСТРОЕНО</span><strong>'+have+' <small>/ 14</small></strong></div><div><span>ДОХОД / ЧАС</span><strong>'+fmt(rate())+'</strong></div></div></div><div class="city-progress"><div class="city-progress-head"><strong>Развитие города</strong><span>'+have+'/14 объектов</span></div><div class="city-progress-track"><span style="width:'+(have/14*100)+'%"></span></div><small>Доход начисляется по часовой ставке, даже пока игра закрыта (до 8 часов). Строй новые районы и улучшай существующие.</small></div>'+cc14CityWidgets()+'<div class="city-cta"><button class="btn gold-action" data-action="collect">'+ic('coin')+' Собрать доход</button><button class="btn purple" data-tab="games">'+ic('games')+' Играть</button></div><div class="casino-strip"><span class="casino-strip-mark">'+ic('spark')+'</span><div><strong>ТВОЯ ИМПЕРИЯ РАСТЁТ</strong><small>Улучшай объекты — открывай возможности</small></div><span class="casino-strip-right">'+have+'/14</span></div><div class="sectionhead district-heading"><h2>Мои заведения</h2><span class="mini">'+(expandedDistrict?'Все объекты':'Первые шесть объектов')+'</span></div><div class="district-grid">'+district+'</div><button class="all-buildings-btn" data-action="district">'+(expandedDistrict?'Свернуть список':'Показать все 14 зданий')+ic(expandedDistrict?'back':'up')+'</button></div>';
 }
 function gamesScreen(){
-return '<div class="page catalog-page"><div class="section-intro"><div><span class="eyebrow">CASINO CITY · ИГРОВЫЕ ЗАЛЫ</span><h1>Выбери свою игру</h1></div><span class="catalog-count">16 ИГР</span></div><div class="catalog-feature"><div class="catalog-feature-icon">'+ic('chip')+'</div><div><strong>Твой билет в мир удачи</strong><p>Казино на виртуальные фишки. Все залы доступны сразу.</p></div></div><div class="catalog-label">'+ic('star')+' 6 ФИРМЕННЫХ СЛОТОВ</div><div class="games">'+GAMES.slice(0,6).map((g,i)=>'<button class="gamecard featured-game" data-game="'+i+'"><div class="gameart art-slot-'+i+'"><span class="art-number">'+String(i+1).padStart(2,'0')+'</span></div><div class="gamecard-description"><h3>'+g[0]+'</h3><p>'+g[2]+'</p></div><span class="play-pill">'+ic('games')+'</span></button>').join('')+'</div><div class="catalog-label more-games">'+ic('games')+' 10 ДОПОЛНИТЕЛЬНЫХ ИГР</div><div class="games">'+GAMES.slice(6).map((g,j)=>'<button class="gamecard premium-extra art-extra-'+j+'" data-game="'+(j+6)+'"><div class="gameart theme-'+g[1]+'"><span class="art-halo"></span><span class="art-stage">'+ic(g[3])+'</span><span class="art-number">'+String(j+7).padStart(2,'0')+'</span></div><div class="gamecard-description"><h3>'+g[0]+'</h3><p>'+g[2]+'</p></div><span class="play-pill">'+ic('games')+'</span></button>').join('')+'</div></div>';
+return '<div class="page catalog-page"><div class="section-intro"><div><span class="eyebrow">CASINO CITY · ИГРОВЫЕ ЗАЛЫ</span><h1>Выбери свою игру</h1></div><span class="catalog-count">16 ИГР</span></div><div class="catalog-feature"><div class="catalog-feature-icon">'+ic('chip')+'</div><div><strong>Твой билет в мир удачи</strong><p>Казино на виртуальные фишки. Все залы доступны сразу.</p></div></div>'+cc14GamePanel()+'<div class="catalog-label">'+ic('star')+' 6 ФИРМЕННЫХ СЛОТОВ</div><div class="games">'+GAMES.slice(0,6).map((g,i)=>'<button class="gamecard featured-game" data-game="'+i+'"><div class="gameart art-slot-'+i+'"><span class="art-number">'+String(i+1).padStart(2,'0')+'</span></div><div class="gamecard-description"><h3>'+g[0]+'</h3><p>'+g[2]+'</p></div><span class="play-pill">'+ic('games')+'</span></button>').join('')+'</div><div class="catalog-label more-games">'+ic('games')+' 10 ДОПОЛНИТЕЛЬНЫХ ИГР</div><div class="games">'+GAMES.slice(6).map((g,j)=>'<button class="gamecard premium-extra art-extra-'+j+'" data-game="'+(j+6)+'"><div class="gameart theme-'+g[1]+'"><span class="art-halo"></span><span class="art-stage">'+ic(g[3])+'</span><span class="art-number">'+String(j+7).padStart(2,'0')+'</span></div><div class="gamecard-description"><h3>'+g[0]+'</h3><p>'+g[2]+'</p></div><span class="play-pill">'+ic('games')+'</span></button>').join('')+'</div></div>';
 }
 function betRow(){return '<div class="betbar"><button class="btn ghost" data-action="betdown" '+(busy||round?'disabled':'')+'>−</button><div><div class="mini">СТАВКА</div><strong>'+fmt(bet)+' '+ic('chip')+'</strong></div><button class="btn ghost" data-action="betup" '+(busy||round?'disabled':'')+'>+</button></div>'}
 function resultBox(){return '<div class="result" id="game-result">Игровые фишки не имеют денежной стоимости</div>'}
@@ -2061,7 +2247,7 @@ function questsScreen(){
  const oldQuests=[['Сыграть 5 партий',state.plays,5,150],['Сыграть 20 партий',state.plays,20,500],['Победить 10 раз',state.wins,10,600],['Построить 4 уровня зданий',state.buildings.reduce((a,b)=>a+b,0),4,400],['Достичь 5 уровня',state.level,5,1000]];
  return '<div class="page casino-quests-page"><div class="section-intro"><div><span class="eyebrow">CASINO CITY · ПРОГРЕСС</span><h1>Задания и достижения</h1></div><span class="catalog-count">2.0</span></div>'+
  '<div class="casino-quest-gift"><div><span class="eyebrow">КАЖДЫЙ ДЕНЬ</span><h3>Ежедневный подарок</h3><p>400 фишек и 700 монет + бонус за серию. Забирай один раз в день.</p></div><button class="btn purple" data-action="daily" '+(state.lastGift===today()?'disabled':'')+'>'+(state.lastGift===today()?'Получено':'Забрать')+'</button></div>'+casinoStreakSection()+
- casinoQuestOverview()+'<p class="casino-quest-explain">Ежедневные задания обновляются в 00:00 UTC, еженедельные — по понедельникам. Прогресс учитывается с начала текущего периода на этом устройстве.</p>'+
+ casinoQuestOverview()+cc14ChallengesWidget()+'<p class="casino-quest-explain">Ежедневные задания обновляются в 00:00 UTC, еженедельные — по понедельникам. Прогресс учитывается с начала текущего периода на этом устройстве.</p>'+
  casinoQuestSection('daily','Задания на сегодня','ЕЖЕДНЕВНЫЕ')+casinoQuestSection('weekly','На эту неделю','ЕЖЕНЕДЕЛЬНЫЕ')+
  '<section class="casino-quest-group"><div class="casino-quest-heading"><div><span class="eyebrow">ПОСТОЯННЫЕ ЦЕЛИ</span><h3>Достижения</h3></div><span class="casino-quest-counter">'+state.achievementsClaimed.length+' / '+CASINO_ACHIEVEMENTS.length+'</span></div>'+
  CASINO_ACHIEVEMENTS.map((q,i)=>{const value=casinoAchievementValue(q.type);return casinoQuestCard(q.title,q.desc,value,q.goal,'+'+fmt(q.chips)+' фишек',value>=q.goal,state.achievementsClaimed.includes(i),'data-achievement="'+i+'"')}).join('')+'</section>'+
@@ -2108,7 +2294,7 @@ document.addEventListener('touchend',()=>{scratchDragging=false});document.addEv
 document.addEventListener('mousedown',e=>{if(e.target.closest('.scratches'))scratchDragging=true});
 document.addEventListener('mousemove',e=>{if(scratchDragging&&e.buttons===1)scratchAtPoint(e.clientX,e.clientY)});
 document.addEventListener('mouseup',()=>{scratchDragging=false});
-document.addEventListener('click',function(e){let x=e.target.closest('button');if(!x||x.disabled)return;const d=x.dataset;if(d.playerBack!==undefined){casinoSelectedPlayerId='';renderCasinoLeaderboard();return;}if(d.playerId!==undefined){casinoSelectedPlayerId=d.playerId;renderCasinoLeaderboard();return;}if(d.levelReward!==undefined){claimLevelReward(Number(d.levelReward));return;}if(d.periodQuest!==undefined){const [scope,index]=d.periodQuest.split(':');claimCasinoPeriodQuest(scope,Number(index));return;}if(d.achievement!==undefined){claimCasinoAchievement(Number(d.achievement));return;}if(d.tab)return switchTab(d.tab);if(d.back!==undefined)return switchTab('games');if(d.game!==undefined){if(busy)return;lastSlotResult=null;slotLastWins=0;selected=Number(d.game);tab='game';round=null;held=[];kenoSelected=[];kenoLastDraw=[];crashValue=1;render();window.scrollTo(0,0);return}if(d.crashToggle!==undefined){if(busy)return;crashAutoEnabled=!crashAutoEnabled;render();return}if(d.plinkoRisk!==undefined){if(busy)return;plinkoRisk=Math.max(0,Math.min(2,Number(d.plinkoRisk)||0));plinkoLastSector=-1;plinkoHits=[];render();return}if(d.plinkoCount!==undefined){if(busy)return;plinkoCount=Math.max(1,Math.min(10,Number(d.plinkoCount)||1));render();return}if(d.up!==undefined)return buildingUp(Number(d.up));if(d.rouletteClear!==undefined){if(busy)return;roulettePicks=[];render();return}if(d.pick){if(busy)return;roulettePick=d.pick;roulettePicks=roulettePicks.includes(d.pick)?roulettePicks.filter(x=>x!==d.pick):roulettePicks.concat(d.pick);render();return}if(d.hold!==undefined){if(busy)return;let i=Number(d.hold);held=held.includes(i)?held.filter(a=>a!==i):held.concat(i);render();return}if(d.keno!==undefined)return selectKeno(Number(d.keno));if(d.scratch!==undefined)return scratchOpen(Number(d.scratch));if(d.quest!==undefined)return claimQuest(Number(d.quest));const a=d.action;if(!a)return;switch(a){case'district':expandedDistrict=!expandedDistrict;render();break;case'collect':{let got=collectPassive();render();message(got?'Собрано '+fmt(got)+' монет':'Доход ещё накапливается');break}case'daily':daily();break;case'claim-all':claimAllCasinoRewards();break;case'exchange':exchange();break;case'cashout':cashout();break;case'betdown':if(!busy&&!round){bet=Math.max(5,Math.floor(bet/2/5)*5);render()}break;case'betup':if(!busy&&!round){bet=Math.min(500,bet*2);render()}break;case'slot':playSlot();break;case'roulette':playRoulette();break;case'bjstart':startBlackjack();break;case'hit':hit();break;case'stand':stand();break;case'pokerstart':pokerStart();break;case'pokerdraw':pokerDraw();break;case'kenoplay':kenoPlay();break;case'kenoquick':kenoQuickPick();break;case'hilostart':hiloStart();break;case'higher':hiloPlay(true);break;case'lower':hiloPlay(false);break;case'plinko':plinkoPlay();break;case'crashstart':crashStart();break;case'crashcash':crashCash();break;case'under':dicePlay('under');break;case'over':dicePlay('over');break;case'scratchstart':scratchStart();break;case'scratchall':scratchRevealAll();break}})
+document.addEventListener('click',function(e){let x=e.target.closest('button');if(!x||x.disabled)return;const d=x.dataset;if(d.playerBack!==undefined){casinoSelectedPlayerId='';renderCasinoLeaderboard();return;}if(d.playerId!==undefined){casinoSelectedPlayerId=d.playerId;renderCasinoLeaderboard();return;}if(d.levelReward!==undefined){claimLevelReward(Number(d.levelReward));return;}if(d.cc14Booster!==undefined){cc14ActivateBooster(d.cc14Booster);return;}if(d.cc14Challenge!==undefined){cc14ClaimChallenge(Number(d.cc14Challenge));return;}if(d.periodQuest!==undefined){const [scope,index]=d.periodQuest.split(':');claimCasinoPeriodQuest(scope,Number(index));return;}if(d.achievement!==undefined){claimCasinoAchievement(Number(d.achievement));return;}if(d.tab)return switchTab(d.tab);if(d.back!==undefined)return switchTab('games');if(d.game!==undefined){if(busy)return;lastSlotResult=null;slotLastWins=0;selected=Number(d.game);tab='game';round=null;held=[];kenoSelected=[];kenoLastDraw=[];crashValue=1;render();window.scrollTo(0,0);return}if(d.crashToggle!==undefined){if(busy)return;crashAutoEnabled=!crashAutoEnabled;render();return}if(d.plinkoRisk!==undefined){if(busy)return;plinkoRisk=Math.max(0,Math.min(2,Number(d.plinkoRisk)||0));plinkoLastSector=-1;plinkoHits=[];render();return}if(d.plinkoCount!==undefined){if(busy)return;plinkoCount=Math.max(1,Math.min(10,Number(d.plinkoCount)||1));render();return}if(d.up!==undefined)return buildingUp(Number(d.up));if(d.rouletteClear!==undefined){if(busy)return;roulettePicks=[];render();return}if(d.pick){if(busy)return;roulettePick=d.pick;roulettePicks=roulettePicks.includes(d.pick)?roulettePicks.filter(x=>x!==d.pick):roulettePicks.concat(d.pick);render();return}if(d.hold!==undefined){if(busy)return;let i=Number(d.hold);held=held.includes(i)?held.filter(a=>a!==i):held.concat(i);render();return}if(d.keno!==undefined)return selectKeno(Number(d.keno));if(d.scratch!==undefined)return scratchOpen(Number(d.scratch));if(d.quest!==undefined)return claimQuest(Number(d.quest));const a=d.action;if(!a)return;switch(a){case'cc14-event':cc14ClaimEvent();break;case'cc14-chest':cc14OpenChest();break;case'cc14-tournament':cc14ClaimTournament();break;case'district':expandedDistrict=!expandedDistrict;render();break;case'collect':{let got=collectPassive();render();message(got?'Собрано '+fmt(got)+' монет':'Доход ещё накапливается');break}case'daily':daily();break;case'claim-all':claimAllCasinoRewards();break;case'exchange':exchange();break;case'cashout':cashout();break;case'betdown':if(!busy&&!round){bet=Math.max(5,Math.floor(bet/2/5)*5);render()}break;case'betup':if(!busy&&!round){bet=Math.min(500,bet*2);render()}break;case'slot':playSlot();break;case'roulette':playRoulette();break;case'bjstart':startBlackjack();break;case'hit':hit();break;case'stand':stand();break;case'pokerstart':pokerStart();break;case'pokerdraw':pokerDraw();break;case'kenoplay':kenoPlay();break;case'kenoquick':kenoQuickPick();break;case'hilostart':hiloStart();break;case'higher':hiloPlay(true);break;case'lower':hiloPlay(false);break;case'plinko':plinkoPlay();break;case'crashstart':crashStart();break;case'crashcash':crashCash();break;case'under':dicePlay('under');break;case'over':dicePlay('over');break;case'scratchstart':scratchStart();break;case'scratchall':scratchRevealAll();break}})
 const originalStartCost=startCost; // Preserve independent game round state; collection unlocks are awarded on completed parties.
 window.addEventListener('pagehide',save);
 setInterval(()=>{if(tab==='city'||tab==='profile'){let gained=collectPassive();if(gained&&tab==='city')render()}},30000);
