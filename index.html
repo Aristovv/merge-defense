@@ -354,6 +354,66 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 .district-13 .district-illustration{background:#151122 url('./assets/casino/photos/city-main.webp') center 48%/cover no-repeat!important}
 .district-illustration:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#100a23a8,transparent 62%);pointer-events:none}
 .district-rank{z-index:2}
+
+/* CASINO CITY 2.0 — premium secondary games and mobile game halls */
+.catalog-page .gamecard.premium-extra .gameart{height:145px;background-size:cover!important;background-position:center!important;isolation:isolate}
+.catalog-page .gamecard.premium-extra .gameart:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#110c25aa,#12092133 40%,#0c0924b8 100%);z-index:0}
+.catalog-page .gamecard.premium-extra .gameart:after{height:42%;background:linear-gradient(0deg,#0e0b1de8,transparent);z-index:1}
+.catalog-page .gamecard.premium-extra .art-halo{display:none}
+.catalog-page .gamecard.premium-extra .art-stage{position:absolute;z-index:2;left:11px;bottom:11px;transform:none;width:43px;height:43px;border-radius:12px;background:#130e24c9;box-shadow:0 3px 15px #000a;border:1px solid #ffdc9d80}
+.catalog-page .gamecard.premium-extra .art-stage .ic{width:27px;height:27px;filter:none}
+.catalog-page .gamecard.premium-extra .art-number{z-index:4;background:#100b20df}
+.catalog-page .gamecard.premium-extra .extra-art-title{position:absolute;z-index:3;right:10px;bottom:19px;text-align:right;color:#fff0ce;text-shadow:0 2px 8px #000,0 0 10px #000;font-weight:900;letter-spacing:1.1px;font-size:clamp(10px,3vw,14px)}
+.catalog-page .gamecard.premium-extra .gamecard-description{min-height:64px}
+
+.catalog-page .gamecard.premium-extra.art-extra-0 .gameart{background-image:url('./assets/casino/photos/city-boulevard.webp')!important;border-top:2px solid #c82b4e}
+.game-mode-roulette{--extra-accent:#c82b4e}
+
+.catalog-page .gamecard.premium-extra.art-extra-1 .gameart{background-image:url('./assets/casino/photos/vip-lounge.webp')!important;border-top:2px solid #e4ae55}
+.game-mode-roulette-vip{--extra-accent:#e4ae55}
+
+.catalog-page .gamecard.premium-extra.art-extra-2 .gameart{background-image:url('./assets/casino/photos/vip-lounge.webp')!important;border-top:2px solid #269e78}
+.game-mode-blackjack{--extra-accent:#269e78}
+
+.catalog-page .gamecard.premium-extra.art-extra-3 .gameart{background-image:url('./assets/casino/photos/chip-bank.webp')!important;border-top:2px solid #43a3b5}
+.game-mode-poker{--extra-accent:#43a3b5}
+
+.catalog-page .gamecard.premium-extra.art-extra-4 .gameart{background-image:url('./assets/casino/photos/slot-diamonds.webp')!important;border-top:2px solid #59b7ec}
+.game-mode-keno{--extra-accent:#59b7ec}
+
+.catalog-page .gamecard.premium-extra.art-extra-5 .gameart{background-image:url('./assets/casino/photos/slot-classic.webp')!important;border-top:2px solid #e1a453}
+.game-mode-hilo{--extra-accent:#e1a453}
+
+.catalog-page .gamecard.premium-extra.art-extra-6 .gameart{background-image:url('./assets/casino/photos/slot-fruits.webp')!important;border-top:2px solid #b569e7}
+.game-mode-plinko{--extra-accent:#b569e7}
+
+.catalog-page .gamecard.premium-extra.art-extra-7 .gameart{background-image:url('./assets/casino/photos/slot-vegas.webp')!important;border-top:2px solid #ff627e}
+.game-mode-crash{--extra-accent:#ff627e}
+
+.catalog-page .gamecard.premium-extra.art-extra-8 .gameart{background-image:url('./assets/casino/photos/slot-bells.webp')!important;border-top:2px solid #d9af66}
+.game-mode-dice{--extra-accent:#d9af66}
+
+.catalog-page .gamecard.premium-extra.art-extra-9 .gameart{background-image:url('./assets/casino/photos/slot-pharaoh.webp')!important;border-top:2px solid #d7a64e}
+.game-mode-scratch{--extra-accent:#d7a64e}
+
+.game-mode-roulette .roulette-hall,.game-mode-blackjack .cardtable,.game-mode-poker .poker-table,.game-mode-keno .keno-board,.game-mode-hilo .hilo-table,.game-mode-plinko .plinko-stage,.game-mode-crash .crash-display,.game-mode-dice .dice-arena,.game-mode-scratch .scratch-ticket{position:relative;isolation:isolate;overflow:hidden;box-shadow:inset 0 0 0 2px #e9c68a4a,0 12px 32px #0009,0 0 30px #a67a4c24}
+.game-mode-roulette .roulette-hall:before,.game-mode-blackjack .cardtable:before,.game-mode-poker .poker-table:before,.game-mode-keno .keno-board:before,.game-mode-hilo .hilo-table:before,.game-mode-plinko .plinko-stage:before,.game-mode-crash .crash-display:before,.game-mode-dice .dice-arena:before,.game-mode-scratch .scratch-ticket:before{content:"";position:absolute;inset:0;z-index:-1;background-size:cover;background-position:center;opacity:.28;filter:blur(2px) saturate(1.2);pointer-events:none}
+.game-mode-roulette .roulette-hall:before{background-image:url('./assets/casino/photos/city-boulevard.webp');opacity:.2}
+.game-mode-blackjack .cardtable:before{background-image:url('./assets/casino/photos/vip-lounge.webp');opacity:.22}
+.game-mode-poker .poker-table:before{background-image:url('./assets/casino/photos/chip-bank.webp')}
+.game-mode-keno .keno-board:before{background-image:url('./assets/casino/photos/slot-diamonds.webp')}
+.game-mode-hilo .hilo-table:before{background-image:url('./assets/casino/photos/slot-classic.webp')}
+.game-mode-plinko .plinko-stage:before{background-image:url('./assets/casino/photos/slot-fruits.webp')}
+.game-mode-crash .crash-display:before{background-image:url('./assets/casino/photos/slot-vegas.webp')}
+.game-mode-dice .dice-arena:before{background-image:url('./assets/casino/photos/slot-bells.webp')}
+.game-mode-scratch .scratch-ticket:before{background-image:url('./assets/casino/photos/slot-pharaoh.webp')}
+.game-mode-roulette .roulette-hall,.game-mode-plinko .plinko-stage,.game-mode-crash .crash-display{min-height:330px}
+.slot-scene{padding-top:130px;min-height:365px;background-position:center top!important}
+.slot-scene:before{background:linear-gradient(180deg,#130b2699 0%,#0b082299 30%,#0b0822ed 43%,#09051d 100%)!important}
+.slot-scene-art{top:14px!important}
+.slot-scene-title{font-size:clamp(25px,7vw,35px)!important}
+.slot-cabinet{position:relative;z-index:2}
+@media(max-width:390px){.catalog-page .gamecard.premium-extra .gameart{height:125px}.catalog-page .gamecard.premium-extra .extra-art-title{font-size:10px}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge)window.vkBridge.send('VKWebAppInit').catch(function(){})}catch(_){}
@@ -446,7 +506,7 @@ function scratchOpen(i){if(busy||!round||round.opened.includes(i))return;round.o
 function daily(){if(state.lastGift===today())return message('Сегодня подарок уже получен');state.lastGift=today();grant(400,700);xp(15);render();message('Подарок: +400 фишек и +700 монет')}
 function exchange(){if(state.coins<300)return message('Нужно 300 городских монет');state.coins-=300;state.chips+=150;save();render();message('Обмен: +150 фишек')}
 function rewardCollection(){if(state.plays===0||state.plays%12!==0||state.collect.includes('slot-'+Math.floor(state.plays/12)))return;const i=Math.floor(state.plays/12),name='slot-'+i;state.collect.push(name);state.vip+=1;save();message('Новая коллекционная награда! +1 VIP')}
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 1.9</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 2.0</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 let expandedDistrict=false;
 function cityScreen(){
@@ -456,7 +516,7 @@ const district=visible.map((b,i)=>'<div class="district-card district-'+i+'"><di
 return '<div class="page city-page"><div class="section-intro"><div><span class="eyebrow">МОЯ ИМПЕРИЯ</span><h1>Город казино</h1></div><span class="city-rank">'+ic('vip')+' '+level+' уровень</span></div><div class="city-visual"><div class="city-visual-overlay"><span class="city-sign">'+ic('star')+' CASINO CITY <span class="live-dot"></span></span><div class="city-visual-bottom"><strong>ГОРОД, КОТОРЫЙ<br>НЕ СПИТ</strong><small>Твой путь от первого зала до столицы развлечений</small></div></div><div class="city-stats"><div><span>ПОСТРОЕНО</span><strong>'+have+' <small>/ 14</small></strong></div><div><span>ДОХОД / МИН</span><strong>'+fmt(rate())+'</strong></div></div></div><div class="city-cta"><button class="btn gold-action" data-action="collect">'+ic('coin')+' Собрать доход</button><button class="btn purple" data-tab="games">'+ic('games')+' Играть</button></div><div class="casino-strip"><span class="casino-strip-mark">'+ic('spark')+'</span><div><strong>ТВОЯ ИМПЕРИЯ РАСТЁТ</strong><small>Улучшай объекты — открывай возможности</small></div><span class="casino-strip-right">'+have+'/14</span></div><div class="sectionhead district-heading"><h2>Мои заведения</h2><span class="mini">'+(expandedDistrict?'Все объекты':'Первые шесть объектов')+'</span></div><div class="district-grid">'+district+'</div><button class="all-buildings-btn" data-action="district">'+(expandedDistrict?'Свернуть список':'Показать все 14 зданий')+ic(expandedDistrict?'back':'up')+'</button></div>';
 }
 function gamesScreen(){
-return '<div class="page catalog-page"><div class="section-intro"><div><span class="eyebrow">CASINO CITY · ИГРОВЫЕ ЗАЛЫ</span><h1>Выбери свою игру</h1></div><span class="catalog-count">16 ИГР</span></div><div class="catalog-feature"><div class="catalog-feature-icon">'+ic('chip')+'</div><div><strong>Твой билет в мир удачи</strong><p>Казино на виртуальные фишки. Все залы доступны сразу.</p></div></div><div class="catalog-label">'+ic('star')+' 6 ФИРМЕННЫХ СЛОТОВ</div><div class="games">'+GAMES.slice(0,6).map((g,i)=>'<button class="gamecard featured-game" data-game="'+i+'"><div class="gameart art-slot-'+i+'"><span class="art-number">'+String(i+1).padStart(2,'0')+'</span></div><div class="gamecard-description"><h3>'+g[0]+'</h3><p>'+g[2]+'</p></div><span class="play-pill">'+ic('games')+'</span></button>').join('')+'</div><div class="catalog-label more-games">'+ic('games')+' 10 ДОПОЛНИТЕЛЬНЫХ ИГР</div><div class="games">'+GAMES.slice(6).map((g,j)=>'<button class="gamecard" data-game="'+(j+6)+'"><div class="gameart theme-'+g[1]+'"><span class="art-halo"></span><span class="art-stage">'+ic(g[3])+'</span><span class="art-number">'+String(j+7).padStart(2,'0')+'</span></div><div class="gamecard-description"><h3>'+g[0]+'</h3><p>'+g[2]+'</p></div><span class="play-pill">'+ic('games')+'</span></button>').join('')+'</div></div>';
+return '<div class="page catalog-page"><div class="section-intro"><div><span class="eyebrow">CASINO CITY · ИГРОВЫЕ ЗАЛЫ</span><h1>Выбери свою игру</h1></div><span class="catalog-count">16 ИГР</span></div><div class="catalog-feature"><div class="catalog-feature-icon">'+ic('chip')+'</div><div><strong>Твой билет в мир удачи</strong><p>Казино на виртуальные фишки. Все залы доступны сразу.</p></div></div><div class="catalog-label">'+ic('star')+' 6 ФИРМЕННЫХ СЛОТОВ</div><div class="games">'+GAMES.slice(0,6).map((g,i)=>'<button class="gamecard featured-game" data-game="'+i+'"><div class="gameart art-slot-'+i+'"><span class="art-number">'+String(i+1).padStart(2,'0')+'</span></div><div class="gamecard-description"><h3>'+g[0]+'</h3><p>'+g[2]+'</p></div><span class="play-pill">'+ic('games')+'</span></button>').join('')+'</div><div class="catalog-label more-games">'+ic('games')+' 10 ДОПОЛНИТЕЛЬНЫХ ИГР</div><div class="games">'+GAMES.slice(6).map((g,j)=>'<button class="gamecard premium-extra art-extra-'+j+'" data-game="'+(j+6)+'"><div class="gameart theme-'+g[1]+'"><span class="art-halo"></span><span class="art-stage">'+ic(g[3])+'</span><span class="extra-art-title">'+['ROULETTE','VIP GOLD','BLACKJACK','POKER','KENO','HI–LO','PLINKO','CRASH','DICE','SCRATCH'][j]+'</span><span class="art-number">'+String(j+7).padStart(2,'0')+'</span></div><div class="gamecard-description"><h3>'+g[0]+'</h3><p>'+g[2]+'</p></div><span class="play-pill">'+ic('games')+'</span></button>').join('')+'</div></div>';
 }
 function betRow(){return '<div class="betbar"><button class="btn ghost" data-action="betdown" '+(busy||round?'disabled':'')+'>−</button><div><div class="mini">СТАВКА</div><strong>'+fmt(bet)+' '+ic('chip')+'</strong></div><button class="btn ghost" data-action="betup" '+(busy||round?'disabled':'')+'>+</button></div>'}
 function resultBox(){return '<div class="result" id="game-result">Игровые фишки не имеют денежной стоимости</div>'}
