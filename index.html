@@ -1351,15 +1351,17 @@ function crashStart(){
  crashTimer=setInterval(()=>{
   const elapsed=(performance.now()-started)/1000;
   const next=Math.min(11.1,Math.exp(speed*elapsed));
-  if(crashAutoEnabled&&crashAutoTarget&&crashAutoTarget<crashStop&&next>=crashAutoTarget){
+  if(crashAutoEnabled&&crashAutoTarget&&crashAutoTarget<=crashStop&&next>=crashAutoTarget){
    crashValue=crashAutoTarget;crashCash();return;
   }
   if(next>=crashStop){
    crashValue=crashStop;clearInterval(crashTimer);crashTimer=null;busy=false;
    state.pendingMiniRound=null;crashHistory.unshift(crashStop);crashHistory=crashHistory.slice(0,8);crashLastStatus='КРАШ НА ×'+crashStop.toFixed(2);
+   const hint=document.querySelector('.crash-mult-hint');if(hint)hint.textContent='РАУНД ЗАВЕРШЁН';
    finish(0,'Краш на ×'+crashStop.toFixed(2));return;
   }
   crashValue=next;
+  const display=document.querySelector('.crash-mult-label');if(display)display.textContent='РАУНД · '+(elapsed).toFixed(1)+' СЕК';
   const e=$('multiple');if(e)e.textContent='×'+crashValue.toFixed(2);
   const hint=document.querySelector('.crash-mult-hint');if(hint)hint.textContent='ЗАБЕРИ: '+fmt(Math.floor(roundBet*crashValue))+' ФИШЕК';
   updateCrashGraph();
@@ -1387,7 +1389,7 @@ function cashoutCoins(chips){return Math.floor(chips*CASHOUT_RATE)}
 function cashout(){collectPassive();const input=$('cashout-amount');const raw=input?.value?.trim()||'';if(!/^\d+$/.test(raw))return message('Введите целое количество фишек');const amount=Number(raw);if(!Number.isSafeInteger(amount)||amount<CASHOUT_MIN)return message('Минимальный обмен — 3 000 фишек');if(amount>state.chips)return message('Недостаточно фишек для обмена');const coins=cashoutCoins(amount);if(!Number.isSafeInteger(coins)||!Number.isSafeInteger(state.coins+coins))return message('Слишком большая сумма');state.chips-=amount;state.coins+=coins;save();render();message('Обменено '+fmt(amount)+' фишек на '+fmt(coins)+' монет')}
 function updateCashoutPreview(){const input=$('cashout-amount'),preview=$('cashout-preview'),button=$('cashout-submit');if(!input||!preview||!button)return;const raw=input.value.trim(),amount=/^\d+$/.test(raw)?Number(raw):NaN;const valid=Number.isSafeInteger(amount)&&amount>=CASHOUT_MIN&&amount<=state.chips&&Number.isSafeInteger(state.coins+cashoutCoins(amount));preview.textContent=!raw?'Введите количество фишек':!Number.isSafeInteger(amount)?'Введите целое число':amount<CASHOUT_MIN?'Минимум 3 000 фишек':amount>state.chips?'Недостаточно фишек':'Получите '+fmt(cashoutCoins(amount))+' монет';button.disabled=!valid}
 function rewardCollection(){if(state.plays===0||state.plays%12!==0||state.collect.includes('slot-'+Math.floor(state.plays/12)))return;const i=Math.floor(state.plays/12),name='slot-'+i;state.collect.push(name);state.vip+=1;save();message('Новая коллекционная награда! +1 VIP')}
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 11.1</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 11.2</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 let expandedDistrict=false;
 function cityScreen(){
