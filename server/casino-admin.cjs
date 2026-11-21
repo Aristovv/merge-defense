@@ -13,6 +13,36 @@ function registerCasinoAdmin(app,pool,requireAuth){
    res.set('Cache-Control','no-store');res.json({players:rows,admin:true,scope:'casino_ranking_only'});
   }catch(e){console.error('casino admin read',e.code||e.message);res.status(503).json({error:'ADMIN_READ_UNAVAILABLE'})}
  });
+
+ // Modify cloud saves only. Players without a cloud save are not eligible.
+ // The revision increment prevents stale clients from overwriting an admin change.
+ app.post('/api/casino/admin/grant',guard,async(req,res)=>{
+  if(!pool)return res.status(503).json({error:'DATABASE_UNAVAILABLE'});
+  const vkId=String(req.body?.vkId||'');
+  const field=req.body?.field;
+  const amount=req.body?.amount;
+  if(!/^[1-9][0-9]{0,18}$/.test(vkId)||!['chips','coins','vip'].includes(field)||
+     !Number.isSafeInteger(amount)||amount<1||amount>1000000000)
+   return res.status(400).json({error:'INVALID_GRANT'});
+  let client;
+  try{
+   client=await pool.connect();await client.query('BEGIN');
+   const q=await client.query('SELECT save,revision FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vkId]);
+   if(!q.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'CLOUD_SAVE_NOT_FOUND'})}
+   const save=q.rows[0].save;
+   if(!Number.isSafeInteger(save[field])||save[field]<0||save[field]+amount>Number.MAX_SAFE_INTEGER){
+    await client.query('ROLLBACK');return res.status(409).json({error:'INVALID_CURRENT_BALANCE'});
+   }
+   save[field]+=amount;
+   await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(save)]);
+   await client.query(`CREATE TABLE IF NOT EXISTS public.casino_city_admin_audit(
+    id BIGSERIAL PRIMARY KEY,admin_vk_id BIGINT NOT NULL,target_vk_id BIGINT NOT NULL,
+    action TEXT NOT NULL,details JSONB NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+   await client.query('INSERT INTO public.casino_city_admin_audit(admin_vk_id,target_vk_id,action,details) VALUES($1,$2,$3,$4::jsonb)',[ADMIN_ID,vkId,'grant',JSON.stringify({field,amount})]);
+   await client.query('COMMIT');res.json({ok:true,vkId,field,amount});
+  }catch(e){if(client)await client.query('ROLLBACK').catch(()=>{});console.error('casino grant failed',e.code||e.message);res.status(503).json({error:'GRANT_UNAVAILABLE'})}
+  finally{client?.release()}
+ });
  // No write endpoints until server-owned balances and client-save reconciliation
  // are implemented. A ranking-only reset would be overwritten by the next sync.
 }
