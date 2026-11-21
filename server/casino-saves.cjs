@@ -1,0 +1,38 @@
+'use strict';
+// Isolated Casino City cloud saves. Browser state is not a secure payment ledger.
+let ready;
+async function ensure(pool){if(!pool)throw Error('DATABASE_UNAVAILABLE');if(!ready)ready=pool.query(`CREATE TABLE IF NOT EXISTS public.casino_city_saves(
+ vk_id BIGINT PRIMARY KEY, save JSONB NOT NULL, revision BIGINT NOT NULL DEFAULT 1,
+ updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`).catch(e=>{ready=null;throw e});await ready}
+const valid=(n,a,b)=>Number.isSafeInteger(n)&&n>=a&&n<=b;
+function clean(s){
+ if(!s||typeof s!=='object'||Array.isArray(s))return null;
+ for(const k of ['coins','chips','vip','xp','plays','wins','best','earned'])if(!valid(s[k],0,Number.MAX_SAFE_INTEGER))return null;
+ if(!valid(s.level,1,500)||s.wins>s.plays||!Array.isArray(s.buildings)||s.buildings.length!==14||s.buildings.some(x=>!valid(x,0,1000)))return null;
+ const raw=JSON.stringify(s);if(raw.length>30000)return null;
+ return JSON.parse(raw);
+}
+function id(req){const n=String(req.playerId||'').replace(/^vk:/,'');return /^[1-9][0-9]{0,18}$/.test(n)?n:null}
+function registerCasinoSaves(app,pool,requireAuth){
+ app.get('/api/casino/save',requireAuth,async(req,res)=>{
+  try{await ensure(pool);const vk=id(req);if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
+   const q=await pool.query('SELECT save,revision::text AS revision FROM public.casino_city_saves WHERE vk_id=$1',[vk]);
+   res.set('Cache-Control','no-store');res.json(q.rows[0]?{save:q.rows[0].save,revision:Number(q.rows[0].revision)}:{save:null,revision:0});
+  }catch(e){console.error('casino save read',e.code||e.message);res.status(503).json({error:'SAVE_UNAVAILABLE'})}
+ });
+ app.put('/api/casino/save',requireAuth,async(req,res)=>{
+  const save=clean(req.body?.save),revision=req.body?.revision;
+  if(!save||!valid(revision,0,Number.MAX_SAFE_INTEGER))return res.status(400).json({error:'INVALID_SAVE'});
+  const vk=id(req);if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
+  try{await ensure(pool);let result;
+   if(revision===0){
+    result=await pool.query('INSERT INTO public.casino_city_saves(vk_id,save) VALUES($1,$2::jsonb) ON CONFLICT DO NOTHING RETURNING revision::text AS revision',[vk,JSON.stringify(save)]);
+   }else{
+    result=await pool.query('UPDATE public.casino_city_saves SET save=$3::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1 AND revision=$2 RETURNING revision::text AS revision',[vk,revision,JSON.stringify(save)]);
+   }
+   if(!result.rowCount){const q=await pool.query('SELECT revision::text AS revision FROM public.casino_city_saves WHERE vk_id=$1',[vk]);return res.status(409).json({error:'REVISION_CONFLICT',revision:Number(q.rows[0]?.revision||0)})}
+   res.set('Cache-Control','no-store');res.json({ok:true,revision:Number(result.rows[0].revision)});
+  }catch(e){console.error('casino save write',e.code||e.message);res.status(503).json({error:'SAVE_UNAVAILABLE'})}
+ });
+}
+module.exports={registerCasinoSaves};
