@@ -28,7 +28,7 @@ function vkIdentity(raw) {
  if(!sign||!/^[1-9][0-9]{0,18}$/.test(id||'')||!/^[0-9]+$/.test(appId||''))return null;
  if(process.env.VK_APP_ID&&process.env.VK_APP_ID!==appId)return null;
  const fields=[...q.entries()].filter(([k])=>k.startsWith('vk_')).sort(([a],[b])=>a.localeCompare(b));
- const signedQuery=new URLSearchParams(fields).toString();
+ const signedQuery=fields.map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
  const expected=crypto.createHmac('sha256',secret).update(signedQuery).digest('base64url');
  const a=Buffer.from(sign),b=Buffer.from(expected);
  if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return null;
