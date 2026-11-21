@@ -970,6 +970,17 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 @media(prefers-reduced-motion:reduce){
  .slot-reel-holder-3x3 #slot-paylines .casino-winning-payline{animation:none!important;opacity:1!important}
 }
+
+/* Casino City 8.4 — polished portrait 3x5 slot glass and reels */
+.slot-cabinet .slot-reel-holder-3x3{border:2px solid #f4d69b!important;border-radius:15px!important;background:linear-gradient(145deg,#614026,#e4b56c 12%,#fff1c2 22%,#a66b37 90%,#f3d396)!important;box-shadow:inset 0 2px 4px #fff8,inset 0 -4px 8px #36211488,0 5px 15px #0006!important;padding:7px!important}
+.slot-cabinet .slot-grid-3x5{border-radius:10px!important;box-shadow:inset 0 0 12px #0004!important;background:#261b20!important}
+.slot-cabinet .slot-grid-3x5 .slot-column{border-radius:7px!important;background:linear-gradient(90deg,#baa99a,#fff5e6 13%,#fffdf5 50%,#fff5e6 87%,#b9a396)!important;box-shadow:inset 3px 0 5px #0002,inset -3px 0 5px #0002!important}
+.slot-cabinet .slot-grid-3x5 .slot-cell{border-radius:5px!important;border:1px solid #d8bb9a88!important;background:linear-gradient(180deg,#f5e8d9,#fffdfa 28%,#fffefa 66%,#e5d2bd)!important}
+.slot-cabinet .slot-grid-3x5 .slot-column::before{left:0!important;right:0!important;top:calc(50% - var(--slot-cell-height)/2 - 2px)!important;height:calc(var(--slot-cell-height) + 4px)!important;border-top:1px solid #fff9!important;border-bottom:1px solid #8b633e66!important}
+.slot-cabinet .slot-grid-3x5 .reel-symbol{filter:drop-shadow(0 2px 2px #5d3b2c77)!important}
+.slot-cabinet .slot-grid-3x5 .slot-cell-winning .reel-symbol{filter:drop-shadow(0 0 5px #ffda75) drop-shadow(0 2px 2px #5d3b2c77)!important}
+.slot-cabinet .slot-payline-overlay{pointer-events:none!important}
+@media(max-width:480px){.slot-cabinet .slot-reel-holder-3x3{padding:5px!important;border-width:2px!important;border-radius:11px!important}.slot-cabinet .slot-grid-3x5 .slot-cell{border-radius:4px!important}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge)window.vkBridge.send('VKWebAppInit').catch(function(){})}catch(_){}
@@ -1186,7 +1197,7 @@ function cashoutCoins(chips){return Math.floor(chips*CASHOUT_RATE)}
 function cashout(){collectPassive();const input=$('cashout-amount');const raw=input?.value?.trim()||'';if(!/^\d+$/.test(raw))return message('Введите целое количество фишек');const amount=Number(raw);if(!Number.isSafeInteger(amount)||amount<CASHOUT_MIN)return message('Минимальный обмен — 3 000 фишек');if(amount>state.chips)return message('Недостаточно фишек для обмена');const coins=cashoutCoins(amount);if(!Number.isSafeInteger(coins)||!Number.isSafeInteger(state.coins+coins))return message('Слишком большая сумма');state.chips-=amount;state.coins+=coins;save();render();message('Обменено '+fmt(amount)+' фишек на '+fmt(coins)+' монет')}
 function updateCashoutPreview(){const input=$('cashout-amount'),preview=$('cashout-preview'),button=$('cashout-submit');if(!input||!preview||!button)return;const raw=input.value.trim(),amount=/^\d+$/.test(raw)?Number(raw):NaN;const valid=Number.isSafeInteger(amount)&&amount>=CASHOUT_MIN&&amount<=state.chips&&Number.isSafeInteger(state.coins+cashoutCoins(amount));preview.textContent=!raw?'Введите количество фишек':!Number.isSafeInteger(amount)?'Введите целое число':amount<CASHOUT_MIN?'Минимум 3 000 фишек':amount>state.chips?'Недостаточно фишек':'Получите '+fmt(cashoutCoins(amount))+' монет';button.disabled=!valid}
 function rewardCollection(){if(state.plays===0||state.plays%12!==0||state.collect.includes('slot-'+Math.floor(state.plays/12)))return;const i=Math.floor(state.plays/12),name='slot-'+i;state.collect.push(name);state.vip+=1;save();message('Новая коллекционная награда! +1 VIP')}
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 8.3</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 8.4</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 let expandedDistrict=false;
 function cityScreen(){
