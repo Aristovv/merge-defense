@@ -95,6 +95,43 @@ function registerCasinoAdmin(app,pool,requireAuth){
   }catch(e){if(client)await client.query('ROLLBACK').catch(()=>{});console.error('casino reset failed',e.code||e.message);res.status(503).json({error:'RESET_UNAVAILABLE'})}
   finally{client?.release()}
  });
- // Global reset and leaderboard reset remain disabled until ranking reconciliation is implemented.
+ // Bulk reset: a single DB transaction resets cloud saves and competitive tables.
+ // No action happens until the administrator explicitly confirms in the UI.
+ app.post('/api/casino/admin/reset-all',guard,async(req,res)=>{
+  if(!pool)return res.status(503).json({error:'DATABASE_UNAVAILABLE'});
+  if(req.body?.confirmation!=='RESET ALL CASINO CITY'||req.body?.acknowledge!==true)
+   return res.status(400).json({error:'BULK_RESET_CONFIRMATION_REQUIRED'});
+  let client;
+  try{
+   client=await pool.connect();await client.query('BEGIN');
+   // Serialize bulk resets and prevent simultaneous reset requests.
+   await client.query('SELECT pg_advisory_xact_lock(54893392)');
+   await client.query(`CREATE TABLE IF NOT EXISTS public.casino_city_admin_audit(
+    id BIGSERIAL PRIMARY KEY,admin_vk_id BIGINT NOT NULL,target_vk_id BIGINT NOT NULL,
+    action TEXT NOT NULL,details JSONB NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+   const saves=await client.query(`UPDATE public.casino_city_saves
+    SET save=jsonb_build_object(
+     'coins',2500,'chips',1200,'vip',0,'level',1,'xp',0,
+     'buildings',jsonb_build_array(1,0,0,0,0,0,0,0,0,0,0,0,0,0),
+     'plays',0,'wins',0,'best',0,'earned',0,'collect',jsonb_build_array(),
+     'quests',jsonb_build_array(),'lastGift','',
+     'stamp',(EXTRACT(EPOCH FROM clock_timestamp())*1000)::bigint,
+     'lastIncome',(EXTRACT(EPOCH FROM clock_timestamp())*1000)::bigint,
+     'resetEpoch',COALESCE(CASE WHEN (save->>'resetEpoch')~'^[0-9]{1,12}
+}
+module.exports={registerCasinoAdmin};
+
+       THEN (save->>'resetEpoch')::bigint ELSE 0 END,0)+1),
+    revision=revision+1,updated_at=NOW()`);
+   const ranking=await client.query('DELETE FROM public.casino_city_players');
+   const tournaments=await client.query('DELETE FROM public.casino_city_tournaments');
+   await client.query('INSERT INTO public.casino_city_admin_audit(admin_vk_id,target_vk_id,action,details) VALUES($1,$1,$2,$3::jsonb)',
+    [ADMIN_ID,'reset_all',JSON.stringify({saves:saves.rowCount,ranking:ranking.rowCount,tournaments:tournaments.rowCount})]);
+   await client.query('COMMIT');
+   res.set('Cache-Control','no-store');res.json({ok:true,saves:saves.rowCount,ranking:ranking.rowCount,tournaments:tournaments.rowCount});
+  }catch(e){if(client)await client.query('ROLLBACK').catch(()=>{});console.error('casino bulk reset failed',e.code||e.message);res.status(503).json({error:'BULK_RESET_UNAVAILABLE'})}
+  finally{client?.release()}
+ });
+
 }
 module.exports={registerCasinoAdmin};
