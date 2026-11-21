@@ -1491,6 +1491,17 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 .slot-reel-holder-3x3 #slot-paylines .slot-lines-preview polyline:only-child{opacity:.9!important;stroke-width:4px!important;filter:drop-shadow(0 0 5px #ffe19b)!important}
 .slot-scene .slot-line-arena .slot-payline-overlay{inset:4px!important}
 @media(max-width:380px){.slot-scene .slot-grid-5x4{--slot-cell-height:clamp(42px,13.1vw,52px)!important}.slot-scene .slot-line-arena{grid-template-columns:20px minmax(0,1fr) 20px;gap:2px}.slot-edge-number{width:19px;height:13px;min-height:13px}}
+
+/* Casino City 16.0 mobile specificity fix: overrides old three-column layout */
+.slot-scene .slot-reel-holder-3x3 .slot-grid-3x4.slot-grid-5x4{
+ grid-template-columns:repeat(5,minmax(0,1fr))!important;
+ --slot-cell-height:clamp(44px,13.3vw,62px)!important;
+ --slot-cell-gap:2px!important;
+ --slot-column-pad:2px!important;
+}
+.slot-scene .slot-reel-holder-3x3 .slot-grid-3x4.slot-grid-5x4>.slot-column{gap:2px!important;padding:2px!important}
+.slot-scene .slot-grid-5x4 .slot-column>.slot-cell .slot-special-tag{pointer-events:none}
+@media(max-width:380px){.slot-scene .slot-reel-holder-3x3 .slot-grid-3x4.slot-grid-5x4{--slot-cell-height:clamp(42px,13.1vw,52px)!important}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
@@ -1948,7 +1959,7 @@ function slotBonusCells(game,grid,feature){
  grid.forEach((column,c)=>column.forEach((v,r)=>{if(v===SLOT_SCATTER_INDEX[game])hits.push(c+':'+r)}));
  return hits;
 }
-const SLOT_PAYOUT_FACTORS=[1.12,1.0,1.19,1.23,1.11,1.02];
+const SLOT_PAYOUT_FACTORS=[1.17,1.03,1.24,1.29,1.16,1.06];
 function slotOutcome(game,grid){
  const winning=[],lineMatches={};
  let raw=0;
@@ -2388,13 +2399,13 @@ function slotSideLines(side){
  return '<div class="slot-edge-lines slot-edge-'+side+'">'+nums.map(i=>'<button type="button" data-slot-line="'+i+'" class="slot-edge-number '+(lastSlotResult?.lines.includes(i)?'hit ':'')+(slotSelectedPayline===i?'inspected':'')+'" aria-pressed="'+(slotSelectedPayline===i?'true':'false')+'" title="Линия '+(i+1)+'">'+(i+1)+'</button>').join('')+'</div>';
 }
 function slotBoardHTML(game,grid){
- const cfg=SLOT_CONFIGS[game],active=slotShownPaylines(),preview=!grid;
+ const cfg=SLOT_CONFIGS[game],active=slotShownPaylines(),preview=!grid||(slotSelectedPayline!==null&&!lastSlotResult?.lines.includes(slotSelectedPayline));
  const lines=preview?(slotSelectedPayline===null?cfg.lines.map((_,i)=>i):active):active;
  return '<div class="slot-line-arena">'+slotSideLines('left')+
  '<div class="slot-reel-holder slot-reel-holder-3x3"><div class="reels slot-grid-3x4 slot-grid-5x4" id="slot-grid">'+
  Array.from({length:5},(_,i)=>'<div class="slot-column" id="reel'+i+'">'+
  Array.from({length:4},(_,j)=>{
-  const match=grid&&active.some(n=>cfg.lines[n].some(([col,row],pos)=>col===i&&row===j&&pos<(lastSlotResult.lineMatches?.[n]||5)));
+  const match=grid&&active.some(n=>lastSlotResult.lines.includes(n)&&cfg.lines[n].some(([col,row],pos)=>col===i&&row===j&&pos<(lastSlotResult.lineMatches?.[n]||5)));
   const special=grid?grid[i][j]:((i+j)%8);
   return '<div class="slot-cell '+(match?'slot-cell-winning ':'')+(grid&&lastSlotResult.bonusCells?.includes(i+':'+j)?'slot-cell-bonus':'')+'">'+
    slotSymbol(game,special)+(special===SLOT_WILD_INDEX?'<span class="slot-special-tag wild">WILD</span>':special===SLOT_SCATTER_INDEX[game]?'<span class="slot-special-tag scatter">SCATTER</span>':'')+'</div>';
