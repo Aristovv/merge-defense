@@ -981,6 +981,32 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 .slot-cabinet .slot-grid-3x5 .slot-cell-winning .reel-symbol{filter:drop-shadow(0 0 5px #ffda75) drop-shadow(0 2px 2px #5d3b2c77)!important}
 .slot-cabinet .slot-payline-overlay{pointer-events:none!important}
 @media(max-width:480px){.slot-cabinet .slot-reel-holder-3x3{padding:5px!important;border-width:2px!important;border-radius:11px!important}.slot-cabinet .slot-grid-3x5 .slot-cell{border-radius:4px!important}}
+
+/* Casino City 9.0 — six distinctive illuminated slot cabinets */
+.slot-scene{--cc-a:#ffd267;--cc-b:#a75218;--cc-glow:#ffbf4c;position:relative;isolation:isolate}
+.slot-scene-fruits{--cc-a:#ff6cb8;--cc-b:#711c91;--cc-glow:#ff47b4}
+.slot-scene-diamonds{--cc-a:#83f6ff;--cc-b:#2051aa;--cc-glow:#40dfff}
+.slot-scene-pharaoh{--cc-a:#ffdb7b;--cc-b:#765019;--cc-glow:#f9b83e}
+.slot-scene-vegas{--cc-a:#ff7c81;--cc-b:#941d38;--cc-glow:#ff435b}
+.slot-scene-bells{--cc-a:#eaff96;--cc-b:#517c26;--cc-glow:#b4e65b}
+.slot-scene .slot-scene-art{position:relative!important;overflow:hidden!important;border:1px solid var(--cc-a)!important;border-radius:20px 20px 8px 8px!important;background:radial-gradient(ellipse at 50% -30%,var(--cc-a),transparent 65%),linear-gradient(135deg,#111024,var(--cc-b) 55%,#0c0b19)!important;box-shadow:inset 0 0 30px #0009,0 0 22px color-mix(in srgb,var(--cc-glow) 40%,transparent)!important}
+.slot-scene .slot-scene-art::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(120deg,transparent 0 27px,#fff2 28px,transparent 30px 64px);opacity:.4}
+.slot-scene .slot-scene-title{position:relative;z-index:1;color:#fff9e7!important;text-shadow:0 2px 0 #000,0 0 12px var(--cc-glow),0 0 25px var(--cc-glow)!important;letter-spacing:2px!important}
+.slot-scene .slot-scene-sub{position:relative;z-index:1;color:#fff!important;text-shadow:0 1px 6px #000!important}
+.slot-scene .slot-cabinet{position:relative!important;border:3px solid var(--cc-a)!important;border-radius:22px!important;background:radial-gradient(ellipse at 50% 0%,color-mix(in srgb,var(--cc-b) 60%,#090a19),#090915 70%)!important;box-shadow:inset 0 0 0 2px #fff3,inset 0 0 35px var(--cc-b),0 12px 30px #0009,0 0 24px color-mix(in srgb,var(--cc-glow) 45%,transparent)!important}
+.slot-scene .slot-cabinet::before,.slot-scene .slot-cabinet::after{content:"";position:absolute;top:15%;bottom:13%;width:4px;border-radius:5px;pointer-events:none;background:linear-gradient(transparent,var(--cc-a) 20%,#fff 50%,var(--cc-a) 80%,transparent);box-shadow:0 0 10px var(--cc-glow),0 0 20px var(--cc-glow);z-index:2}
+.slot-scene .slot-cabinet::before{left:1px}.slot-scene .slot-cabinet::after{right:1px}
+.slot-scene .slot-banner{border:1px solid var(--cc-a)!important;border-radius:10px!important;background:linear-gradient(180deg,var(--cc-b),#130f21)!important;color:#fff!important;text-shadow:0 0 10px var(--cc-glow)!important;box-shadow:0 0 15px color-mix(in srgb,var(--cc-glow) 45%,transparent),inset 0 1px 0 #fff8!important;letter-spacing:2px!important}
+.slot-scene .slot-reel-holder-3x3{border:3px solid var(--cc-a)!important;background:linear-gradient(130deg,#fff9,var(--cc-a) 12%,#3b2834 24%,#14101a 75%,var(--cc-a) 95%)!important;box-shadow:inset 0 0 12px #000b,0 0 18px color-mix(in srgb,var(--cc-glow) 60%,transparent)!important}
+.slot-scene .slot-grid-3x5 .slot-cell{background:linear-gradient(165deg,#fffefa,#fff8ec 45%,#d9c8b4)!important;box-shadow:inset 0 2px 5px #fff,inset 0 -2px 5px #69534744!important}
+.slot-scene .slot-grid-3x5 .reel-symbol{filter:drop-shadow(0 2px 1px #50332688) drop-shadow(0 0 3px #fff9)!important}
+.slot-scene .slot-win-summary{border:1px solid var(--cc-a)!important;border-radius:12px!important;background:linear-gradient(90deg,#100e1c,var(--cc-b),#100e1c)!important;color:#fff!important;text-shadow:0 0 9px var(--cc-glow)!important;box-shadow:0 0 13px color-mix(in srgb,var(--cc-glow) 40%,transparent)!important}
+.slot-scene .slot-win-positive{animation:casinoWinSummaryPop .65s ease-out both!important}
+@keyframes casinoWinSummaryPop{0%{transform:scale(.92);filter:brightness(1.6)}70%{transform:scale(1.035)}100%{transform:scale(1);filter:brightness(1)}}
+.slot-scene .slot-feature-banner{color:#fff4d0!important;text-shadow:0 0 9px var(--cc-glow)!important}
+.slot-scene .slot-line-chip.won{background:var(--cc-a)!important;color:#1c1120!important;box-shadow:0 0 10px var(--cc-glow)!important}
+@media(max-width:480px){.slot-scene .slot-cabinet{border-width:2px!important;border-radius:17px!important}.slot-scene .slot-scene-art{border-radius:15px 15px 6px 6px!important}.slot-scene .slot-cabinet::before,.slot-scene .slot-cabinet::after{width:2px}}
+@media(prefers-reduced-motion:reduce){.slot-scene .slot-win-positive{animation:none!important}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge)window.vkBridge.send('VKWebAppInit').catch(function(){})}catch(_){}
@@ -1197,7 +1223,7 @@ function cashoutCoins(chips){return Math.floor(chips*CASHOUT_RATE)}
 function cashout(){collectPassive();const input=$('cashout-amount');const raw=input?.value?.trim()||'';if(!/^\d+$/.test(raw))return message('Введите целое количество фишек');const amount=Number(raw);if(!Number.isSafeInteger(amount)||amount<CASHOUT_MIN)return message('Минимальный обмен — 3 000 фишек');if(amount>state.chips)return message('Недостаточно фишек для обмена');const coins=cashoutCoins(amount);if(!Number.isSafeInteger(coins)||!Number.isSafeInteger(state.coins+coins))return message('Слишком большая сумма');state.chips-=amount;state.coins+=coins;save();render();message('Обменено '+fmt(amount)+' фишек на '+fmt(coins)+' монет')}
 function updateCashoutPreview(){const input=$('cashout-amount'),preview=$('cashout-preview'),button=$('cashout-submit');if(!input||!preview||!button)return;const raw=input.value.trim(),amount=/^\d+$/.test(raw)?Number(raw):NaN;const valid=Number.isSafeInteger(amount)&&amount>=CASHOUT_MIN&&amount<=state.chips&&Number.isSafeInteger(state.coins+cashoutCoins(amount));preview.textContent=!raw?'Введите количество фишек':!Number.isSafeInteger(amount)?'Введите целое число':amount<CASHOUT_MIN?'Минимум 3 000 фишек':amount>state.chips?'Недостаточно фишек':'Получите '+fmt(cashoutCoins(amount))+' монет';button.disabled=!valid}
 function rewardCollection(){if(state.plays===0||state.plays%12!==0||state.collect.includes('slot-'+Math.floor(state.plays/12)))return;const i=Math.floor(state.plays/12),name='slot-'+i;state.collect.push(name);state.vip+=1;save();message('Новая коллекционная награда! +1 VIP')}
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 8.4</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 9.0</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 let expandedDistrict=false;
 function cityScreen(){
