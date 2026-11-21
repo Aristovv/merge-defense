@@ -1657,20 +1657,23 @@ const SYMBOL_SETS=[
 ['chip','spade','seven','star','heart','diamond','crown','clover'],
 ['bell','clover','star','horseshoe','seven','chip','diamond','crown']];
 const SLOT_IMAGE_CACHE=new Map();
+// 48 individually uploaded transparent PNG symbols across six slot themes.
+// Asset mapping changes visuals only, not index-based RNG or payouts.
+const CASINO_REALISTIC_SLOT_IMAGES=[
+ ['seven_red.png','gold_star.png','diamond.png','02_purple_chip.png','06_ruby_heart.png','03_black_spade.png','crown.png','clover.png'],
+ ['cherries.png','20_watermelon_slice.png','19_grapes.png','14_lemon.png','08_strawberry.png','09_pineapple.png','11_orange.png','10_bananas.png'],
+ ['22_emerald.png','23_amethyst_pendant.png','24_ruby_gem.png','31_purple_crystal.png','29_amethyst_key.png','32_gold_vault.png','33_amethyst_chest.png','35_royal_trophy.png'],
+ ['26_egyptian_ankh.png','27_anubis_bust.png','28_bastet_cat.png','25_egyptian_scarab.png','34_egyptian_cobra.png','30_hourglass.png','gold_bars.png','money_bag.png'],
+ ['roulette.png','dice.png','05_jackpot_medallion.png','cocktail.png','01_gold_club.png','04_red_diamond_suit.png','17_pomegranate.png','18_plum.png'],
+ ['bell.png','07_red_apple.png','12_pear.png','horseshoe.png','13_peach.png','15_raspberry.png','16_kiwi.png','21_coconut.png']
+];
 function slotSymbol(theme,i){
- const key=theme%6+':'+i%8;
- const kind=SYMBOL_SETS[theme%6][i%8];
- const folders=['classic','fruits','royal','egypt','vegas','bells'];
- const realistic={seven:'seven_red.png',star:'gold_star.png',diamond:'diamond.png',crown:'crown.png',clover:'clover.png',cherry:'cherries.png',bell:'bell.png',horseshoe:'horseshoe.png'};
- const src=realistic[kind]?'assets/slots/realistic/'+realistic[kind]:'assets/slots/'+folders[theme%6]+'/'+kind+'.svg';
- return '<img class="reel-symbol reel-'+kind+' slot-symbol-image'+(realistic[kind]?' slot-realistic':'')+'" src="'+src+'" width="100" height="100" alt="'+kind+'" draggable="false" decoding="async" onerror="this.onerror=null;this.src=\'assets/slots/'+folders[theme%6]+'/'+kind+'.svg\'">';
- let asset=SLOT_IMAGE_CACHE.get(key);
- if(!asset){
-   const svg=slotSymbolSvg(theme,i);
-   asset='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
-   SLOT_IMAGE_CACHE.set(key,asset);
- }
- return '<img class="reel-symbol reel-'+kind+' slot-symbol-image" src="'+asset+'" width="100" height="100" alt="'+kind+'" draggable="false" decoding="async">';
+ const t=((theme%6)+6)%6,j=((i%8)+8)%8;
+ const kind=SYMBOL_SETS[t][j],folders=['classic','fruits','royal','egypt','vegas','bells'];
+ const filename=CASINO_REALISTIC_SLOT_IMAGES[t][j];
+ const fallback='assets/slots/'+folders[t]+'/'+kind+'.svg';
+ const src='assets/slots/realistic/'+filename;
+ return '<img class="reel-symbol reel-'+kind+' slot-symbol-image slot-realistic" src="'+src+'" width="100" height="100" alt="'+kind+'" loading="eager" draggable="false" decoding="async" onerror="this.onerror=null;this.src=\''+fallback+'\'">';
 }
 function slotSymbolSvg(theme,i){
 const kind=SYMBOL_SETS[theme%6][i%8];
@@ -1768,7 +1771,7 @@ function slotBonusCells(game,grid,feature){if(!feature)return [];const rules=[[[
 // Includes the expected free-spin grants; calibrated for ~94% average return
 // on paid spins. Different themes retain their own symbols, lines and features.
 const SLOT_PAYOUT_FACTORS=[4.36,.81,1.11,1.39,1.06,.515];
-function slotOutcome(game,grid){const cfg=SLOT_CONFIGS[game],winning=[];let total=0;cfg.lines.forEach((line,index)=>{const symbols=line.map(([col,row])=>grid[col][row]);const matches=symbols.reduce((n,v,i)=>i===n&&v===symbols[0]?n+1:n,0);if(matches===3){const multiplier=symbols[0]===0?cfg.jackpot:game===2?12:game===4?6:7;total+=Math.max(1,Math.floor(roundBet*multiplier/cfg.lines.length));winning.push(index)}});const middle=[grid[0][1],grid[1][1],grid[2][1]];if(!winning.length&&(middle[0]===middle[1]||middle[1]===middle[2]))total=Math.floor(roundBet*.2);let feature='';const flat=grid.flat(),count=v=>flat.filter(x=>x===v).length;if(game===1&&count(0)>=4){total+=roundBet*2;feature='Вишнёвый бонус'}if(game===2&&count(0)>=3){total+=roundBet*3;feature='Алмазный дождь'}if(game===3&&count(0)>=3){total+=roundBet*3;feature='Сокровища Анха'}if(game===4&&count(0)>=3){total+=roundBet*2;feature='Vegas Heat бонус'}if(game===5&&count(0)>=3){total+=roundBet*3;feature='Золотые колокола'}if(game===0&&count(0)>=3){total+=roundBet*2;feature='Счастливая семёрка'}if(game===1&&count(1)>=4){total+=roundBet;feature=feature?feature+' · Арбузный фестиваль':'Арбузный фестиваль'}if(game===2&&count(1)>=4){total+=roundBet*2;feature=feature?feature+' · Королевские камни':'Королевские камни'}if(game===3&&count(3)>=4){total+=roundBet*2;feature=feature?feature+' · Пробуждение скарабея':'Пробуждение скарабея'}if(game===4&&count(2)>=4){total+=roundBet*2;feature=feature?feature+' · Семёрки Вегаса':'Семёрки Вегаса'}if(game===5&&count(3)>=4){total+=roundBet;feature=feature?feature+' · Подкова удачи':'Подкова удачи'}return {prize:Math.floor(total*SLOT_PAYOUT_FACTORS[game]),lines:winning,feature}}
+function slotOutcome(game,grid){const cfg=SLOT_CONFIGS[game],winning=[];let total=0;cfg.lines.forEach((line,index)=>{const symbols=line.map(([col,row])=>grid[col][row]);const matches=symbols.reduce((n,v,i)=>i===n&&v===symbols[0]?n+1:n,0);if(matches===3){const multiplier=symbols[0]===0?cfg.jackpot:game===2?12:game===4?6:7;total+=Math.max(1,Math.floor(roundBet*multiplier/cfg.lines.length));winning.push(index)}});const middle=[grid[0][1],grid[1][1],grid[2][1]];if(!winning.length&&(middle[0]===middle[1]||middle[1]===middle[2]))total=Math.floor(roundBet*.2);let feature='';const flat=grid.flat(),count=v=>flat.filter(x=>x===v).length;if(game===1&&count(0)>=4){total+=roundBet*2;feature='Вишнёвый бонус'}if(game===2&&count(0)>=3){total+=roundBet*3;feature='Алмазный дождь'}if(game===3&&count(0)>=3){total+=roundBet*3;feature='Сокровища Анха'}if(game===4&&count(0)>=3){total+=roundBet*2;feature='Vegas Heat бонус'}if(game===5&&count(0)>=3){total+=roundBet*3;feature='Золотые колокола'}if(game===0&&count(0)>=3){total+=roundBet*2;feature='Счастливая семёрка'}if(game===1&&count(1)>=4){total+=roundBet;feature=feature?feature+' · Арбузный фестиваль':'Арбузный фестиваль'}if(game===2&&count(1)>=4){total+=roundBet*2;feature=feature?feature+' · Королевские камни':'Королевские камни'}if(game===3&&count(3)>=4){total+=roundBet*2;feature=feature?feature+' · Пробуждение скарабея':'Пробуждение скарабея'}if(game===4&&count(2)>=4){total+=roundBet*2;feature=feature?feature+' · Джекпот Вегаса':'Джекпот Вегаса'}if(game===5&&count(3)>=4){total+=roundBet;feature=feature?feature+' · Подкова удачи':'Подкова удачи'}return {prize:Math.floor(total*SLOT_PAYOUT_FACTORS[game]),lines:winning,feature}}
 const SLOT_REEL_WEIGHTS=[[5,15,15,15,14,14,12,10],[18,17,15,14,11,9,9,7],[10,15,14,13,13,13,12,10],[9,15,14,15,15,13,11,8],[13,14,13,12,12,13,12,11],[17,16,13,12,12,11,10,9]];
 function slotRandomSymbol(game){const weights=SLOT_REEL_WEIGHTS[game]||SLOT_REEL_WEIGHTS[0];let pick=rand(weights.reduce((a,b)=>a+b,0));for(let i=0;i<weights.length;i++){pick-=weights[i];if(pick<0)return i}return weights.length-1}
 function playSlot(){if(busy)return;const index=selected,free=!!(slotBonus&&slotBonus.game===index&&slotBonus.left>0);if(slotBonus&&slotBonus.left>0&&!free)return message('Сначала используй бесплатные вращения в автомате '+SLOT_THEMES[slotBonus.game].name);if(!free&&!startCost())return;if(free){
@@ -2005,7 +2008,7 @@ function rewardCollection(){
  save();
  message('Коллекция: +'+newlyClaimed+' VIP за завершённые серии партий');
 }
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 14.9</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 15.0</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 
 /* CASINO CITY 14.0 — LIVE CITY. All rewards are virtual, locally persisted and bounded. */
