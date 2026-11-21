@@ -27,8 +27,9 @@ function vkIdentity(raw) {
  const sign=q.get('sign'),id=q.get('vk_user_id'),appId=q.get('vk_app_id');
  if(!sign||!/^[1-9][0-9]{0,18}$/.test(id||'')||!/^[0-9]+$/.test(appId||''))return null;
  if(process.env.VK_APP_ID&&process.env.VK_APP_ID!==appId)return null;
- const fields=[...q.entries()].filter(([k])=>k.startsWith('vk_')).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>k+'='+v).join('&');
- const expected=crypto.createHmac('sha256',secret).update(fields).digest('base64url');
+ const fields=[...q.entries()].filter(([k])=>k.startsWith('vk_')).sort(([a],[b])=>a.localeCompare(b));
+ const signedQuery=new URLSearchParams(fields).toString();
+ const expected=crypto.createHmac('sha256',secret).update(signedQuery).digest('base64url');
  const a=Buffer.from(sign),b=Buffer.from(expected);
  if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return null;
  const ts=Number(q.get('vk_ts'));
