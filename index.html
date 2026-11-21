@@ -1172,7 +1172,7 @@ if(state.pendingMiniRound&&state.pendingMiniRound.kind==='plinko'){const pending
 if(state.pendingMiniRound&&state.pendingMiniRound.kind==='crash'){state.pendingMiniRound=null;try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}}
 let tab='city',selected=-1,bet=25,busy=false,round=null,roundBet=25,roulettePick='red',roulettePicks=['red'],held=[],kenoSelected=[],scratchIndices=[],crashTimer=null,crashValue=1,crashStop=0,toastTimer=null;
 const $=id=>document.getElementById(id),rand=n=>Math.floor(Math.random()*n),fmt=n=>Math.floor(Number(n)||0).toLocaleString('ru-RU'),today=()=>new Date().toISOString().slice(0,10);
-let CASINO_LAUNCH_PARAMS=(()=>{const q=window.location.search.replace(/^\\?/,'');if(q.includes('sign=')&&q.includes('vk_user_id='))return q;const h=window.location.hash.replace(/^#/,'');return h.includes('sign=')&&h.includes('vk_user_id=')?h:''})();
+let CASINO_LAUNCH_PARAMS=(()=>{const q=window.location.search.replace(/^\?/,'');if(q.includes('sign=')&&q.includes('vk_user_id='))return q;const h=window.location.hash.replace(/^#/,'');return h.includes('sign=')&&h.includes('vk_user_id=')?h:''})();
 let casinoRankTimer=null;
 async function initCasinoLaunchParams(){if(CASINO_LAUNCH_PARAMS)return;try{const bridge=window.vkBridge;if(!bridge||typeof bridge.send!=='function'){console.warn('VK Bridge unavailable');return}const data=await bridge.send('VKWebAppGetLaunchParams');if(data?.sign&&data?.vk_user_id&&data?.vk_app_id){CASINO_LAUNCH_PARAMS=new URLSearchParams(Object.entries(data).map(([k,v])=>[k,String(v)])).toString();syncCasinoRanking();if(tab==='top')loadCasinoRanking()}else{console.warn('VKWebAppGetLaunchParams returned no signed params',data)}}catch(e){console.warn('VK launch params request failed',e?.message||e)}}
 
