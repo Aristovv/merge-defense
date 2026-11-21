@@ -96,7 +96,5 @@ function registerCasinoAdmin(app,pool,requireAuth){
   finally{client?.release()}
  });
  // Global reset and leaderboard reset remain disabled until ranking reconciliation is implemented.
- and client-save reconciliation
- // are implemented. A ranking-only reset would be overwritten by the next sync.
 }
 module.exports={registerCasinoAdmin};
