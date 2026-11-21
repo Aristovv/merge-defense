@@ -1,10 +1,19 @@
 'use strict';
 
 function registerCasinoRanking(app, pool, requireAuth) {
-  // Safe additive schema migration; never changes existing player scores.
-  const avatarReady = pool ? pool.query(
-    'ALTER TABLE public.casino_city_players ADD COLUMN IF NOT EXISTS avatar_url TEXT'
-  ).catch(error => { console.error('Casino avatar schema:', error.code || error.message); throw error; }) : null;
+  // Optional schema feature: lack of ALTER rights cannot block existing ranking.
+  const avatarReady = pool ? (async () => {
+    try {
+      await pool.query('ALTER TABLE public.casino_city_players ADD COLUMN IF NOT EXISTS avatar_url TEXT');
+      return true;
+    } catch (error) {
+      console.warn('Casino avatars unavailable, ranking remains active:', error.code || error.message);
+      try {
+        const { rowCount } = await pool.query("SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='casino_city_players' AND column_name='avatar_url'");
+        return rowCount > 0;
+      } catch (_) { return false; }
+    }
+  })() : Promise.resolve(false);
   const safeAvatar = value => {
     if (typeof value !== 'string' || value.length > 650) return '';
     try {
@@ -18,10 +27,10 @@ function registerCasinoRanking(app, pool, requireAuth) {
   app.get('/api/casino/top', async (_req, res) => {
     if (!pool) return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
     try {
-      await avatarReady;
+      const avatarEnabled = await avatarReady;
       const { rows } = await pool.query(`
         SELECT vk_id::text AS vk_id, display_name, score::text AS score,
-               level, plays::text AS plays, wins::text AS wins, avatar_url
+               level, plays::text AS plays, wins::text AS wins, ${avatarEnabled ? 'avatar_url' : "''::text AS avatar_url"}
         FROM public.casino_city_players
         ORDER BY score DESC, updated_at ASC, vk_id ASC
         LIMIT 100
@@ -37,11 +46,11 @@ function registerCasinoRanking(app, pool, requireAuth) {
   app.get('/api/casino/me', requireAuth, async (req, res) => {
     if (!pool) return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
     try {
-      await avatarReady;
+      const avatarEnabled = await avatarReady;
       const vkId = String(req.playerId || '').replace(/^vk:/, '');
       if (!/^\d+$/.test(vkId)) return res.status(401).json({ error: 'INVALID_PLAYER' });
       const { rows } = await pool.query(
-        'SELECT vk_id::text AS vk_id, display_name, score::text AS score, level, plays::text AS plays, wins::text AS wins, avatar_url FROM public.casino_city_players WHERE vk_id=$1',
+        `SELECT vk_id::text AS vk_id, display_name, score::text AS score, level, plays::text AS plays, wins::text AS wins, ${avatarEnabled ? 'avatar_url' : "''::text AS avatar_url"} FROM public.casino_city_players WHERE vk_id=$1`,
         [vkId]
       );
       res.set('Cache-Control', 'no-store');
@@ -73,7 +82,7 @@ function registerCasinoRanking(app, pool, requireAuth) {
     const name = displayName || ('Игрок ' + vkId.slice(-4));
     const targetScore = plays * 15 + wins * 45 + level * 110 +
       buildings.reduce((a, b) => a + b, 0) * 30;
-    try { await avatarReady; } catch (_) { return res.status(503).json({ error: 'RANKING_SCHEMA_UNAVAILABLE' }); }
+    const avatarEnabled = await avatarReady;
     const client = await pool.connect().catch(() => null);
     if (!client) return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
     try {
@@ -82,13 +91,13 @@ function registerCasinoRanking(app, pool, requireAuth) {
       // game save stays intact, but cannot grant an instant fabricated ranking.
       const inserted = await client.query(`
         INSERT INTO public.casino_city_players
-          (vk_id, display_name, score, level, plays, wins, avatar_url, updated_at)
-        VALUES ($1, $2, 110, 1, 0, 0, $3, NOW())
+          (vk_id, display_name, score, level, plays, wins, ${avatarEnabled ? 'avatar_url, ' : ''}updated_at)
+        VALUES ($1, $2, 110, 1, 0, 0, ${avatarEnabled ? '$3, ' : ''}NOW())
         ON CONFLICT (vk_id) DO NOTHING RETURNING vk_id
-      `, [vkId, name, avatarUrl]);
+      `, avatarEnabled ? [vkId, name, avatarUrl] : [vkId, name]);
       const snapshot = await client.query(`
         SELECT vk_id::text AS vk_id, display_name, score::text AS score,
-               level, plays::text AS plays, wins::text AS wins, avatar_url,
+               level, plays::text AS plays, wins::text AS wins, ${avatarEnabled ? 'avatar_url' : "''::text AS avatar_url"},
                updated_at, EXTRACT(EPOCH FROM (NOW() - updated_at)) AS elapsed_seconds
         FROM public.casino_city_players WHERE vk_id=$1 FOR UPDATE
       `, [vkId]);
@@ -118,7 +127,7 @@ function registerCasinoRanking(app, pool, requireAuth) {
         // Do not refresh updated_at for no-op syncs: that would prevent legitimate
         // time allowance from accumulating.
         const nameChanged = !!displayName && displayName !== old.display_name;
-        const avatarChanged = !!avatarUrl && avatarUrl !== (old.avatar_url || '');
+        const avatarChanged = avatarEnabled && !!avatarUrl && avatarUrl !== (old.avatar_url || '');
         const advanced = nameChanged || avatarChanged || acceptedScore > Number(old.score) ||
           acceptedPlays > Number(old.plays) || acceptedWins > Number(old.wins) ||
           acceptedLevel > Number(old.level);
@@ -126,14 +135,14 @@ function registerCasinoRanking(app, pool, requireAuth) {
           const changed = await client.query(`
             UPDATE public.casino_city_players
             SET display_name=CASE WHEN $2<>'' THEN $2 ELSE display_name END,
-                avatar_url=CASE WHEN $7<>'' THEN $7 ELSE avatar_url END,
+                ${avatarEnabled ? "avatar_url=CASE WHEN $7<>'' THEN $7 ELSE avatar_url END," : ''}
                 score=$3, level=$4, plays=$5, wins=$6,
                 updated_at=CASE WHEN score <> $3 OR level <> $4 OR plays <> $5 OR wins <> $6
                                 THEN NOW() ELSE updated_at END
             WHERE vk_id=$1
             RETURNING vk_id::text AS vk_id, display_name, score::text AS score,
-                      level, plays::text AS plays, wins::text AS wins, avatar_url
-          `, [vkId, name, acceptedScore, acceptedLevel, acceptedPlays, acceptedWins, avatarUrl]);
+                      level, plays::text AS plays, wins::text AS wins, ${avatarEnabled ? 'avatar_url' : "''::text AS avatar_url"}
+          `, avatarEnabled ? [vkId, name, acceptedScore, acceptedLevel, acceptedPlays, acceptedWins, avatarUrl] : [vkId, name, acceptedScore, acceptedLevel, acceptedPlays, acceptedWins]);
           row = changed.rows[0];
         }
       }
