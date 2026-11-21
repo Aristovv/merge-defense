@@ -1586,6 +1586,35 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
  .roulette-hall .roulette{will-change:auto}
 }
 
+
+/* Casino City 16.3: progressive roulette deceleration */
+@keyframes casinoBallOrbit163{
+ 0%{transform:translate(-50%,-50%) rotate(0deg)}
+ 18%{transform:translate(-50%,-50%) rotate(calc(var(--roulette-ball-turns,6) * -94deg))}
+ 40%{transform:translate(-50%,-50%) rotate(calc(var(--roulette-ball-turns,6) * -197deg))}
+ 62%{transform:translate(-50%,-50%) rotate(calc(var(--roulette-ball-turns,6) * -277deg))}
+ 79%{transform:translate(-50%,-50%) rotate(calc(var(--roulette-ball-turns,6) * -328deg))}
+ 91%{transform:translate(-50%,-50%) rotate(calc(var(--roulette-ball-turns,6) * -351deg))}
+ 97%{transform:translate(-50%,-50%) rotate(calc(var(--roulette-ball-turns,6) * -359deg))}
+ 100%{transform:translate(-50%,-50%) rotate(calc(var(--roulette-ball-turns,6) * -360deg))}
+}
+.roulette-hall .roulette-ball-track.roulette-ball-landing .ball{
+ animation:casinoBallDrop163 var(--roulette-ball-duration,2900ms) linear both!important;
+}
+@keyframes casinoBallDrop163{
+ 0%,58%{top:4px;transform:translateX(-50%) scale(1)}
+ 73%{top:5%;transform:translateX(-50%) scale(.98)}
+ 82%{top:8.5%;transform:translateX(-50%) scale(.94)}
+ 88%{top:7.4%;transform:translateX(-50%) scale(.95)}
+ 93%{top:10.2%;transform:translateX(-50%) scale(.90)}
+ 97%{top:9%;transform:translateX(-50%) scale(.92)}
+ 100%{top:10%;transform:translateX(-50%) scale(.90)}
+}
+.roulette-hall .roulette{transition-property:transform;transform-origin:50% 50%}
+@media(prefers-reduced-motion:reduce){
+ .roulette-hall .roulette-ball-track.roulette-ball-landing .ball{animation:none!important;top:10%!important}
+}
+
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
@@ -2076,7 +2105,7 @@ const ROULETTE_REDS=[1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
 const ROULETTE_POCKETS=EURO_WHEEL.map((n,i)=>{const color=n===0?'#19784e':ROULETTE_REDS.includes(n)?'#b9283e':'#171b25';return color+' '+(i*360/37)+'deg '+((i+1)*360/37)+'deg'}).join(',');
 let rouletteHistory=[];
 let rouletteLastResult=null;
-function playRoulette(){if(busy||round)return;const count=roulettePicks.length;if(!count)return message('Сначала выбери ставку на поле рулетки');if(!Number.isSafeInteger(bet*count)||state.chips<bet*count)return message('Недостаточно фишек для '+count+' ставок');if(!startCost())return;if(count>1){state.chips-=bet*(count-1);save()}casinoCurrentStake=bet*count;busy=true;const num=EURO_WHEEL[rand(37)],color=num===0?'green':ROULETTE_REDS.includes(num)?'red':'black',pick=roulettePick,vip=selected===7;const wheel=$('wheel'),track=$('roulette-ball-track'),rn=$('roulettenumber');if(rn)rn.textContent='••';const index=EURO_WHEEL.indexOf(num),turns=vip?7:5,duration=vip?3700:2900,previousIndex=rouletteLastResult?rouletteLastResult.index:0,previousAngle=-previousIndex*360/37,angle=previousAngle+turns*360+(((previousIndex-index+37)%37)*360/37);wheel?.classList.remove('spin');if(wheel){wheel.style.transition='none';wheel.style.transform='rotate('+previousAngle+'deg)';void wheel.offsetWidth;wheel.style.transition='transform '+duration+'ms cubic-bezier(.12,.75,.12,1)';wheel.style.transform='rotate('+angle+'deg)'}if(track){track.style.animation='none';track.style.transform='translate(-50%,-50%) rotate(0deg)';track.classList.remove('roulette-ball-landing');void track.offsetWidth;track.style.setProperty('--roulette-ball-turns',String(vip?8:6));track.style.setProperty('--roulette-ball-duration',duration+'ms');track.style.animation='rouletteBallOrbitAligned '+duration+'ms cubic-bezier(.18,.6,.22,1) both';track.classList.add('roulette-ball-landing')}setTimeout(()=>{busy=false;rouletteHistory.unshift({num,color});rouletteHistory=rouletteHistory.slice(0,8);rouletteLastResult={num,color,index};const prize=roulettePicks.reduce((sum,p)=>{const win=p.startsWith('n')?num===Number(p.slice(1)):p==='odd'?num>0&&num%2===1:p==='even'?num>0&&num%2===0:p===color;return sum+(win?roundBet*(p==='green'||p.startsWith('n')?36:2):0)},0);finish(prize,'Выпало '+num+' ('+(color==='red'?'красное':color==='black'?'чёрное':'зеро')+')');const display=$('roulettenumber');if(display){display.textContent=String(num);display.className='roulette-numeric '+color}},duration+120)}
+function playRoulette(){if(busy||round)return;const count=roulettePicks.length;if(!count)return message('Сначала выбери ставку на поле рулетки');if(!Number.isSafeInteger(bet*count)||state.chips<bet*count)return message('Недостаточно фишек для '+count+' ставок');if(!startCost())return;if(count>1){state.chips-=bet*(count-1);save()}casinoCurrentStake=bet*count;busy=true;const num=EURO_WHEEL[rand(37)],color=num===0?'green':ROULETTE_REDS.includes(num)?'red':'black',pick=roulettePick,vip=selected===7;const wheel=$('wheel'),track=$('roulette-ball-track'),rn=$('roulettenumber');if(rn)rn.textContent='••';const index=EURO_WHEEL.indexOf(num),turns=vip?7:5,duration=vip?3700:2900,previousIndex=rouletteLastResult?rouletteLastResult.index:0,previousAngle=-previousIndex*360/37,angle=previousAngle+turns*360+(((previousIndex-index+37)%37)*360/37);wheel?.classList.remove('spin');if(wheel){wheel.style.transition='none';wheel.style.transform='rotate('+previousAngle+'deg)';void wheel.offsetWidth;wheel.style.transition='transform '+duration+'ms cubic-bezier(.12,.75,.12,1)';wheel.style.transform='rotate('+angle+'deg)'}if(track){track.style.animation='none';track.style.transform='translate(-50%,-50%) rotate(0deg)';track.classList.remove('roulette-ball-landing');void track.offsetWidth;track.style.setProperty('--roulette-ball-turns',String(vip?8:6));track.style.setProperty('--roulette-ball-duration',duration+'ms');track.style.animation='casinoBallOrbit163 '+duration+'ms linear both';track.classList.add('roulette-ball-landing')}setTimeout(()=>{busy=false;rouletteHistory.unshift({num,color});rouletteHistory=rouletteHistory.slice(0,8);rouletteLastResult={num,color,index};const prize=roulettePicks.reduce((sum,p)=>{const win=p.startsWith('n')?num===Number(p.slice(1)):p==='odd'?num>0&&num%2===1:p==='even'?num>0&&num%2===0:p===color;return sum+(win?roundBet*(p==='green'||p.startsWith('n')?36:2):0)},0);finish(prize,'Выпало '+num+' ('+(color==='red'?'красное':color==='black'?'чёрное':'зеро')+')');const display=$('roulettenumber');if(display){display.textContent=String(num);display.className='roulette-numeric '+color}},duration+120)}
 const CARD_FACES=['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const CARD_SUITS=['♠','♥','♦','♣'];
 function freshDeck(){const deck=Array.from({length:52},(_,i)=>i+1);for(let i=deck.length-1;i>0;i--){const j=rand(i+1);[deck[i],deck[j]]=[deck[j],deck[i]]}return deck}
