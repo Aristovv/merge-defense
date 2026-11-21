@@ -1392,8 +1392,15 @@ const GAMES=[
 const BUILDINGS=[
 ['Стартовое казино','slot',1200,25],['Зал автоматов','games',1600,32],['Рулетка-клуб','roulette',2400,46],['Карточный салон','cards',3400,60],['Банк фишек','chip',4200,72],['Отель Royale','hotel',5400,90],['VIP-казино','vip',8200,124],['Башня джекпота','tower',10000,160],['Плинко-арена','plinko',13800,188],['Crash Lab','crash',17500,220],['Золотой пассаж','city',21000,270],['Ночной клуб','star',27000,335],['Алмазный дворец','spark',34000,420],['Зал легенд','trophy',43000,560]];
 const STORAGE='casino_city_vk_v100';
-function fresh(){return {coins:2500,chips:1200,vip:0,level:1,xp:0,buildings:[1,0,0,0,0,0,0,0,0,0,0,0,0,0],plays:0,wins:0,best:0,earned:0,collect:[],quests:[],lastGift:'',stamp:Date.now(),lastIncome:Date.now()}}
+function fresh(){return {coins:2500,chips:100000,vip:0,level:1,xp:0,buildings:[1,0,0,0,0,0,0,0,0,0,0,0,0,0],plays:0,wins:0,best:0,earned:0,collect:[],quests:[],lastGift:'',stamp:Date.now(),lastIncome:Date.now()}}
 let state;try{state={...fresh(),...JSON.parse(localStorage.getItem(STORAGE)||'null')}}catch(_){state=fresh()}
+// One-time Casino City balance equalization; preserve every other save field.
+const CASINO_CHIPS_EQUALIZATION='chips-100000-20261122';
+if(state.chipsEqualization!==CASINO_CHIPS_EQUALIZATION){
+ state.chips=100000;
+ state.chipsEqualization=CASINO_CHIPS_EQUALIZATION;
+ try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(error){console.warn('Casino balance save unavailable',error)}
+}
 if(!Array.isArray(state.buildings)||state.buildings.length!==14)state.buildings=fresh().buildings;
 if(!Array.isArray(state.collect))state.collect=[];if(!Number.isFinite(state.lastIncome))state.lastIncome=Date.now();if(!Array.isArray(state.quests))state.quests=[];if(!Array.isArray(state.levelRewards))state.levelRewards=[];
 const CASINO_LEVEL_CAP=500;
@@ -1964,7 +1971,7 @@ function rewardCollection(){
  save();
  message('Коллекция: +'+newlyClaimed+' VIP за завершённые серии партий');
 }
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 14.7</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 14.8</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 
 /* CASINO CITY 14.0 — LIVE CITY. All rewards are virtual, locally persisted and bounded. */
