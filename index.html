@@ -1186,7 +1186,9 @@ function slotSymbol(theme,i){
  const key=theme%6+':'+i%8;
  const kind=SYMBOL_SETS[theme%6][i%8];
  const folders=['classic','fruits','royal','egypt','vegas','bells'];
- return '<img class="reel-symbol reel-'+kind+' slot-symbol-image" src="assets/slots/'+folders[theme%6]+'/'+kind+'.svg" width="100" height="100" alt="'+kind+'" draggable="false" decoding="async">';
+ const realistic={seven:'seven_red.png',star:'gold_star.png',diamond:'diamond.png',crown:'crown.png',clover:'clover.png',cherry:'cherries.png',bell:'bell.png',horseshoe:'horseshoe.png'};
+ const src=realistic[kind]?'assets/slots/realistic/'+realistic[kind]:'assets/slots/'+folders[theme%6]+'/'+kind+'.svg';
+ return '<img class="reel-symbol reel-'+kind+' slot-symbol-image" src="'+src+'" width="100" height="100" alt="'+kind+'" draggable="false" decoding="async" onerror="this.onerror=null;this.src=\'assets/slots/'+folders[theme%6]+'/'+kind+'.svg\'">';
  let asset=SLOT_IMAGE_CACHE.get(key);
  if(!asset){
    const svg=slotSymbolSvg(theme,i);
