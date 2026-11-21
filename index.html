@@ -1544,6 +1544,48 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 }
 @media(prefers-reduced-motion:reduce){.roulette-hall .roulette,.roulette-hall .roulette-ball-track{transition:none!important}}
 
+
+/* Casino City 16.2: roulette cinematic motion and mobile depth */
+.roulette-hall .wheel-stand:before{
+ content:"";position:absolute;z-index:0;left:50%;top:50%;
+ width:min(78vw,295px);height:min(78vw,295px);border-radius:50%;
+ transform:translate(-50%,-50%);pointer-events:none;
+ background:radial-gradient(circle at 36% 24%,#ffe5a13d,transparent 39%),radial-gradient(circle,#25150d 55%,#070507 74%,#a47a43 77%,#1b100c 81%);
+ box-shadow:inset 0 2px 6px #f9d48a88,inset 0 -10px 17px #000d,0 11px 22px #000c;
+}
+.roulette-hall .wheel-stand:after{
+ content:"";position:absolute;z-index:6;left:50%;top:50%;
+ width:min(65vw,248px);height:min(65vw,248px);
+ transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;
+ background:linear-gradient(135deg,#fff4cb26 0%,transparent 28%,transparent 63%,#0008 100%);
+ box-shadow:inset 0 0 0 1px #f9dfaa44,inset 0 4px 8px #fff2;
+}
+.roulette-hall .roulette{z-index:1;backface-visibility:hidden;will-change:transform}
+.roulette-hall .roulette-ball-track{z-index:8!important;will-change:transform}
+.roulette-hall .roulette-ball-track .ball{width:clamp(9px,2.9vw,12px)!important;height:clamp(9px,2.9vw,12px)!important}
+.roulette-hall .roulette-ball-track.roulette-ball-landing .ball{
+ animation:casinoBallDrop162 var(--roulette-ball-duration,2900ms) cubic-bezier(.21,.64,.19,1) both!important;
+}
+@keyframes casinoBallDrop162{
+ 0%,55%{top:4px;transform:translateX(-50%) scale(1)}
+ 73%{top:5%;transform:translateX(-50%) scale(.98)}
+ 84%{top:9%;transform:translateX(-50%) scale(.94)}
+ 90%{top:7.4%;transform:translateX(-50%) scale(.95)}
+ 95%{top:10.3%;transform:translateX(-50%) scale(.9)}
+ 98%{top:9.1%;transform:translateX(-50%) scale(.91)}
+ 100%{top:10%;transform:translateX(-50%) scale(.9)}
+}
+.roulette-hall .roulette-numeric{box-shadow:inset 0 1px 2px #fff5,0 2px 6px #0009;font-weight:900}
+.roulette-vip .wheel-stand:before{box-shadow:inset 0 2px 8px #ffe6a8,inset 0 -10px 18px #000d,0 0 20px #e3ae5e55,0 12px 22px #000c}
+@media(max-width:420px){
+ .roulette-hall .wheel-stand:before{width:min(77vw,285px);height:min(77vw,285px)}
+ .roulette-hall .wheel-stand:after{width:min(64vw,246px);height:min(64vw,246px)}
+}
+@media(prefers-reduced-motion:reduce){
+ .roulette-hall .roulette-ball-track.roulette-ball-landing .ball{animation:none!important;top:10%!important}
+ .roulette-hall .roulette{will-change:auto}
+}
+
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
