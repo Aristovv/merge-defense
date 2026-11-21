@@ -1945,7 +1945,7 @@ if(!Array.isArray(state.buildings)||state.buildings.length!==14)state.buildings=
 if(!Array.isArray(state.collect))state.collect=[];if(!Number.isFinite(state.lastIncome))state.lastIncome=Date.now();if(!Array.isArray(state.quests))state.quests=[];if(!Array.isArray(state.levelRewards))state.levelRewards=[];
 const CASINO_LEVEL_CAP=500;
 const CASINO_RANKS=[[1,'Новичок'],[10,'Посетитель'],[20,'Игрок'],[35,'Завсегдатай'],[50,'Знаток казино'],[75,'Претендент'],[100,'Профессионал'],[125,'Ветеран'],[150,'Мастер ставок'],[175,'Элита казино'],[200,'Золотой игрок'],[225,'Платиновый игрок'],[250,'Алмазный игрок'],[275,'Высшая лига'],[300,'Магнат казино'],[325,'Владыка удачи'],[350,'Император казино'],[375,'Легенда Вегаса'],[400,'Король казино'],[425,'Мифический магнат'],[450,'Повелитель империи'],[475,'Бессмертная легенда'],[500,'Абсолютный чемпион']];
-function levelXpNeed(level){return level>=CASINO_LEVEL_CAP?0:Math.floor(240+level*60+level*level*3)}
+function levelXpNeed(level){return level>=CASINO_LEVEL_CAP?0:Math.floor(420+level*110+level*level*8)}
 function rankAt(level){let current=CASINO_RANKS[0];for(const rank of CASINO_RANKS){if(level>=rank[0])current=rank;else break}return current[1]}
 function nextRankAfter(level){return CASINO_RANKS.find(r=>r[0]>level)||null}
 if(state.xpCurveVersion!==2){
@@ -1957,6 +1957,15 @@ if(state.xpCurveVersion!==2){
  try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}
 }
 
+if(state.xpCurveVersion!==3){
+ const level=Math.max(1,Math.min(CASINO_LEVEL_CAP,Math.floor(Number(state.level)||1)));
+ const priorNeed=Math.floor(240+level*60+level*level*3);
+ const fraction=Math.max(0,Math.min(.999,(Number(state.xp)||0)/Math.max(1,priorNeed)));
+ state.level=level;
+ state.xp=level===CASINO_LEVEL_CAP?0:Math.floor(fraction*levelXpNeed(level));
+ state.xpCurveVersion=3;
+ try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}
+}
 // Restore a precomputed Plinko outcome exactly once after an interrupted animation.
 if(state.pendingMiniRound&&state.pendingMiniRound.kind==='plinko'){const pending=state.pendingMiniRound;const amount=Number(pending.prize);if(Number.isSafeInteger(amount)&&amount>=0&&amount<=1e12){state.chips=Math.max(0,Math.floor(state.chips+amount));if(amount){state.earned=(Number(state.earned)||0)+amount;state.wins=(Number(state.wins)||0)+1;state.best=Math.max(Number(state.best)||0,amount)}}state.pendingMiniRound=null;try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}}
 if(state.pendingMiniRound&&state.pendingMiniRound.kind==='crash'){state.pendingMiniRound=null;try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}}
@@ -2011,7 +2020,7 @@ function syncCasinoRanking(){if(!CASINO_LAUNCH_PARAMS)return;clearTimeout(casino
  fetch('https://merge.89-23-115-251.sslip.io/api/casino/sync',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify(casinoRankPayload()),cache:'no-store'}).catch(()=>{});
 },700)}
 function casinoRankingPoints(){
- return Math.floor(state.plays*15+state.wins*45+state.level*110+state.buildings.reduce((a,b)=>a+Math.max(0,Number(b)||0),0)*30);
+ return Math.floor(Math.min(Math.max(0,state.plays||0),1000)*3+Math.max(0,state.wins||0)*35+Math.max(1,state.level||1)*100+state.buildings.reduce((a,b)=>a+Math.max(0,Number(b)||0),0)*25);
 }
 function casinoRankingStatus(){
  const host=document.getElementById('casino-ranking-status');
@@ -2168,7 +2177,7 @@ function xp(amount){
  if(leveled)message(rankChanged?'Новое звание: '+rankAt(state.level)+'!':'Новый уровень '+state.level+'!');
 }
 const CITY_COST_FACTOR=1.2;
-const CITY_PAYBACK_HOURS=24;
+const CITY_PAYBACK_HOURS=36;
 function buildingCostAtLevel(i,level){return Math.floor(BUILDINGS[i][2]*CITY_COST_FACTOR*Math.pow(1.75,level))}
 function buildingHourlyIncome(i){const level=state.buildings[i]||0;let total=0;for(let n=0;n<level;n++)total+=buildingCostAtLevel(i,n)/CITY_PAYBACK_HOURS;return total}
 function rate(){return BUILDINGS.reduce((total,_b,i)=>total+buildingHourlyIncome(i),0)}
@@ -2635,7 +2644,7 @@ function rewardCollection(){
  save();
  message('Коллекция: +'+newlyClaimed+' VIP за завершённые серии партий');
 }
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 17.8</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 18.0</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 
 /* CASINO CITY 14.0 — LIVE CITY. All rewards are virtual, locally persisted and bounded. */
