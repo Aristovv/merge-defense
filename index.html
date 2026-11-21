@@ -1280,6 +1280,22 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 .casino-quest-numbers small{font-size:9px;line-height:1.4;color:#bfb0c9}
 .casino-claim-all{width:100%;min-height:45px;font-size:12px;letter-spacing:.3px}
 @media(max-width:360px){.casino-quest-dashboard{padding:13px}.casino-quest-numbers{gap:5px}.casino-quest-numbers b{font-size:14px}}
+
+/* Casino City 13.1: seven-day streak */
+.casino-streak-box{padding:15px;border-radius:17px;border:1px solid #8863a1a8;background:radial-gradient(ellipse at 40% 0,#5b396c88,transparent 75%),linear-gradient(135deg,#2d2043,#171328);margin-bottom:15px}
+.casino-streak-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.casino-streak-head h3{margin:5px 0 0;color:#ffdfb3;font-size:17px}
+.casino-streak-badge{font-size:11px;font-weight:900;white-space:nowrap;color:#f6d3a5;border:1px solid #a7868a;padding:7px 9px;border-radius:22px}
+.casino-streak-box>p{font-size:10px;color:#b8a6c5;line-height:1.5;margin:11px 0 14px}
+.casino-streak-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.casino-streak-day{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 1px;border:1px solid #6e597b8f;border-radius:9px;background:#18132a}
+.casino-streak-day span{color:#d1bddd;font-size:7px;font-weight:900;white-space:nowrap}
+.casino-streak-day strong{font-size:19px;color:#b39bc5;line-height:1.3}
+.casino-streak-day small{font-size:9px;color:#d6bdce;font-weight:800}
+.casino-streak-day.next{background:#49315f;border-color:#efbd8a}.casino-streak-day.next strong{color:#ffdc93}
+.casino-streak-day.done{background:#2d4140;border-color:#8ad8ba}.casino-streak-day.done strong{color:#a9f5d1}
+.casino-streak-footer{display:flex;flex-direction:column;gap:6px;margin-top:13px;color:#cbbbd1;font-size:10px}.casino-streak-footer b{color:#ffdfa1;line-height:1.45}
+@media(max-width:390px){.casino-streak-box{padding:11px}.casino-streak-days{gap:3px}.casino-streak-day{padding:7px 0}.casino-streak-day span{font-size:6px}.casino-streak-day small{font-size:8px}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
@@ -1662,7 +1678,45 @@ function dicePlay(guess){if(busy||!startCost())return;busy=true;const a=1+rand(6
 function scratchStart(){if(busy||round)return;if(!startCost())return;round={kind:'scratch',cells:Array.from({length:9},()=>rand(5)),opened:[]};render()}
 function scratchRevealAll(){if(busy||!round||round.kind!=='scratch')return;const counts={};round.cells.forEach(n=>counts[n]=(counts[n]||0)+1);const max=Math.max(...Object.values(counts)),reward=max>=5?roundBet*16:max===4?roundBet*6:max===3?roundBet*2:0;round=null;finish(reward,reward?'Нашёл сочетание!':'Попробуй ещё')}
 function scratchOpen(i){if(busy||!round||round.kind!=='scratch'||!Number.isInteger(i)||i<0||i>8||round.opened.includes(i))return;round.opened.push(i);if(round.opened.length===9){const counts={};round.cells.forEach(n=>counts[n]=(counts[n]||0)+1);const max=Math.max(...Object.values(counts)),reward=max>=5?roundBet*16:max===4?roundBet*6:max===3?roundBet*2:0;round=null;finish(reward,reward?'Нашёл сочетание!':'Попробуй ещё');return}render()}
-function daily(){if(state.lastGift===today())return message('Сегодня подарок уже получен');state.lastGift=today();grant(400,700);xp(15);render();message('Подарок: +400 фишек и +700 монет')}
+
+// Daily login streak uses the same UTC day boundary as the existing daily gift.
+function casinoYesterdayUTC(){
+ const d=new Date(Date.now()-86400000);
+ return d.toISOString().slice(0,10);
+}
+function casinoStreakCount(){
+ const last=state.lastGift;
+ if(last!==today()&&last!==casinoYesterdayUTC())return 0;
+ return Math.max(1,Math.floor(Number(state.giftStreak)||1));
+}
+function casinoGiftBonus(day){
+ const d=Math.max(1,Math.floor(Number(day)||1));
+ return {chips:Math.min(d,7)*50+(d%7===0?350:0),coins:d%7===0?300:0};
+}
+function casinoStreakSection(){
+ const streak=casinoStreakCount(),current=state.lastGift===today()?streak:streak+1;
+ const upcoming=casinoGiftBonus(current);
+ const list=Array.from({length:7},(_,i)=>{
+   const day=i+1,done=streak>0&&((streak-1)%7)>=i&&state.lastGift===today();
+   return '<div class="casino-streak-day '+(day===(current-1)%7+1?'next':'')+' '+(done?'done':'')+'"><span>ДЕНЬ '+day+'</span><strong>'+ (day===7?'★':'✦')+'</strong><small>+'+(day*50+(day===7?350:0))+'</small></div>';
+ }).join('');
+ return '<div class="casino-streak-box"><div class="casino-streak-head"><div><span class="eyebrow">ЗАХОДИ КАЖДЫЙ ДЕНЬ</span><h3>Серия посещений</h3></div><span class="casino-streak-badge">'+streak+' '+(streak===1?'день':'дней')+'</span></div>'+
+ '<p>За ежедневный подарок начисляются дополнительные фишки. Каждые 7 дней подряд — особый бонус.</p>'+
+ '<div class="casino-streak-days">'+list+'</div><div class="casino-streak-footer"><span>Твоя самая длинная серия: '+Math.max(streak,Number(state.giftBestStreak)||0)+' дн.</span><b>'+(state.lastGift===today()?'Бонус за сегодня получен':'За следующий подарок: +'+fmt(upcoming.chips)+' фишек'+(upcoming.coins?' и +'+fmt(upcoming.coins)+' монет':''))+'</b></div></div>';
+}
+function daily(){
+ if(state.lastGift===today())return message('Сегодня подарок уже получен');
+ const continued=state.lastGift===casinoYesterdayUTC();
+ const previous=continued?Math.max(1,Math.floor(Number(state.giftStreak)||1)):0;
+ const streak=Math.min(100000,previous+1);
+ const bonus=casinoGiftBonus(streak);
+ state.lastGift=today();
+ state.giftStreak=streak;
+ state.giftBestStreak=Math.max(streak,Number(state.giftBestStreak)||0);
+ grant(400+bonus.chips,700+bonus.coins);
+ xp(15);render();
+ message('Подарок за '+streak+' день серии: +'+fmt(400+bonus.chips)+' фишек и +'+fmt(700+bonus.coins)+' монет');
+}
 function exchange(){collectPassive();const input=$('coin-exchange-amount'),raw=input?.value?.trim()||'';if(!/^\d+$/.test(raw))return message('Введите целое количество монет');const amount=Number(raw);if(!Number.isSafeInteger(amount)||amount<2)return message('Минимальный обмен — 2 монеты');if(amount>state.coins)return message('Недостаточно монет для обмена');const chips=Math.floor(amount/2);if(!Number.isSafeInteger(state.chips+chips))return message('Слишком большая сумма');state.coins-=amount;state.chips+=chips;save();render();message('Обменено '+fmt(amount)+' монет на '+fmt(chips)+' фишек')}
 function updateCoinExchangePreview(){const input=$('coin-exchange-amount'),preview=$('coin-exchange-preview'),button=$('coin-exchange-submit');if(!input||!preview||!button)return;const raw=input.value.trim(),amount=/^\d+$/.test(raw)?Number(raw):NaN;const valid=Number.isSafeInteger(amount)&&amount>=2&&amount<=state.coins&&Number.isSafeInteger(state.chips+Math.floor(amount/2));preview.textContent=!raw?'Введите количество монет':!Number.isSafeInteger(amount)?'Введите целое число':amount<2?'Минимум 2 монеты':amount>state.coins?'Недостаточно монет':'Получите '+fmt(Math.floor(amount/2))+' фишек';button.disabled=!valid}
 const CASHOUT_MIN=3000;
@@ -1688,7 +1742,7 @@ function rewardCollection(){
  save();
  message('Коллекция: +'+newlyClaimed+' VIP за завершённые серии партий');
 }
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 13.0</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 13.1</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 let expandedDistrict=false;
 function cityScreen(){
@@ -1877,7 +1931,7 @@ function questsScreen(){
  if(!Array.isArray(state.achievementsClaimed))state.achievementsClaimed=[];
  const oldQuests=[['Сыграть 5 партий',state.plays,5,150],['Сыграть 20 партий',state.plays,20,500],['Победить 10 раз',state.wins,10,600],['Построить 4 уровня зданий',state.buildings.reduce((a,b)=>a+b,0),4,400],['Достичь 5 уровня',state.level,5,1000]];
  return '<div class="page casino-quests-page"><div class="section-intro"><div><span class="eyebrow">CASINO CITY · ПРОГРЕСС</span><h1>Задания и достижения</h1></div><span class="catalog-count">2.0</span></div>'+
- '<div class="casino-quest-gift"><div><span class="eyebrow">КАЖДЫЙ ДЕНЬ</span><h3>Ежедневный подарок</h3><p>400 фишек и 700 монет. Забирай один раз в день.</p></div><button class="btn purple" data-action="daily" '+(state.lastGift===today()?'disabled':'')+'>'+(state.lastGift===today()?'Получено':'Забрать')+'</button></div>'+
+ '<div class="casino-quest-gift"><div><span class="eyebrow">КАЖДЫЙ ДЕНЬ</span><h3>Ежедневный подарок</h3><p>400 фишек и 700 монет + бонус за серию. Забирай один раз в день.</p></div><button class="btn purple" data-action="daily" '+(state.lastGift===today()?'disabled':'')+'>'+(state.lastGift===today()?'Получено':'Забрать')+'</button></div>'+casinoStreakSection()+
  casinoQuestOverview()+'<p class="casino-quest-explain">Ежедневные задания обновляются в 00:00 UTC, еженедельные — по понедельникам. Прогресс учитывается с начала текущего периода на этом устройстве.</p>'+
  casinoQuestSection('daily','Задания на сегодня','ЕЖЕДНЕВНЫЕ')+casinoQuestSection('weekly','На эту неделю','ЕЖЕНЕДЕЛЬНЫЕ')+
  '<section class="casino-quest-group"><div class="casino-quest-heading"><div><span class="eyebrow">ПОСТОЯННЫЕ ЦЕЛИ</span><h3>Достижения</h3></div><span class="casino-quest-counter">'+state.achievementsClaimed.length+' / '+CASINO_ACHIEVEMENTS.length+'</span></div>'+
