@@ -604,6 +604,9 @@ function fresh(){return {coins:2500,chips:1200,vip:0,level:1,xp:0,buildings:[1,0
 let state;try{state={...fresh(),...JSON.parse(localStorage.getItem(STORAGE)||'null')}}catch(_){state=fresh()}
 if(!Array.isArray(state.buildings)||state.buildings.length!==14)state.buildings=fresh().buildings;
 if(!Array.isArray(state.collect))state.collect=[];if(!Number.isFinite(state.lastIncome))state.lastIncome=Date.now();if(!Array.isArray(state.quests))state.quests=[];
+// Restore a precomputed Plinko outcome exactly once after an interrupted animation.
+if(state.pendingMiniRound&&state.pendingMiniRound.kind==='plinko'){const pending=state.pendingMiniRound;const amount=Number(pending.prize);if(Number.isSafeInteger(amount)&&amount>=0&&amount<=1e12){state.chips=Math.max(0,Math.floor(state.chips+amount));if(amount){state.earned=(Number(state.earned)||0)+amount;state.wins=(Number(state.wins)||0)+1;state.best=Math.max(Number(state.best)||0,amount)}}state.pendingMiniRound=null;try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}}
+if(state.pendingMiniRound&&state.pendingMiniRound.kind==='crash'){state.pendingMiniRound=null;try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}}
 let tab='city',selected=-1,bet=25,busy=false,round=null,roundBet=25,roulettePick='red',held=[],kenoSelected=[],scratchIndices=[],crashTimer=null,crashValue=1,crashStop=0,toastTimer=null;
 const $=id=>document.getElementById(id),rand=n=>Math.floor(Math.random()*n),fmt=n=>Math.floor(Number(n)||0).toLocaleString('ru-RU'),today=()=>new Date().toISOString().slice(0,10);
 function save(){state.stamp=Date.now();try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}}
@@ -718,6 +721,7 @@ function plinkoPlay(){
   for(let i=0;i<12;i++){index+=rand(2);path.push(index)}
   return {index,path,prize:Math.floor(stake*table[index])};
  });
+ state.pendingMiniRound={kind:'plinko',prize:results.reduce((sum,item)=>sum+item.prize,0)};save();
  let completed=0,earned=0;
  results.forEach((result,n)=>{
   const ball=document.createElement('div');
@@ -735,11 +739,11 @@ function plinkoPlay(){
    ball.remove();completed++;earned+=result.prize;plinkoLastSector=result.index;plinkoHits.push(result.index);
    if(bins)bins.querySelectorAll('span').forEach((el,i)=>el.classList.toggle('plinko-bin-won',i===result.index));
    if(hits)hits.textContent='Попадания '+completed+'/'+count+': '+plinkoHits.map(i=>'×'+table[i]).join(' · ')+' | '+fmt(earned)+' фишек';
-   if(completed===count){busy=false;finish(earned,'Плинко · '+count+' шар. · '+plinkoHits.map(i=>'×'+table[i]).join(' / '))}
+   if(completed===count){busy=false;state.pendingMiniRound=null;finish(earned,'Плинко · '+count+' шар. · '+plinkoHits.map(i=>'×'+table[i]).join(' / '))}
   },duration+80+n*95);
  });
 }
-let crashAutoTarget=0,crashHistory=[],crashAutoEnabled=false,crashLastStatus='';
+let crashAutoTarget=0,crashHistory=[],crashAutoEnabled=false,crashLastStatus='',crashStartedAt=0;
 function updateCrashGraph(){
  const graph=$('crashgraph');if(!graph)return;
  const progress=Math.min(1,Math.log(Math.max(1,crashValue))/Math.log(11.1));
@@ -754,10 +758,10 @@ function crashStart(){
  const target=/^\d+(\.\d{1,2})?$/.test(raw)?Number(raw):0;
  if(crashAutoEnabled&&(!target||target<1.1||target>11.1))return message('Укажи множитель автовывода от ×1.10 до ×11.10');
  if(!startCost())return;
- crashAutoTarget=target;busy=true;crashValue=1;crashLastStatus='';
+ crashAutoTarget=target;busy=true;crashValue=1;crashLastStatus='';state.pendingMiniRound={kind:'crash'};save();
  crashStop=Math.round((1.1+Math.min(10,Math.floor(Math.log(1/(1-Math.random()))*100)/100))*100)/100;
  render();updateCrashGraph();
- const started=performance.now(),speed=.29;
+ const started=performance.now(),speed=.29;crashStartedAt=started;
  crashTimer=setInterval(()=>{
   const elapsed=(performance.now()-started)/1000;
   const next=Math.min(11.1,Math.exp(speed*elapsed));
@@ -766,7 +770,7 @@ function crashStart(){
   }
   if(next>=crashStop){
    crashValue=crashStop;clearInterval(crashTimer);crashTimer=null;busy=false;
-   crashHistory.unshift(crashStop);crashHistory=crashHistory.slice(0,8);crashLastStatus='КРАШ НА ×'+crashStop.toFixed(2);
+   state.pendingMiniRound=null;crashHistory.unshift(crashStop);crashHistory=crashHistory.slice(0,8);crashLastStatus='КРАШ НА ×'+crashStop.toFixed(2);
    finish(0,'Краш на ×'+crashStop.toFixed(2));return;
   }
   crashValue=next;
@@ -777,8 +781,9 @@ function crashStart(){
 }
 function crashCash(){
  if(!busy||!crashTimer)return;
+ const now=performance.now();if(Number.isFinite(crashStartedAt)){const live=Math.min(11.1,Math.exp(.29*(now-crashStartedAt)/1000));if(live>=crashStop){clearInterval(crashTimer);crashTimer=null;busy=false;state.pendingMiniRound=null;crashValue=crashStop;crashHistory.unshift(crashStop);crashHistory=crashHistory.slice(0,8);crashLastStatus='КРАШ НА ×'+crashStop.toFixed(2);finish(0,'Краш на ×'+crashStop.toFixed(2));return}crashValue=Math.max(crashValue,live)}
  clearInterval(crashTimer);crashTimer=null;busy=false;
- crashHistory.unshift(crashValue);crashHistory=crashHistory.slice(0,8);crashLastStatus='ЗАБРАНО НА ×'+crashValue.toFixed(2);
+ state.pendingMiniRound=null;crashHistory.unshift(crashValue);crashHistory=crashHistory.slice(0,8);crashLastStatus='ЗАБРАНО НА ×'+crashValue.toFixed(2);
  finish(Math.floor(roundBet*crashValue),'Вывел на ×'+crashValue.toFixed(2));
 }
 let lastDice=[1,1];
@@ -796,7 +801,7 @@ function cashoutCoins(chips){return Math.floor(chips*CASHOUT_RATE)}
 function cashout(){collectPassive();const input=$('cashout-amount');const raw=input?.value?.trim()||'';if(!/^\d+$/.test(raw))return message('Введите целое количество фишек');const amount=Number(raw);if(!Number.isSafeInteger(amount)||amount<CASHOUT_MIN)return message('Минимальный обмен — 3 000 фишек');if(amount>state.chips)return message('Недостаточно фишек для обмена');const coins=cashoutCoins(amount);if(!Number.isSafeInteger(coins)||!Number.isSafeInteger(state.coins+coins))return message('Слишком большая сумма');state.chips-=amount;state.coins+=coins;save();render();message('Обменено '+fmt(amount)+' фишек на '+fmt(coins)+' монет')}
 function updateCashoutPreview(){const input=$('cashout-amount'),preview=$('cashout-preview'),button=$('cashout-submit');if(!input||!preview||!button)return;const raw=input.value.trim(),amount=/^\d+$/.test(raw)?Number(raw):NaN;const valid=Number.isSafeInteger(amount)&&amount>=CASHOUT_MIN&&amount<=state.chips&&Number.isSafeInteger(state.coins+cashoutCoins(amount));preview.textContent=!raw?'Введите количество фишек':!Number.isSafeInteger(amount)?'Введите целое число':amount<CASHOUT_MIN?'Минимум 3 000 фишек':amount>state.chips?'Недостаточно фишек':'Получите '+fmt(cashoutCoins(amount))+' монет';button.disabled=!valid}
 function rewardCollection(){if(state.plays===0||state.plays%12!==0||state.collect.includes('slot-'+Math.floor(state.plays/12)))return;const i=Math.floor(state.plays/12),name='slot-'+i;state.collect.push(name);state.vip+=1;save();message('Новая коллекционная награда! +1 VIP')}
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 5.8</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 5.9</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 let expandedDistrict=false;
 function cityScreen(){
