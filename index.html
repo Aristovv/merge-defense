@@ -1589,7 +1589,12 @@ const CITY_PAYBACK_HOURS=24;
 function buildingCostAtLevel(i,level){return Math.floor(BUILDINGS[i][2]*CITY_COST_FACTOR*Math.pow(1.75,level))}
 function buildingHourlyIncome(i){const level=state.buildings[i]||0;let total=0;for(let n=0;n<level;n++)total+=buildingCostAtLevel(i,n)/CITY_PAYBACK_HOURS;return total}
 function rate(){return BUILDINGS.reduce((total,_b,i)=>total+buildingHourlyIncome(i),0)}
-function collectPassive(){const now=Date.now();const elapsedHours=Math.max(0,Math.min(8,(now-state.lastIncome)/3600000));if(elapsedHours<.0025)return 0;const gross=rate()*elapsedHours*(cc14BoostActive('income')?1.25:1)+(Number.isFinite(state.incomeRemainder)?state.incomeRemainder:0);const amount=Math.floor(gross);state.incomeRemainder=gross-amount;state.coins+=amount;state.lastIncome=now;save();return amount}
+function collectPassive(){const now=Date.now();const elapsedHours=Math.max(0,Math.min(8,(now-state.lastIncome)/3600000));if(elapsedHours<.0025)return 0;const x=cc14Data(),expire=Number(x.boosts.income)||0;
+ // Only time actually covered by an income booster may receive the +25%.
+ const periodStart=now-elapsedHours*3600000;
+ const boosterStart=Number(x.boostsStarted?.income)||expire-CC14_BOOSTERS.income.duration;
+ const boostedMs=Math.max(0,Math.min(now,expire)-Math.max(periodStart,boosterStart));
+ const gross=rate()*(elapsedHours+boostedMs/3600000*.25)+(Number.isFinite(state.incomeRemainder)?state.incomeRemainder:0);const amount=Math.floor(gross);state.incomeRemainder=gross-amount;state.coins+=amount;state.lastIncome=now;save();return amount}
 function cost(i){return buildingCostAtLevel(i,state.buildings[i]||0)}
 function buildingUp(i){collectPassive();let c=cost(i);if(state.coins<c){render();return message('Не хватает '+fmt(c-state.coins)+' городских монет')}state.coins-=c;state.buildings[i]++;recordCasinoQuestEvent('builds',1);cc14RecordBuild();xp(25);save();render();message('Здание улучшено')}
 function buildingNextIncome(i){return buildingHourlyIncome(i)+cost(i)/CITY_PAYBACK_HOURS}
@@ -1742,7 +1747,7 @@ function drawCard(){return 1+rand(52)}
 function points(arr){let total=0,aces=0;for(const c of arr){const rank=cardRank(c);total+=Math.min(10,rank);if(rank===1)aces++}while(aces&&total+10<=21){total+=10;aces--}return total}
 function card(c){const suit=cardSuit(c),rank=cardRank(c);return '<div class="playing '+(suit===1||suit===2?'red':'')+'">'+CARD_FACES[rank]+'<small class="card-suit">'+CARD_SUITS[suit]+'</small></div>'}
 function startBlackjack(){if(busy||round)return message('Заверши текущую раздачу');if(!startCost())return;round={kind:'blackjack',deck:freshDeck(),you:[],dealer:[]};round.you.push(round.deck.pop(),round.deck.pop());round.dealer.push(round.deck.pop(),round.deck.pop());if(points(round.you)===21){let d=points(round.dealer),prize=d===21?roundBet:Math.floor(roundBet*2.5);round=null;finish(prize,d===21?'Оба собрали Blackjack · возврат ставки':'Натуральный Blackjack · выплата ×2.5');return}render()}
-function endBlackjack(){let y=points(round.you),d=points(round.dealer);while(d<17)round.dealer.push(round.deck.pop()),d=points(round.dealer);let prize=y<=21&&(d>21||y>d)?roundBet*2:y===d&&y<=21?roundBet:0;round=null;finish(prize,'Ты: '+y+' · Дилер: '+d)}
+function endBlackjack(){let y=points(round.you),d=points(round.dealer);while(d<17)round.dealer.push(round.deck.pop()),d=points(round.dealer);let prize=y<=21&&(d>21||y>d)?Math.floor(roundBet*2):y===d&&y<=21?roundBet:0;round=null;finish(prize,'Ты: '+y+' · Дилер: '+d)}
 function hit(){if(!round||round.kind!=='blackjack')return;round.you.push(round.deck.pop());if(points(round.you)>21){round=null;finish(0,'Перебор!')}else render()}
 function stand(){if(round?.kind==='blackjack')endBlackjack()}
 function pokerResult(cards){const ranks=cards.map(cardRank),suits=cards.map(cardSuit),counts={};ranks.forEach(r=>counts[r]=(counts[r]||0)+1);const groups=Object.entries(counts).map(([r,n])=>({r:Number(r),n})).sort((a,b)=>b.n-a.n),sorted=[...new Set(ranks)].map(r=>r===1?14:r).sort((a,b)=>a-b),flush=suits.every(s=>s===suits[0]),straight=sorted.length===5&&(sorted[4]-sorted[0]===4||sorted.join(',')==='2,3,4,5,14');if(straight&&flush&&sorted[0]===10)return {m:250,label:'Роял-флеш'};if(straight&&flush)return {m:50,label:'Стрит-флеш'};if(groups[0].n===4)return {m:25,label:'Каре'};if(groups[0].n===3&&groups[1].n===2)return {m:9,label:'Фулл-хаус'};if(flush)return {m:6,label:'Флеш'};if(straight)return {m:4,label:'Стрит'};if(groups[0].n===3)return {m:3,label:'Тройка'};if(groups[0].n===2&&groups[1].n===2)return {m:2,label:'Две пары'};if(groups[0].n===2&&(groups[0].r===1||groups[0].r>=11))return {m:1,label:'Валеты или выше'};return {m:0,label:'Нет комбинации'}}
@@ -1834,7 +1839,9 @@ function crashStart(){
  if(crashAutoEnabled&&(!target||target<1.1||target>11.1))return message('Укажи множитель автовывода от ×1.10 до ×11.10');
  if(!startCost())return;
  crashAutoTarget=target;busy=true;crashValue=1;crashLastStatus='';state.pendingMiniRound={kind:'crash'};save();
- crashStop=Math.round((1.1+Math.min(10,Math.floor(Math.log(1/(1-Math.random()))*100)/100))*100)/100;
+ // House edge 4%: P(reaching multiplier m) is approximately 0.96/m.
+ // Instant-bust rounds are possible; the old minimum ×1.10 was risk-free profit.
+ crashStop=Math.max(1,Math.min(11.1,Math.floor(0.96/Math.max(0.000001,Math.random())*100)/100));
  render();updateCrashGraph();
  const started=performance.now(),speed=.29;crashStartedAt=started;
  crashTimer=setInterval(()=>{
@@ -1865,7 +1872,7 @@ function crashCash(){
 }
 let lastDice=[1,1];
 function diceFace(n){const layouts={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};return '<div class="dice-pips">'+Array.from({length:9},(_,i)=>'<span class="dice-pip '+(layouts[n].includes(i)?'visible':'')+'"></span>').join('')+'</div>'}
-function dicePlay(guess){if(busy||!startCost())return;busy=true;const a=1+rand(6),b=1+rand(6),sum=a+b,win=guess==='over'?sum>=8:sum<=6,push=sum===7;document.querySelectorAll('.dice-cube').forEach(c=>c.classList.add('dice-rolling'));setTimeout(()=>{busy=false;lastDice=[a,b];finish(push?roundBet:win?roundBet*2:0,'Кубики: '+a+' + '+b+' = '+sum+(push?' · семёрка: ставка возвращена':win?' · победа!':' · не угадал'))},950)}
+function dicePlay(guess){if(busy||!startCost())return;busy=true;const a=1+rand(6),b=1+rand(6),sum=a+b,win=guess==='over'?sum>=8:sum<=6,push=sum===7;document.querySelectorAll('.dice-cube').forEach(c=>c.classList.add('dice-rolling'));setTimeout(()=>{busy=false;lastDice=[a,b];finish(push?roundBet:win?Math.floor(roundBet*1.9):0,'Кубики: '+a+' + '+b+' = '+sum+(push?' · семёрка: ставка возвращена':win?' · победа!':' · не угадал'))},950)}
 
 // A new scratch ticket is generated with explicit, visible odds:
 // 75% no match, 15% three-of-a-kind, 7% four, 3% five.
@@ -1952,7 +1959,7 @@ function rewardCollection(){
  save();
  message('Коллекция: +'+newlyClaimed+' VIP за завершённые серии партий');
 }
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 14.4</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 14.5</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 
 /* CASINO CITY 14.0 — LIVE CITY. All rewards are virtual, locally persisted and bounded. */
@@ -2048,6 +2055,8 @@ function cc14ActivateBooster(kind){
  // Settle all income before changing multiplier to avoid retroactive boosted earnings.
  if(kind==='income')collectPassive();
  x.inventory.splice(i,1);
+ if(!x.boostsStarted||typeof x.boostsStarted!=='object')x.boostsStarted={};
+ if(!cc14BoostActive(kind))x.boostsStarted[kind]=Date.now();
  x.boosts[kind]=Math.max(Date.now(),Number(x.boosts[kind])||0)+CC14_BOOSTERS[kind].duration;
  save();render();message('Активирован бустер: '+CC14_BOOSTERS[kind].title);
 }
