@@ -1311,14 +1311,14 @@ function plinkoPlay(){
  let completed=0,earned=0;
  results.forEach((result,n)=>{
   const ball=document.createElement('div');
-  ball.className='plinko-moving-ball';ball.style.opacity='0';
+  ball.className='plinko-moving-ball';ball.style.opacity='0';ball.style.zIndex=String(10+n);ball.style.filter='hue-rotate('+(n*31%180)+'deg) drop-shadow(0 0 4px #ffdf8a)';
   if(board){
    board.appendChild(ball);
    const positions=[{left:center-7,top:6}];
    result.path.forEach((right,i)=>{const pegX=center+(right-(i+1)/2)*step;positions.push({left:pegX-7,top:27+i*21-14})});
    positions.push({left:center-7+(result.index-6)*step,top:288});
    const frames=positions.map((p,i)=>({left:p.left+'px',top:p.top+'px',offset:i/(positions.length-1)}));
-   if(ball.animate){const animation=ball.animate(frames,{duration,delay:n*90,easing:'linear',fill:'forwards'});ball.style.opacity='1';animation.onfinish=()=>{ball.style.left=positions[positions.length-1].left+'px';ball.style.top='288px'}}
+   if(ball.animate){const animation=ball.animate(frames,{duration,delay:0,easing:'linear',fill:'forwards'});ball.style.opacity='1';animation.onfinish=()=>{ball.style.left=positions[positions.length-1].left+'px';ball.style.top='288px'}}
    else{ball.style.left=positions[positions.length-1].left+'px';ball.style.top='288px'}
   }
   setTimeout(()=>{
@@ -1326,7 +1326,7 @@ function plinkoPlay(){
    if(bins)bins.querySelectorAll('span').forEach((el,i)=>el.classList.toggle('plinko-bin-won',i===result.index));
    if(hits)hits.textContent='Попадания '+completed+'/'+count+': '+plinkoHits.map(i=>'×'+table[i]).join(' · ')+' | '+fmt(earned)+' фишек';
    if(completed===count){busy=false;state.pendingMiniRound=null;finish(earned,'Плинко · '+count+' шар. · '+plinkoHits.map(i=>'×'+table[i]).join(' / '))}
-  },duration+80+n*95);
+  },duration+80);
  });
 }
 let crashAutoTarget=0,crashHistory=[],crashAutoEnabled=false,crashLastStatus='',crashStartedAt=0;
@@ -1387,7 +1387,7 @@ function cashoutCoins(chips){return Math.floor(chips*CASHOUT_RATE)}
 function cashout(){collectPassive();const input=$('cashout-amount');const raw=input?.value?.trim()||'';if(!/^\d+$/.test(raw))return message('Введите целое количество фишек');const amount=Number(raw);if(!Number.isSafeInteger(amount)||amount<CASHOUT_MIN)return message('Минимальный обмен — 3 000 фишек');if(amount>state.chips)return message('Недостаточно фишек для обмена');const coins=cashoutCoins(amount);if(!Number.isSafeInteger(coins)||!Number.isSafeInteger(state.coins+coins))return message('Слишком большая сумма');state.chips-=amount;state.coins+=coins;save();render();message('Обменено '+fmt(amount)+' фишек на '+fmt(coins)+' монет')}
 function updateCashoutPreview(){const input=$('cashout-amount'),preview=$('cashout-preview'),button=$('cashout-submit');if(!input||!preview||!button)return;const raw=input.value.trim(),amount=/^\d+$/.test(raw)?Number(raw):NaN;const valid=Number.isSafeInteger(amount)&&amount>=CASHOUT_MIN&&amount<=state.chips&&Number.isSafeInteger(state.coins+cashoutCoins(amount));preview.textContent=!raw?'Введите количество фишек':!Number.isSafeInteger(amount)?'Введите целое число':amount<CASHOUT_MIN?'Минимум 3 000 фишек':amount>state.chips?'Недостаточно фишек':'Получите '+fmt(cashoutCoins(amount))+' монет';button.disabled=!valid}
 function rewardCollection(){if(state.plays===0||state.plays%12!==0||state.collect.includes('slot-'+Math.floor(state.plays/12)))return;const i=Math.floor(state.plays/12),name='slot-'+i;state.collect.push(name);state.vip+=1;save();message('Новая коллекционная награда! +1 VIP')}
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 11.0</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 11.1</div></div></div><div class="status">Ур. '+state.level+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 function navbar(){return '<nav class="nav">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 let expandedDistrict=false;
 function cityScreen(){
