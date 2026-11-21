@@ -1,19 +1,38 @@
 'use strict';
 
 function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
-  // Optional schema feature: lack of ALTER rights cannot block existing ranking.
+  // Prefer the existing players.avatar_url column. If ALTER is denied, use an
+  // independent table; do not disable avatar persistence for the whole ranking.
   const avatarReady = pool ? (async () => {
     try {
       await pool.query('ALTER TABLE public.casino_city_players ADD COLUMN IF NOT EXISTS avatar_url TEXT');
-      return true;
+      return 'column';
     } catch (error) {
-      console.warn('Casino avatars unavailable, ranking remains active:', error.code || error.message);
+      console.warn('Casino avatar column migration unavailable:', error.code || error.message);
       try {
         const { rowCount } = await pool.query("SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='casino_city_players' AND column_name='avatar_url'");
-        return rowCount > 0;
-      } catch (_) { return false; }
+        if (rowCount > 0) return 'column';
+      } catch (_) {}
     }
-  })() : Promise.resolve(false);
+    try {
+      await pool.query(`CREATE TABLE IF NOT EXISTS public.casino_city_avatars(
+        vk_id BIGINT PRIMARY KEY,
+        avatar_url TEXT NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`);
+      await pool.query('SELECT 1 FROM public.casino_city_avatars LIMIT 1');
+      return 'table';
+    } catch (error) {
+      console.warn('Casino avatar table unavailable. Apply the avatar migration:', error.code || error.message);
+      return 'none';
+    }
+  })() : Promise.resolve('none');
+  const avatarColumn = mode => mode === 'column'
+    ? 'avatar_url'
+    : "''::text AS avatar_url";
+  const avatarJoin = mode => mode === 'table'
+    ? "COALESCE((SELECT a.avatar_url FROM public.casino_city_avatars a WHERE a.vk_id=casino_city_players.vk_id), '') AS avatar_url"
+    : avatarColumn(mode);
   const safeAvatar = value => {
     if (typeof value !== 'string' || value.length > 650) return '';
     try {
@@ -27,10 +46,11 @@ function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
   app.get('/api/casino/top', async (_req, res) => {
     if (!pool) return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
     try {
-      const avatarEnabled = await avatarReady;
+      const avatarMode = await avatarReady;
+      const avatarEnabled = avatarMode === 'column';
       const { rows } = await pool.query(`
         SELECT vk_id::text AS vk_id, display_name, score::text AS score,
-               level, plays::text AS plays, wins::text AS wins, ${avatarEnabled ? 'avatar_url' : "''::text AS avatar_url"}
+               level, plays::text AS plays, wins::text AS wins, ${avatarJoin(avatarMode)}
         FROM public.casino_city_players
         ORDER BY score DESC, updated_at ASC, vk_id ASC
         LIMIT 100
@@ -46,11 +66,12 @@ function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
   app.get('/api/casino/me', requireAuth, async (req, res) => {
     if (!pool) return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
     try {
-      const avatarEnabled = await avatarReady;
+      const avatarMode = await avatarReady;
+      const avatarEnabled = avatarMode === 'column';
       const vkId = String(req.playerId || '').replace(/^vk:/, '');
       if (!/^\d+$/.test(vkId)) return res.status(401).json({ error: 'INVALID_PLAYER' });
       const { rows } = await pool.query(
-        `SELECT vk_id::text AS vk_id, display_name, score::text AS score, level, plays::text AS plays, wins::text AS wins, ${avatarEnabled ? 'avatar_url' : "''::text AS avatar_url"} FROM public.casino_city_players WHERE vk_id=$1`,
+        `SELECT vk_id::text AS vk_id, display_name, score::text AS score, level, plays::text AS plays, wins::text AS wins, ${avatarJoin(avatarMode)} FROM public.casino_city_players WHERE vk_id=$1`,
         [vkId]
       );
       res.set('Cache-Control', 'no-store');
@@ -82,7 +103,8 @@ function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
     const name = displayName || ('Игрок ' + vkId.slice(-4));
     const targetScore = plays * 15 + wins * 45 + level * 110 +
       buildings.reduce((a, b) => a + b, 0) * 30;
-    const avatarEnabled = await avatarReady;
+    const avatarMode = await avatarReady;
+      const avatarEnabled = avatarMode === 'column';
     const client = await pool.connect().catch(() => null);
     if (!client) return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
     try {
@@ -144,6 +166,23 @@ function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
                       level, plays::text AS plays, wins::text AS wins, ${avatarEnabled ? 'avatar_url' : "''::text AS avatar_url"}
           `, avatarEnabled ? [vkId, name, acceptedScore, acceptedLevel, acceptedPlays, acceptedWins, avatarUrl] : [vkId, name, acceptedScore, acceptedLevel, acceptedPlays, acceptedWins]);
           row = changed.rows[0];
+        }
+      }
+      if (avatarMode === 'table' && avatarUrl) {
+        await client.query('SAVEPOINT casino_avatar_part');
+        try {
+          await client.query(`
+            INSERT INTO public.casino_city_avatars(vk_id,avatar_url,updated_at)
+            VALUES($1,$2,NOW())
+            ON CONFLICT(vk_id) DO UPDATE
+            SET avatar_url=EXCLUDED.avatar_url,updated_at=NOW()
+          `,[vkId,avatarUrl]);
+          await client.query('RELEASE SAVEPOINT casino_avatar_part');
+          row.avatar_url=avatarUrl;
+        } catch(error){
+          await client.query('ROLLBACK TO SAVEPOINT casino_avatar_part');
+          await client.query('RELEASE SAVEPOINT casino_avatar_part');
+          console.warn('Casino avatar update failed:',error.code||error.message);
         }
       }
       if (typeof onScoreAdvanced === 'function' && !inserted.rowCount && Number(row.score)>Number(old.score)) {
