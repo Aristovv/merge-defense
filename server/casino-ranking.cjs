@@ -99,13 +99,16 @@ function registerCasinoRanking(app, pool, requireAuth) {
           acceptedPlays < plays || acceptedWins < wins || acceptedLevel < level;
         // Do not refresh updated_at for no-op syncs: that would prevent legitimate
         // time allowance from accumulating.
-        const advanced = acceptedScore > Number(old.score) ||
+        const nameChanged = !!displayName && displayName !== old.display_name;
+        const advanced = nameChanged || acceptedScore > Number(old.score) ||
           acceptedPlays > Number(old.plays) || acceptedWins > Number(old.wins) ||
           acceptedLevel > Number(old.level);
         if (advanced) {
           const changed = await client.query(`
             UPDATE public.casino_city_players
-            SET display_name=$2, score=$3, level=$4, plays=$5, wins=$6, updated_at=NOW()
+            SET display_name=$2, score=$3, level=$4, plays=$5, wins=$6,
+                updated_at=CASE WHEN score <> $3 OR level <> $4 OR plays <> $5 OR wins <> $6
+                                THEN NOW() ELSE updated_at END
             WHERE vk_id=$1
             RETURNING vk_id::text AS vk_id, display_name, score::text AS score,
                       level, plays::text AS plays, wins::text AS wins
