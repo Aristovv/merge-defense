@@ -2978,6 +2978,29 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
  .bank-exchange-side{min-width:0}
 }
 @media(prefers-reduced-motion:reduce){#lucky-legal-support a{transition:none}}
+
+/* LUCKY CITY game room mobile pass: responsive layout without changing payout logic */
+.game-layout{min-width:0;overflow-x:clip}
+.game-layout .machine{min-width:0;max-width:100%;overflow-x:clip}
+.game-layout .game-top{min-width:0}
+.game-layout .controls{display:flex;flex-wrap:wrap;gap:9px}
+.game-layout .controls>.btn{flex:1 1 140px;min-width:0}
+.game-layout input,.game-layout select{min-width:0;max-width:100%;box-sizing:border-box}
+.game-layout .note{line-height:1.6;overflow-wrap:anywhere}
+.game-layout .machine img,.game-layout .machine canvas,.game-layout .machine svg{max-width:100%}
+.game-layout .machine .subline{overflow-wrap:anywhere}
+@media(max-width:480px){
+ .game-layout{padding:9px 10px 20px}
+ .game-layout .game-top{margin-bottom:8px}
+ .game-layout .machine{padding:12px 10px;border-radius:18px}
+ .game-layout .machine>h2{margin:8px 0 5px;font-size:20px;line-height:1.25}
+ .game-layout .machine>.subline{margin:4px 0 12px;font-size:12px}
+ .game-layout .casino-room-art{max-width:100%}
+ .game-layout .era30-game-status{gap:6px;flex-wrap:wrap}
+ .game-layout .controls{gap:8px}
+ .game-layout .controls>.btn{min-height:46px}
+ .game-layout .note{font-size:12px}
+}
 </style><style>
 .casino-admin-search{display:flex;gap:8px;margin:12px 0;align-items:center}
 .casino-admin-search select{background:#181323;color:white;border:1px solid #8b719c;border-radius:10px;padding:10px;max-width:120px}.casino-admin-search input{flex:1;min-width:0;background:#181323;border:1px solid #8b719c;border-radius:10px;color:white;padding:11px}
@@ -4937,7 +4960,7 @@ async function casinoAdminLoad(){
   host.innerHTML=(data.players||[]).length?(data.players||[]).map(p=>'<div class="casino-admin-player"><b>'+rankEsc(p.display_name||'Игрок')+'</b><span>VK '+rankEsc(p.vk_id)+' · Ур. '+Number(p.level||1)+' · '+fmt(Number(p.score||0))+' очков · '+fmt(Number(p.plays||0))+' игр</span></div>').join(''):'Игроки не найдены';
  }catch(error){host.textContent=error.message||'Ошибка загрузки'}
 }
-function navbar(){return '<nav class="nav era30-global-nav" aria-label="Главное меню">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
+function navbar(){return '<nav class="nav era30-global-nav" aria-label="Главное меню">'+[['city','city','Город'],['games','games','Игры'],['collection','collection','Коллекция'],['quests','quest','Задания'],['top','trophy','Топ'],['shop','vip','Магазин'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button type="button" aria-label="'+label+'" aria-current="'+(tab===k?'page':'false')+'" data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 
 /* LUCKY CITY 14.0 — LIVE CITY. All rewards are virtual, locally persisted and bounded. */
 const CC14_CHEST_WAIT=8*3600000;
