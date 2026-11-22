@@ -13,6 +13,9 @@ packs.forEach(([key,price,name,pack])=>goods[key]={id:++n,price,name,...pack});
 const nick=['nick-white','nick-red','nick-blue','nick-green','nick-purple','nick-gold','nick-neon-blue','nick-neon-pink','nick-fire','nick-legend','nick-galaxy','nick-rainbow'];
 const frame=['frame-silver','frame-blue','frame-purple','frame-gold','frame-emerald','frame-neon','frame-fire','frame-rainbow','frame-diamond','frame-royal'];
 for(const [type,list] of [['nick',nick],['frame',frame]])for(const value of list)goods[type+'_'+value]={id:++n,price:type==='nick'?({'nick-white':5,'nick-red':5,'nick-blue':5,'nick-green':10,'nick-purple':10,'nick-gold':20}[value]||25):({'frame-silver':5,'frame-blue':5,'frame-purple':10,'frame-gold':15,'frame-emerald':20}[value]||25),name:type+' '+value,[type]:value};
+// Verified wardrobe cosmetics: catalog must match the client and be registered before byId.
+const wardrobeProducts=[["cap-vip","hat","Кепка VIP",5],["beanie-stars","hat","Шапка Starfall",7],["bucket-holo","hat","Панама Hologram",10],["kitty-pink","hat","Наушники Kitty Pink",8],["crown-royal","hat","Корона Royal",19],["jacket-neon-vip","jacket","Бомбер Neon VIP",7],["hoodie-lunar","jacket","Худи Lunar",9],["jacket-phoenix","jacket","Куртка Phoenix",14],["coat-royal-vip","jacket","Плащ Royal VIP",22],["pants-vip","pants","Джинсы VIP",5],["cargo-neon-vip","pants","Карго Neon",7],["pants-royal-vip","pants","Брюки Crown",12],["pants-galaxy","pants","Брюки Galaxy",17],["shoes-vip","shoes","Кеды Neon VIP",5],["shoes-sakura","shoes","Кроссовки Sakura",7],["shoes-starlight","shoes","Ботинки Starlight",12],["shoes-phoenix","shoes","Ботинки Phoenix",15],["glasses-vip","accessory","Очки VIP",4],["phones-holo","accessory","Наушники Holo",8],["chain-royal-vip","accessory","Цепь Royal",12],["glasses-phoenix","accessory","Очки Phoenix",10],["kitty","hat","Наушники Kitty",8],["crown","hat","Корона города",19],["cowboy","hat","Ковбойская шляпа",9],["goldcoat","jacket","Золотой бомбер",12],["royalpants","pants","Брюки Royal",10],["goldboots","shoes","Золотые ботинки",15],["chain","accessory","Цепь Короля",9]];
+for(const [id,type,name,price] of wardrobeProducts){goods['character_'+id]={id:++n,price,name,characterItem:id,characterType:type};}
 const byId=new Map(Object.entries(goods).map(([key,item])=>[String(item.id),{key,...item}]));
 const error=(code,msg)=>({error:{error_code:code,error_msg:msg,critical:true}});
 const ready=pool=>!!pool&&process.env.LUCKY_VK_PAYMENTS_ENABLED==='1'&&!!process.env.VK_PAYMENTS_SECRET;
@@ -38,6 +41,14 @@ function apply(save,item){
  }
  if(item.vipBadge){if(!Array.isArray(inv.badges))inv.badges=[];if(!inv.badges.includes('vip'))inv.badges.push('vip');eq.badge='vip'}
  save.donationInventory=inv;save.donationEquipped=eq;
+ if(item.characterItem){
+  const c=save.character33&&typeof save.character33==='object'&&!Array.isArray(save.character33)?save.character33:{};
+  if(!Array.isArray(c.owned))c.owned=[];
+  if(!c.owned.includes(item.characterItem))c.owned.push(item.characterItem);
+  if(!c.equipped||typeof c.equipped!=='object')c.equipped={};
+  save.character33=c;
+ }
+
  if(item.boost){
   const now=Date.now(),old=save.donationIncomeBoost||{};
   save.donationIncomeBoost={percent:old.until>now?Math.max(Number(old.percent)||0,item.boost):item.boost,from:now,until:now+7*86400000};
