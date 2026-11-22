@@ -112,3 +112,16 @@
 .lc33-person:has(.lc34-stack){overflow:visible}
 @media(max-width:370px){.lc33-item .lc34-thumb{height:92px}}
 @media(prefers-reduced-motion:reduce){.lc34-stack{animation:none}}
+
+/* 35.0 wardrobe expansion: filters, donation visibility, mythical collector cards */
+.lc35-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:0 0 10px}
+.lc35-filters button{min-height:38px;padding:8px 4px;border-radius:12px;border:1px solid #7f53ad;background:linear-gradient(135deg,#30204e,#170e2b);color:#dfc9f4;font-weight:800;font-size:11px}
+.lc35-filters button.selected{background:linear-gradient(135deg,#a24be0,#6830b2);border-color:#e0a8ff;color:#fff;box-shadow:0 0 13px #ac57ee55}
+.lc35-item-count{text-align:right;color:#d6b8ee;font-size:11px;margin:0 2px 9px}
+.lc33-item.mythic{border:2px solid #f4d8ac;background:radial-gradient(ellipse at 45% 35%,#a566d677,transparent 75%),linear-gradient(155deg,#57294c,#221029);box-shadow:0 0 19px #de8ffa55,inset 0 1px #ffddff55}
+.lc33-item.mythic .rar{background:linear-gradient(110deg,#7b297d,#c17a25);color:#ffe6bd}
+.lc33-item.mythic:after{content:'✦';position:absolute;top:46px;right:13px;color:#ffdeac;font-size:22px;text-shadow:0 0 12px #ffaa64}
+.lc33-item.lc35-premium{border-style:solid}
+.lc33-item.lc35-premium:not(.on){box-shadow:0 0 13px #b44cfb33,inset 0 1px #ffffff22}
+.lc33-item .rar{max-width:100%;white-space:nowrap}
+@media(max-width:360px){.lc35-filters button{font-size:10px;padding:8px 2px}}
