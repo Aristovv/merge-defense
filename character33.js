@@ -159,41 +159,10 @@ function lc33AvatarFallback(){
 
  svg.push('</svg>');return svg.join('');
 }
-/* Lucky City 34: real independent external illustration layers.
-   Existing SVG remains as an offline fallback. No change to item IDs or saves. */
-const LC34_ASSET='./assets/character/layers-v34.svg';
-let lc34LayersReady=false,lc34LayerLoadStarted=false;
-function lc34Load(){
- if(lc34LayerLoadStarted)return;
- lc34LayerLoadStarted=true;
- fetch(LC34_ASSET,{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Layer asset unavailable');return r.text()}).then(body=>{
-  if(!body.includes('id="hat-cap"')||!body.includes('id="body"'))throw Error('Layer asset incomplete');
-  lc34LayersReady=true;
-  if(typeof tab!=='undefined'&&tab==='character')render();
- }).catch(e=>console.warn('Lucky City illustrated layers fallback:',e.message));
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',lc34Load,{once:true});else lc34Load();
-function lc34Graphic(id,role='decorative'){
- const clean=String(id).replace(/[^a-z0-9-]/g,'');
- const url=LC34_ASSET+'#'+clean;
- return '<svg class="lc34-layer" viewBox="0 0 280 405" preserveAspectRatio="xMidYMid meet" role="presentation" aria-hidden="true"><use href="'+url+'" xlink:href="'+url+'"></use></svg>';
-}
-function lc33Avatar(){
- if(!lc34LayersReady)return lc33AvatarFallback();
- const c=lc33State();
- const layers=['body','pants-'+c.equipped.pants,'shoes-'+c.equipped.shoes,
-  'jacket-'+c.equipped.jacket,'hat-'+c.equipped.hat,'accessory-'+c.equipped.accessory];
- return '<div class="lc34-stack" role="img" aria-label="Персонаж с выбранной одеждой">'+layers.map(id=>lc34Graphic(id)).join('')+'</div>';
-}
-function lc34SvgItem(g){
- if(!lc34LayersReady)return lc33SvgItem(g);
- const safe=String(g.type+'-'+g.id).replace(/[^a-z0-9-]/g,'');
- const box=g.type==='hat'?'70 0 150 130':g.type==='jacket'?'35 135 215 160':
-  g.type==='pants'?'55 235 180 150':g.type==='shoes'?'45 335 195 65':
-  g.id==='chain'?'95 140 100 80':'75 45 145 115';
- const url=LC34_ASSET+'#'+safe;
- return '<svg class="lc34-thumb" viewBox="'+box+'" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><use href="'+url+'" xlink:href="'+url+'"></use></svg>';
-}
+// Restore reliable inline art for Safari / VK WebView: external SVG <use>
+// rendered tiny thumbnails and unresolved gradients on iPhone.
+function lc33Avatar(){return lc33AvatarFallback();}
+function lc34SvgItem(g){return lc33SvgItem(g);}
 function lc33Screen(){
  const c=lc33State(),active=LC33_GROUPS.find(g=>g[0]===lc33Category)||LC33_GROUPS[0];
  const list=LC33_GOODS.filter(g=>g.type===lc33Category&&g.payment!=='locked');
