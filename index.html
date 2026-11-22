@@ -3992,13 +3992,19 @@ async function loadCasinoRanking(){
   console.warn('Casino leaderboard:',e);
  }finally{casinoRankingLoading=false}
 }
+// NEW ERA stage 28: keep a single leaderboard timer and pause it offscreen.
 function casinoManageRankingRefresh(){
- if(casinoTopRefreshTimer){clearInterval(casinoTopRefreshTimer);casinoTopRefreshTimer=null}
- if(tab==='top')casinoTopRefreshTimer=setInterval(()=>{
+ const active=tab==='top'&&document.visibilityState!=='hidden';
+ if(!active){if(casinoTopRefreshTimer){clearInterval(casinoTopRefreshTimer);casinoTopRefreshTimer=null}return}
+ if(casinoTopRefreshTimer)return;
+ casinoTopRefreshTimer=setInterval(()=>{
   if(tab==='top'&&document.visibilityState!=='hidden'){loadCasinoRanking();casinoTournamentLoad()}
  },15000);
 }
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&tab==='top'){loadCasinoRanking();casinoTournamentLoad()}});
+document.addEventListener('visibilitychange',()=>{
+ casinoManageRankingRefresh();
+ if(document.visibilityState==='visible'&&tab==='top'){loadCasinoRanking();casinoTournamentLoad()}
+});
 /* Casino City cloud save v18.2: local-first, server revision guarded. */
 let casinoCloudRevision=null,casinoCloudDirty=false,casinoCloudBusy=false,casinoCloudTimer=null,casinoCloudStarting=false;
 function casinoCloudBackup(reason){
