@@ -156,3 +156,34 @@
 .lc33-item.mythic .rar{box-shadow:0 0 12px #ffcb84aa}
 .lc33-item.legend .rar{box-shadow:0 0 9px #ffba5b55}
 @media(prefers-reduced-motion:reduce){.lc38-aura{animation:none}}
+
+/* Lucky City 39: coordinated outfits, safe try-on, no automatic currency spending */
+.lc33-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+.lc33-tabs button{font-size:clamp(10px,2.5vw,13px);padding:12px 4px;white-space:normal}
+.lc39-preview-stage{position:relative;max-width:480px;margin:0 auto 14px;min-height:340px;border:1px solid #a873ea;border-radius:19px;background:radial-gradient(ellipse at 50% 40%,#5d30946e,transparent 65%),linear-gradient(160deg,#2b1a54,#120b2c);overflow:hidden;box-shadow:0 0 24px #7934c859}
+.lc39-preview-stage:before{content:'';position:absolute;inset:20% 0 0;opacity:.35;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0 25px,#b45dff3e 26px 28px,transparent 29px 46px);mask-image:linear-gradient(transparent,#000)}
+.lc39-preview-stage:after{content:'';position:absolute;bottom:12px;left:22%;width:56%;height:23px;border:3px solid #d577ff;border-radius:50%;box-shadow:0 0 22px #c649ff,0 0 16px #8e30ff inset}
+.lc39-preview-label{position:absolute;top:10px;left:12px;z-index:3;padding:7px 11px;border:1px solid #b36bea;border-radius:12px;background:#21123bbb;color:#f7dfff;font-size:11px;letter-spacing:.5px;font-weight:900}
+.lc39-preview-avatar{position:relative;z-index:2;width:min(100%,270px);height:345px;margin:0 auto;display:flex;justify-content:center;align-items:end;filter:drop-shadow(0 0 9px #b563f780)}
+.lc39-preview-avatar>svg{display:block;width:100%;height:100%;overflow:visible}
+.lc39-sets{border:1px solid #8453b6;border-radius:18px;background:linear-gradient(135deg,#28183f,#140d2a);padding:13px 10px 20px}
+.lc39-sets h2{font-size:19px;margin:3px 0 8px;font-weight:900}
+.lc39-set-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+.lc39-set-card{min-width:0;border-radius:15px;border:1px solid var(--set-glow,#ac71f2);padding:10px 8px;background:radial-gradient(ellipse at 50% 10%,color-mix(in srgb,var(--set-glow) 22%,transparent),transparent 67%),linear-gradient(#32204c,#17102e);display:flex;flex-direction:column;gap:8px;box-shadow:inset 0 1px #ffffff20}
+.lc39-set-card.preview,.lc39-set-card.worn{box-shadow:0 0 17px color-mix(in srgb,var(--set-glow) 45%,transparent),inset 0 1px #ffffff33}
+.lc39-set-top{display:flex;justify-content:space-between;flex-wrap:wrap;gap:3px;align-items:start}
+.lc39-set-top strong{font-size:13px;color:#fff2ff;line-height:1.25;letter-spacing:.3px}
+.lc39-set-top small{color:var(--set-glow,#d8a4fa);font-weight:800;font-size:10px}
+.lc39-mini-items{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;gap:2px;min-height:45px}
+.lc39-mini-items span{min-width:0;display:flex;align-items:center;justify-content:center}
+.lc39-mini-items svg{width:100%;height:48px;min-height:0;filter:drop-shadow(0 0 5px #a64cff66)}
+.lc39-set-card p{font-size:11px;color:#d9c2ec;line-height:1.35;margin:0}
+.lc39-set-card .lc39-set-status{color:#d8ffde;font-weight:800;margin-top:auto}
+.lc39-set-card .lc39-set-price{color:#ffd7a5;overflow-wrap:anywhere;font-size:10px}
+.lc39-set-actions{display:flex;flex-direction:column;gap:6px}
+.lc39-set-actions button,.lc39-reset{border-radius:13px;border:1px solid #bc85ea;color:#fff;padding:9px 5px;font-size:12px;font-weight:850;background:linear-gradient(135deg,#9550d6,#532681)}
+.lc39-set-actions button:last-child{background:linear-gradient(135deg,#6152a9,#2b2255)}
+.lc39-set-actions button:disabled{opacity:.55;cursor:not-allowed}
+.lc39-reset{width:100%;background:linear-gradient(135deg,#512f7a,#281a4a);margin-top:5px}
+@media(min-width:620px){.lc39-set-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:375px){.lc39-set-card{padding:9px 6px}.lc39-set-top strong{font-size:11px}.lc39-mini-items svg{height:38px}.lc39-set-actions button{font-size:11px}}
