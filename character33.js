@@ -21,7 +21,86 @@ const LC33_GOODS=[
  ['headphones','accessory','Золотые наушники','Обычная',0,'default','#ffbe39'],
  ['glasses','accessory','Очки Street','Редкая',6000,'coin','#5b46cd'],
  ['chain','accessory','Цепь Короля','Эпическая',590,'premium','#f1c655']
+
 ].map(([id,type,name,rarity,price,payment,color])=>({id,type,name,rarity,price,payment,color}));
+/* 35.0: preserve all legacy item IDs and ownership; add 70 collectible wardrobe pieces.
+   All real-money prices are in VK Votes and are only charged via the confirmed VK callback. */
+const LC35_NEW_ITEMS=[
+ // Hats: premium city streetwear and expensive collectables
+ ['cap-noir','hat','Кепка Noir','Редкая',35000,'coin','#16172d','cap'],
+ ['cap-ice','hat','Кепка Ice','Редкая',65000,'coin','#47bffa','cap'],
+ ['cap-flame','hat','Кепка Flame','Эпическая',125000,'coin','#e94a42','cap'],
+ ['cap-diamond','hat','Кепка Diamond','Легендарная',750000,'coin','#a4f2ff','cap'],
+ ['beanie-rose','hat','Шапка Sakura','Редкая',55000,'coin','#e58bbd','beanie'],
+ ['beanie-night','hat','Шапка Midnight','Эпическая',190000,'coin','#2a275c','beanie'],
+ ['bucket-neon','hat','Панама Neon','Эпическая',235000,'coin','#8d41ed','bucket'],
+ ['bucket-emerald','hat','Панама Emerald','Легендарная',550000,'coin','#32bf8b','bucket'],
+ ['fedora-shadow','hat','Шляпа Shadow','Легендарная',900000,'coin','#281f34','cowboy'],
+ ['crown-obsidian','hat','Корона Obsidian','Мифическая',3500000,'coin','#262242','crown'],
+ ['cap-vip','hat','Кепка VIP','Эпическая',5,'premium','#c5a2ff','cap'],
+ ['beanie-stars','hat','Шапка Starfall','Эпическая',7,'premium','#5755b3','beanie'],
+ ['bucket-holo','hat','Панама Hologram','Легендарная',10,'premium','#76e3f5','bucket'],
+ ['kitty-pink','hat','Наушники Kitty Pink','Эпическая',8,'premium','#e78ceb','kitty'],
+ ['crown-royal','hat','Корона Royal','Легендарная',19,'premium','#ffc765','crown'],
+ // Jackets
+ ['jacket-black','jacket','Бомбер Blackout','Редкая',45000,'coin','#121525','varsity'],
+ ['jacket-blue','jacket','Куртка Sapphire','Редкая',85000,'coin','#3154b1','varsity'],
+ ['hoodie-rose','jacket','Худи Sakura','Эпическая',175000,'coin','#b95b98','hoodie'],
+ ['hoodie-forest','jacket','Худи Forest','Эпическая',280000,'coin','#197557','hoodie'],
+ ['jacket-sunset','jacket','Бомбер Sunset','Легендарная',650000,'coin','#f07948','varsity'],
+ ['jacket-diamond','jacket','Куртка Diamond','Легендарная',1200000,'coin','#75d8e8','varsity'],
+ ['hoodie-cosmos','jacket','Худи Cosmos','Мифическая',2800000,'coin','#452bb4','hoodie'],
+ ['coat-emperor','jacket','Плащ Императора','Мифическая',6500000,'coin','#a67829','goldcoat'],
+ ['jacket-neon-vip','jacket','Бомбер Neon VIP','Эпическая',7,'premium','#9c46ff','varsity'],
+ ['hoodie-lunar','jacket','Худи Lunar','Эпическая',9,'premium','#929be6','hoodie'],
+ ['jacket-phoenix','jacket','Куртка Phoenix','Легендарная',14,'premium','#e14a32','goldcoat'],
+ ['coat-royal-vip','jacket','Плащ Royal VIP','Легендарная',22,'premium','#e0b13c','goldcoat'],
+ // Pants
+ ['pants-blue','pants','Джинсы Indigo','Редкая',40000,'coin','#344f9a','jeans'],
+ ['pants-white','pants','Джинсы Frost','Редкая',75000,'coin','#c4cce7','jeans'],
+ ['cargo-navy','pants','Карго Navy','Эпическая',150000,'coin','#263b6b','cargo'],
+ ['cargo-violet','pants','Карго Violet','Эпическая',260000,'coin','#7c42ba','cargo'],
+ ['pants-goldline','pants','Брюки Goldline','Легендарная',700000,'coin','#58407a','royalpants'],
+ ['pants-diamond','pants','Брюки Diamond','Легендарная',1200000,'coin','#6db4d2','royalpants'],
+ ['cargo-abyss','pants','Карго Abyss','Мифическая',2800000,'coin','#171e37','cargo'],
+ ['pants-emperor','pants','Брюки Императора','Мифическая',4500000,'coin','#b68a30','royalpants'],
+ ['pants-vip','pants','Джинсы VIP','Эпическая',5,'premium','#895bce','jeans'],
+ ['cargo-neon-vip','pants','Карго Neon','Эпическая',7,'premium','#6c4bea','cargo'],
+ ['pants-royal-vip','pants','Брюки Crown','Легендарная',12,'premium','#d29c44','royalpants'],
+ ['pants-galaxy','pants','Брюки Galaxy','Легендарная',17,'premium','#6c62cf','royalpants'],
+ // Shoes
+ ['shoes-black','shoes','Кроссовки Black','Редкая',30000,'coin','#292538','sneakers'],
+ ['shoes-rose','shoes','Кроссовки Rose','Редкая',65000,'coin','#e19cc0','sneakers'],
+ ['shoes-ice','shoes','Кеды Ice','Эпическая',130000,'coin','#6bd0f4','neonboots'],
+ ['shoes-lime','shoes','Кеды Toxic','Эпическая',220000,'coin','#7eed56','neonboots'],
+ ['shoes-royal','shoes','Ботинки Royal','Легендарная',600000,'coin','#b88df0','goldboots'],
+ ['shoes-flame','shoes','Кроссовки Fire','Легендарная',900000,'coin','#f57737','neonboots'],
+ ['shoes-diamond','shoes','Ботинки Diamond','Мифическая',2200000,'coin','#c0f2fc','goldboots'],
+ ['shoes-emperor','shoes','Обувь Императора','Мифическая',3500000,'coin','#dbac4c','goldboots'],
+ ['shoes-vip','shoes','Кеды Neon VIP','Эпическая',5,'premium','#c36df7','neonboots'],
+ ['shoes-sakura','shoes','Кроссовки Sakura','Эпическая',7,'premium','#e887c0','sneakers'],
+ ['shoes-starlight','shoes','Ботинки Starlight','Легендарная',12,'premium','#b6b7ee','goldboots'],
+ ['shoes-phoenix','shoes','Ботинки Phoenix','Легендарная',15,'premium','#f47a34','goldboots'],
+ // Accessories
+ ['glasses-gold','accessory','Очки Gold','Редкая',45000,'coin','#f6cb62','glasses'],
+ ['glasses-cyan','accessory','Очки Cyber','Эпическая',135000,'coin','#5be4ed','glasses'],
+ ['phones-red','accessory','Наушники Flame','Эпическая',180000,'coin','#eb7256','headphones'],
+ ['phones-diamond','accessory','Наушники Diamond','Легендарная',780000,'coin','#88e4f4','headphones'],
+ ['chain-silver','accessory','Цепь Silver','Редкая',90000,'coin','#c1c7e1','chain'],
+ ['chain-diamond','accessory','Цепь Diamond','Легендарная',950000,'coin','#80d9ed','chain'],
+ ['chain-emperor','accessory','Цепь Императора','Мифическая',3000000,'coin','#e0a92a','chain'],
+ ['glasses-legend','accessory','Очки Legendary','Мифическая',2100000,'coin','#aa7dff','glasses'],
+ ['glasses-vip','accessory','Очки VIP','Эпическая',4,'premium','#bba1f0','glasses'],
+ ['phones-holo','accessory','Наушники Holo','Эпическая',8,'premium','#df7ff2','headphones'],
+ ['chain-royal-vip','accessory','Цепь Royal','Легендарная',12,'premium','#f6c85d','chain'],
+ ['glasses-phoenix','accessory','Очки Phoenix','Легендарная',10,'premium','#ff895a','glasses']
+].map(([id,type,name,rarity,price,payment,color,style])=>({id,type,name,rarity,price,payment,color,style}));
+LC33_GOODS.push(...LC35_NEW_ITEMS);
+// Lower the advertised VK Vote prices for existing wardrobe items; other paid products stay unchanged.
+const LC35_OLD_PRICES={kitty:8,crown:19,cowboy:9,goldcoat:12,royalpants:10,goldboots:15,chain:9};
+for(const g of LC33_GOODS)if(Object.prototype.hasOwnProperty.call(LC35_OLD_PRICES,g.id))g.price=LC35_OLD_PRICES[g.id];
+const LC35_BY_ID=new Map(LC33_GOODS.map(g=>[g.id,g]));
+
 let lc33Category='hat',lc33Subtab='wardrobe',lc33Selected='cap';
 function lc33State(){
  if(!state.character33||typeof state.character33!=='object'||Array.isArray(state.character33))state.character33={};
