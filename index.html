@@ -3723,6 +3723,27 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .scratch-ticket .scratch.revealed{box-shadow:inset 0 1px #fff8,0 0 11px #f5d49a65}
 .scratch-ticket .scratch-banner{text-shadow:0 3px 5px #000a,0 0 18px #f4d09a9c}
 @media(prefers-reduced-motion:reduce){.keno-board .digit,.scratch-ticket .scratch{transition:none}}
+<style>
+/* NEW ERA 30.0 Stage 21 — six unique slot cabinets */
+.slot-scene .slot-cabinet{isolation:isolate;box-shadow:inset 0 0 0 2px #ffffff24,inset 0 0 28px #0009,0 17px 30px #000b,0 0 22px var(--slot-glow,#a878e566);border-color:var(--slot-metal,#d5ad6b);background:radial-gradient(ellipse at 50% -12%,var(--slot-glow,#b26ee54d),transparent 67%),linear-gradient(145deg,var(--slot-top,#4d285a),#100e25 47%,var(--slot-bottom,#493558) 76%,#100e25)}
+.slot-scene .slot-cabinet .slot-banner{text-shadow:0 2px 5px #000b,0 0 17px var(--slot-glow,#e6b6f6);border-bottom:1px solid var(--slot-metal,#d5ad6b)}
+.slot-scene .slot-cabinet .slot-led{box-shadow:0 0 9px var(--slot-glow,#f9c7b9),0 0 16px var(--slot-glow,#f9c7b9)}
+.slot-scene .slot-cabinet .slot-bottom{border-top:1px solid var(--slot-metal,#d5ad6b);background:linear-gradient(90deg,transparent,var(--slot-glow,#d6a3f92a),transparent)}
+.slot-scene-classic{--slot-top:#5d1830;--slot-bottom:#7a2e38;--slot-glow:#ff4b6b80;--slot-metal:#f2bf7b}
+.slot-scene-fruits{--slot-top:#153f43;--slot-bottom:#4b2561;--slot-glow:#4bffb080;--slot-metal:#9af2c5}
+.slot-scene-diamonds{--slot-top:#142f5b;--slot-bottom:#2e4d83;--slot-glow:#74b9ff91;--slot-metal:#b2dafa}
+.slot-scene-pharaoh{--slot-top:#57401b;--slot-bottom:#755126;--slot-glow:#ffc9698c;--slot-metal:#ffe0a1}
+.slot-scene-vegas{--slot-top:#5a1744;--slot-bottom:#642b71;--slot-glow:#ff60df89;--slot-metal:#f4a5e7}
+.slot-scene-bells{--slot-top:#4d2e15;--slot-bottom:#754a28;--slot-glow:#ffcf6e91;--slot-metal:#f6d39b}
+.slot-scene-classic .slot-cabinet:before,.slot-scene-classic .slot-cabinet:after{background:linear-gradient(90deg,#671b34,#ff8a9b,#4b102c)}
+.slot-scene-fruits .slot-cabinet:before,.slot-scene-fruits .slot-cabinet:after{background:linear-gradient(90deg,#134d48,#9cf8d0,#19515d)}
+.slot-scene-diamonds .slot-cabinet:before,.slot-scene-diamonds .slot-cabinet:after{background:linear-gradient(90deg,#163e77,#b8edff,#235a9b)}
+.slot-scene-pharaoh .slot-cabinet:before,.slot-scene-pharaoh .slot-cabinet:after{background:linear-gradient(90deg,#77511b,#fff0a7,#80561a)}
+.slot-scene-vegas .slot-cabinet:before,.slot-scene-vegas .slot-cabinet:after{background:linear-gradient(90deg,#742361,#ffa2e6,#642d91)}
+.slot-scene-bells .slot-cabinet:before,.slot-scene-bells .slot-cabinet:after{background:linear-gradient(90deg,#74441c,#ffdf90,#875625)}
+.slot-scene .slot-cabinet-won{box-shadow:inset 0 0 0 2px #ffffff39,0 15px 30px #000b,0 0 27px var(--slot-glow,#f4d589)!important}
+.slot-scene .slot-cabinet .slot-win-summary{border-radius:9px;text-shadow:0 2px 5px #0009}
+@media(prefers-reduced-motion:reduce){.slot-scene .slot-cabinet{animation:none!important}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
