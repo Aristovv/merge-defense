@@ -61,31 +61,67 @@ function lc33SvgItem(g){
  return '<svg viewBox="0 0 80 80" aria-hidden="true"><defs><linearGradient id="lc33fabric" x2="1" y2="1"><stop stop-color="'+color+'"/><stop offset=".5" stop-color="#524184"/><stop offset="1" stop-color="'+color+'"/></linearGradient><linearGradient id="lc33gold" x2="1" y2="1"><stop stop-color="#fff0a5"/><stop offset=".45" stop-color="#f6b72d"/><stop offset="1" stop-color="#ae601a"/></linearGradient><linearGradient id="lc33purple" x2="1" y2="1"><stop stop-color="#e69cff"/><stop offset="1" stop-color="#6a23d5"/></linearGradient></defs>'+shape+'</svg>';
 }
 function lc33Avatar(){
- const c=lc33State(),hat=LC33_GOODS.find(x=>x.id===c.equipped.hat),coat=LC33_GOODS.find(x=>x.id===c.equipped.jacket),
- pant=LC33_GOODS.find(x=>x.id===c.equipped.pants),shoes=LC33_GOODS.find(x=>x.id===c.equipped.shoes),
- acc=LC33_GOODS.find(x=>x.id===c.equipped.accessory);
- const h=hat?.color||'#1a213f',j=coat?.color||'#1b2039',p=pant?.color||'#282039',s=shoes?.color||'#fff',a=acc?.color||'#ffbd3b';
- const crown=hat&&['crown','horns'].includes(hat.id);
- return '<svg viewBox="0 0 240 370" role="img" aria-label="Персонаж в выбранной одежде"><defs><linearGradient id="lcskin" x2="0.9" y2="1"><stop stop-color="#ffe0bd"/><stop offset="1" stop-color="#ca8b79"/></linearGradient><linearGradient id="lcshine"><stop stop-color="#f0bb46"/><stop offset="1" stop-color="#ae6cff"/></linearGradient></defs>'+
- '<ellipse cx="120" cy="349" rx="98" ry="14" fill="#af55ff" opacity=".32"/>'+
- '<path d="M81 233 L114 231 112 314 99 339 63 333 77 291Z M127 234 L164 229 167 310 190 333 150 339 135 302Z" fill="'+p+'" stroke="#130f2e" stroke-width="6"/>'+
- '<path d="M61 329 Q84 312 105 328 L109 347 Q83 355 54 346Z M149 328 Q171 309 188 328 L197 346 Q172 353 144 346Z" fill="'+s+'" stroke="#1c1834" stroke-width="5"/><path d="M58 340 L108 340 M146 340 L195 340" stroke="#f3b733" stroke-width="4"/>'+
- '<path d="M82 144 Q119 131 160 144 L177 225 Q144 243 77 234Z" fill="'+j+'" stroke="#170b29" stroke-width="6"/>'+
- '<path d="M91 141 L117 192 143 141 M117 192 L117 232" fill="none" stroke="#f0bb47" stroke-width="7"/>'+
- '<path d="M79 158 Q53 176 47 220 L66 234 96 190Z M159 157 Q182 167 196 223 L174 236 147 189Z" fill="'+j+'" stroke="#1a0d30" stroke-width="6"/>'+
- '<ellipse cx="58" cy="236" rx="13" ry="17" fill="url(#lcskin)"/><ellipse cx="182" cy="236" rx="13" ry="17" fill="url(#lcskin)"/>'+
- '<rect x="109" y="128" width="24" height="27" rx="10" fill="url(#lcskin)"/>'+
- '<ellipse cx="121" cy="94" rx="45" ry="53" fill="url(#lcskin)" stroke="#24112c" stroke-width="4"/>'+
- '<path d="M76 89 Q62 48 95 39 Q126 20 163 53 L167 90 Q152 83 143 70 Q108 100 77 86Z" fill="#1b1331"/>'+
- '<path d="M96 101 Q106 93 115 102 M131 102 Q141 94 150 101" fill="none" stroke="#301d37" stroke-width="4" stroke-linecap="round"/>'+
- '<circle cx="108" cy="105" r="4" fill="#45aaf0"/><circle cx="140" cy="105" r="4" fill="#45aaf0"/>'+
- '<path d="M113 126 Q124 134 136 124" fill="none" stroke="#803747" stroke-width="3"/>'+
- (crown?'<path d="M78 55 L72 21 95 39 120 11 145 39 170 21 164 55Z" fill="'+h+'" stroke="#ffe99c" stroke-width="5"/><circle cx="120" cy="38" r="6" fill="#fc8aff"/>':
- '<path d="M78 66 Q86 28 120 28 Q155 28 165 65 L163 78 74 78Z" fill="'+h+'" stroke="#241236" stroke-width="5"/><path d="M65 76 Q130 64 171 78 Q147 92 68 86Z" fill="'+h+'" stroke="#171231" stroke-width="4"/>')+
- (acc?.id==='headphones'?'<path d="M86 92 Q77 59 118 54 Q160 54 161 90" fill="none" stroke="'+a+'" stroke-width="8"/><rect x="74" y="84" width="14" height="30" rx="7" fill="'+a+'"/><rect x="154" y="84" width="14" height="30" rx="7" fill="'+a+'"/>':'')+
- (acc?.id==='glasses'?'<path d="M93 102 H119 M127 102 H151" stroke="'+a+'" stroke-width="6"/><rect x="91" y="92" width="29" height="20" rx="6" fill="#372e65aa" stroke="'+a+'" stroke-width="3"/><rect x="128" y="92" width="29" height="20" rx="6" fill="#372e65aa" stroke="'+a+'" stroke-width="3"/>':'')+
- (acc?.id==='chain'?'<path d="M97 146 Q120 185 146 146" fill="none" stroke="'+a+'" stroke-width="7"/><path d="M115 167 L123 177 130 165" fill="'+a+'"/>':'')+
- '</svg>';
+ const c=lc33State(),get=type=>LC33_GOODS.find(x=>x.id===c.equipped[type]);
+ const hat=get('hat'),jacket=get('jacket'),pants=get('pants'),shoes=get('shoes'),acc=get('accessory');
+ const h=hat?.color||'#191934',j=jacket?.color||'#181a39',p=pants?.color||'#25223c',s=shoes?.color||'#fff3e9',a=acc?.color||'#ffc045';
+ const hatId=hat?.id||'cap',accId=acc?.id||'headphones';
+ const crown=['crown','horns'].includes(hatId),beanie=hatId==='beanie',cowboy=hatId==='cowboy',kitty=hatId==='kitty',cylinder=hatId==='cylinder',bucket=hatId==='bucket';
+ const svg=[];
+ svg.push('<svg viewBox="0 0 280 405" role="img" aria-label="Персонаж Lucky City в выбранной одежде"><defs>'+
+ '<linearGradient id="lc33skin" x1="0" y1="0" x2=".95" y2="1"><stop stop-color="#fff1d0"/><stop offset=".48" stop-color="#efb18e"/><stop offset="1" stop-color="#bb6d71"/></linearGradient>'+
+ '<linearGradient id="lc33skinShadow" x2="1" y2="1"><stop stop-color="#f3b89d"/><stop offset="1" stop-color="#b16b77"/></linearGradient>'+
+ '<linearGradient id="lc33fabricBody" x1="0" y1="0" x2="1" y2="1"><stop stop-color="'+j+'"/><stop offset=".49" stop-color="#312044"/><stop offset="1" stop-color="'+j+'"/></linearGradient>'+
+ '<linearGradient id="lc33pantBody" x2="1" y2="1"><stop stop-color="'+p+'"/><stop offset=".65" stop-color="#21162f"/><stop offset="1" stop-color="'+p+'"/></linearGradient>'+
+ '<linearGradient id="lc33metal" x2="1" y2="1"><stop stop-color="#fff4c3"/><stop offset=".5" stop-color="#f2b53c"/><stop offset="1" stop-color="#9c502a"/></linearGradient>'+
+ '<linearGradient id="lc33shoe" x2="1" y2="1"><stop stop-color="'+s+'"/><stop offset=".6" stop-color="#d2afd1"/><stop offset="1" stop-color="'+s+'"/></linearGradient>'+
+ '<filter id="lc33soft"><feGaussianBlur stdDeviation="7"/></filter></defs>');
+ // Ground and rear shadow
+ svg.push('<ellipse cx="140" cy="386" rx="105" ry="13" fill="#901bf0" opacity=".55" filter="url(#lc33soft)"/>'+
+ '<path d="M99 248 Q113 245 137 250 L130 335 114 369 71 366 Q89 320 90 288Z M145 249 Q170 244 186 247 L195 321 216 361 166 371 142 309Z" fill="url(#lc33pantBody)" stroke="#120b27" stroke-width="6" stroke-linejoin="round"/>'+
+ '<path d="M101 273 L117 279 111 317 96 327 M157 272 L178 278 183 321 M92 345 L118 344 M168 343 L193 344" stroke="#75609c" stroke-width="3" fill="none" opacity=".65"/>'+
+ '<path d="M73 357 Q86 338 110 347 L125 375 Q105 395 58 383 Q53 371 73 357Z M164 350 Q184 338 201 351 L223 374 Q211 394 161 384 Q156 367 164 350Z" fill="url(#lc33shoe)" stroke="#1b1534" stroke-width="6" stroke-linejoin="round"/>'+
+ '<path d="M57 376 Q85 388 124 374 L124 384 Q95 401 58 386Z M159 377 Q187 391 222 374 L223 384 Q193 403 160 388Z" fill="#201b3a" stroke="#ffce66" stroke-width="3"/>'+
+ '<path d="M80 363 L105 359 M78 368 L110 365 M172 361 L201 360 M173 368 L204 365" stroke="#fff5dc" stroke-width="3" stroke-linecap="round"/>');
+ // Sleeves/body, layered seam and folds
+ svg.push('<path d="M108 153 Q139 140 176 153 Q189 189 190 258 Q152 276 102 262 Q95 217 108 153Z" fill="url(#lc33fabricBody)" stroke="#170c2a" stroke-width="6"/>'+
+ '<path d="M111 164 L137 202 159 164 L173 176 149 232 144 258 L119 258 117 226 93 174Z" fill="#efeff8" stroke="#4b3672" stroke-width="3"/>'+
+ '<path d="M111 154 L125 194 138 203 122 227 103 265 L94 257 110 210 88 169Z M170 154 L153 197 140 206 153 226 181 264 195 253 168 205 191 170Z" fill="'+j+'" stroke="#100b25" stroke-width="5"/>'+
+ '<path d="M108 157 L117 178 132 192 123 200 M170 157 L160 179 145 192 152 201" fill="none" stroke="#ffbd41" stroke-width="5"/>'+
+ '<path d="M108 242 Q140 252 178 242" stroke="#ffc25f" stroke-width="3" fill="none"/>'+
+ '<path d="M88 169 Q61 171 46 219 L56 264 80 255 81 223 107 187Z M190 168 Q213 170 232 215 L220 266 194 255 198 223 177 189Z" fill="'+j+'" stroke="#170c2a" stroke-width="6" stroke-linejoin="round"/>'+
+ '<path d="M66 196 Q54 225 64 244 M211 194 Q226 227 214 246" fill="none" stroke="#dd9bd3" stroke-width="3" opacity=".65"/>'+
+ '<path d="M55 250 L83 244 86 265 53 273Z M193 243 L222 248 228 274 195 265Z" fill="#ffc44c" stroke="#392248" stroke-width="3"/>'+
+ '<path d="M59 266 Q48 276 52 293 Q63 309 79 294 Q87 279 77 266Z M201 267 Q192 279 198 296 Q216 313 229 295 Q234 279 220 268Z" fill="url(#lc33skin)" stroke="#f8dcba" stroke-width="3"/>');
+ // Neck hair face
+ svg.push('<path d="M124 140 L160 141 159 170 Q144 181 126 166Z" fill="url(#lc33skinShadow)" stroke="#9d6170" stroke-width="3"/>'+
+ '<path d="M92 92 Q79 52 116 40 Q163 18 188 61 Q197 86 183 133 Q169 160 132 159 Q100 151 92 119Z" fill="#20122f" stroke="#160e2e" stroke-width="5"/>'+
+ '<path d="M93 101 Q88 69 115 55 Q143 43 166 53 Q190 69 184 104 L178 132 Q160 161 130 153 Q103 149 94 119Z" fill="url(#lc33skin)" stroke="#5b334c" stroke-width="3"/>'+
+ '<path d="M101 86 Q104 62 131 62 Q155 60 180 85 Q171 81 168 75 Q150 91 130 92 Q119 84 101 86Z" fill="#261c37"/>'+
+ '<path d="M100 99 Q111 91 122 97 M145 97 Q157 90 169 96" stroke="#35213c" stroke-width="5" fill="none" stroke-linecap="round"/>'+
+ '<path d="M106 109 Q117 106 125 111 M146 110 Q155 105 166 109" stroke="#fff8ef" stroke-width="5" fill="none" stroke-linecap="round"/>'+
+ '<ellipse cx="118" cy="111" rx="4.5" ry="5.5" fill="#39a5ef"/><ellipse cx="157" cy="110" rx="4.5" ry="5.5" fill="#39a5ef"/>'+
+ '<circle cx="119" cy="109" r="1.7" fill="#f1ffff"/><circle cx="158" cy="109" r="1.7" fill="#fff"/>'+
+ '<path d="M138 110 L134 124 L143 125" fill="none" stroke="#ab6e70" stroke-width="2.4" stroke-linecap="round"/>'+
+ '<path d="M125 138 Q139 144 153 132" fill="none" stroke="#964c60" stroke-width="3.5" stroke-linecap="round"/>'+
+ '<path d="M103 127 L110 132 M168 126 L176 120" stroke="#fb8e92" stroke-width="2" opacity=".7"/>');
+ // Hair fringe after face, no silly helmet
+ svg.push('<path d="M96 91 Q81 74 93 57 Q107 36 142 40 Q168 39 185 57 Q196 79 185 96 L171 83 Q160 64 150 66 Q134 88 110 94 L110 82Z" fill="#211632" stroke="#0f0b23" stroke-width="3"/>'+
+ '<path d="M109 67 Q125 49 144 55 M149 52 Q173 53 178 70" stroke="#554164" stroke-width="4" fill="none" stroke-linecap="round"/>');
+ let headwear='';
+ if(crown)headwear='<path d="M95 75 L84 34 106 48 137 19 163 49 191 33 181 76Z" fill="url(#lc33metal)" stroke="#fff0a4" stroke-width="5"/><circle cx="139" cy="55" r="7" fill="#ae58fc" stroke="#fff" stroke-width="2"/><path d="M94 74 Q136 83 185 74" fill="none" stroke="#b7783b" stroke-width="9"/>';
+ else if(kitty)headwear='<path d="M94 85 L93 45 112 58 143 41 164 57 181 43 182 85Z" fill="'+h+'" stroke="#f7b8fe" stroke-width="5"/><circle cx="87" cy="99" r="17" fill="#bb6bfc" stroke="#e9bbff" stroke-width="5"/><circle cx="194" cy="99" r="17" fill="#bb6bfc" stroke="#e9bbff" stroke-width="5"/>';
+ else if(cylinder)headwear='<path d="M111 15 H175 L171 72 H113Z" fill="'+h+'" stroke="#eee0ff" stroke-width="4"/><ellipse cx="142" cy="77" rx="66" ry="12" fill="'+h+'" stroke="#e8ccff" stroke-width="4"/><path d="M114 60 L171 60" stroke="#d9a84d" stroke-width="8"/>';
+ else if(cowboy)headwear='<path d="M107 83 Q112 27 139 29 Q166 30 174 83Z" fill="'+h+'" stroke="#f8baff" stroke-width="4"/><path d="M74 89 Q121 111 207 82 Q192 107 159 100 Q136 90 111 105 Q87 108 74 89Z" fill="'+h+'" stroke="#eea0ff" stroke-width="4"/>';
+ else if(beanie)headwear='<path d="M97 90 Q88 36 134 31 Q176 24 187 91Z" fill="'+h+'" stroke="#d4b4f3" stroke-width="4"/><path d="M95 85 Q136 79 187 84 L185 104 Q132 110 96 103Z" fill="#524467" stroke="#f4d6ff" stroke-width="3"/><path d="M115 46 L114 85 M133 37 L135 83 M153 39 L155 82 M173 52 L174 85" stroke="#a79bc8" stroke-width="2"/>';
+ else if(bucket)headwear='<path d="M110 39 Q139 30 174 40 L181 90 L101 90Z" fill="'+h+'" stroke="#c6d9ff" stroke-width="4"/><ellipse cx="139" cy="91" rx="58" ry="12" fill="'+h+'" stroke="#d6c8ff" stroke-width="3"/><circle cx="143" cy="66" r="9" fill="#ffd66b"/>';
+ else headwear='<path d="M96 84 Q98 39 137 35 Q174 32 184 78 L181 91 L93 91Z" fill="'+h+'" stroke="#0e0c22" stroke-width="5"/>'+
+ '<path d="M97 78 Q140 71 193 88 Q164 104 95 94Z" fill="'+h+'" stroke="#1c1237" stroke-width="4"/>'+
+ '<path d="M124 69 L130 73 137 62 145 73 152 69 L148 77 H127Z" fill="url(#lc33metal)"/>';
+ svg.push(headwear);
+ if(accId==='headphones')svg.push('<path d="M99 90 Q95 52 138 52 Q186 50 190 95" fill="none" stroke="'+a+'" stroke-width="9"/><path d="M102 86 L102 123 M185 86 L185 123" stroke="#e9a83f" stroke-width="12" stroke-linecap="round"/><rect x="92" y="93" width="19" height="34" rx="8" fill="'+a+'" stroke="#ffead0" stroke-width="3"/><rect x="177" y="93" width="19" height="34" rx="8" fill="'+a+'" stroke="#ffead0" stroke-width="3"/>');
+ if(accId==='glasses')svg.push('<rect x="100" y="100" width="31" height="22" rx="7" fill="#513c92aa" stroke="'+a+'" stroke-width="3"/><rect x="145" y="100" width="31" height="22" rx="7" fill="#513c92aa" stroke="'+a+'" stroke-width="3"/><path d="M131 105 Q138 100 145 105" fill="none" stroke="'+a+'" stroke-width="4"/>');
+ if(accId==='chain')svg.push('<path d="M119 162 Q137 201 161 163" fill="none" stroke="'+a+'" stroke-width="6"/><path d="M135 185 L140 178 146 185 140 193Z" fill="url(#lc33metal)"/>');
+ svg.push('</svg>');return svg.join('');
 }
 function lc33Screen(){
  const c=lc33State(),active=LC33_GROUPS.find(g=>g[0]===lc33Category)||LC33_GROUPS[0];
