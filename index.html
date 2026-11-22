@@ -2882,6 +2882,11 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 .slot-reel-holder-3x3 .slot-column{overflow:hidden;isolation:isolate}
 .slot-reel-stopped .casino-reel-finished{backface-visibility:hidden}
 @media(prefers-reduced-motion:reduce){.slot-reel-moving .casino-reel-physical{will-change:auto}}
+
+/* 31.3: simultaneous Plinko balls, separate glow and smoother compositing */
+.plinko-moving-ball.plinko-ball-elite{transform:translateZ(0);backface-visibility:hidden;box-shadow:0 0 9px var(--plinko-ball-color,#ffe4a2),inset -2px -3px 5px #160e42}
+.plinko-peg-hit{filter:brightness(1.6) drop-shadow(0 0 5px #a4ddff)}
+@media(prefers-reduced-motion:reduce){.plinko-moving-ball.plinko-ball-elite{box-shadow:0 0 4px var(--plinko-ball-color,#ffe4a2)}}
 </style><style>
 .casino-admin-search{display:flex;gap:8px;margin:12px 0;align-items:center}
 .casino-admin-search select{background:#181323;color:white;border:1px solid #8b719c;border-radius:10px;padding:10px;max-width:120px}.casino-admin-search input{flex:1;min-width:0;background:#181323;border:1px solid #8b719c;border-radius:10px;color:white;padding:11px}
@@ -4507,7 +4512,7 @@ function plinkoPlay(){
  busy=true;roundBet=stake;casinoCurrentStake=total;state.chips-=total;state.plays++;recordCasinoQuestEvent('plays',1);xp(4);save();
  plinkoHits=[];plinkoLastSector=-1;
  const table=PLINKO_PAYTABLES[plinkoRisk],board=$('plinko-board'),bins=$('plinko-bins'),hits=$('plinko-hits');
- const width=board?.clientWidth||320,center=width/2,step=Math.min(width/15,25),duration=2700,launchGap=32,pegs=board?Array.from(board.querySelectorAll('.plinko-peg')):[];
+ const width=board?.clientWidth||320,center=width/2,step=Math.min(width/15,25),duration=2700,launchGap=0,pegs=board?Array.from(board.querySelectorAll('.plinko-peg')):[];
  const results=Array.from({length:count},()=>{
   let index=0;const path=[];
   for(let i=0;i<12;i++){index+=rand(2);path.push(index)}
