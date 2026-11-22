@@ -25,8 +25,8 @@ function registerCasinoAdmin(app,pool,requireAuth){
   ultimate:{coins:30000,chips:12000,nick:'nick-rainbow',frame:'frame-rainbow',title:'Легенда Lucky City',background:'animated',effect:'fireworks',boost:10,vipBadge:true,theme:'ultimate'}
  });
  const DONATION_ITEMS=Object.freeze({
-  nick:['nick-white','nick-gold','nick-neon-blue','nick-legend','nick-galaxy','nick-rainbow'],
-  frame:['frame-silver','frame-neon','frame-royal','frame-diamond','frame-rainbow'],
+  nick:['nick-white','nick-red','nick-blue','nick-green','nick-purple','nick-gold','nick-neon-blue','nick-neon-pink','nick-fire','nick-legend','nick-galaxy','nick-rainbow'],
+  frame:['frame-silver','frame-blue','frame-purple','frame-gold','frame-emerald','frame-neon','frame-fire','frame-rainbow','frame-diamond','frame-royal'],
   title:['Стильный игрок','Король города','Повелитель галактики','Легенда Lucky City'],
   background:['night','gold','galaxy','animated'],effect:['gold','stars','fireworks'],theme:['ultimate'],badge:['vip']
  });
