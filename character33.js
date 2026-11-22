@@ -329,13 +329,125 @@ function lc36AvatarMark(g){
  return '';
 }
 
+
+/* 37.0. Distinct wearable construction, drawn on the full-sized avatar.
+   Everything stays in one inline SVG (no external <use> or remote assets on iOS). */
+function lc37Shape(g) {
+ if(!g) return '';
+ const id=g.id, c=g.color, theme=lc36Theme(g);
+ const highlight={crystal:'#d5fcff',flame:'#ffd080',space:'#c4aeff',royal:'#ffe5a1',nature:'#ffd8e7',shadow:'#aa91c0',neon:'#8bf8ff',street:'#d8c0fb'}[theme];
+ const dark='#21152c';
+ if(g.type==='jacket') {
+  if(/coat-|emperor/.test(id))return [
+   '<g class="lc37-coat">',
+   // Long split coat and raised shoulder silhouette.
+   '<path d="M98 180 Q75 164 65 187 L81 215 68 290 54 346 111 316 132 257 149 263 178 319 231 345 208 284 191 215 209 186 Q195 168 179 179 L160 204 140 236 117 203Z" fill="'+c+'" stroke="'+dark+'" stroke-width="5" stroke-linejoin="round"/>',
+   '<path d="M102 179 L124 214 139 246 151 215 179 178 170 216 140 253 115 217Z" fill="#281d3e" stroke="'+highlight+'" stroke-width="3"/>',
+   '<path d="M72 286 Q88 301 113 291 M173 291 Q197 306 212 289 M60 340 L102 314 M183 315 L226 342" fill="none" stroke="'+highlight+'" stroke-width="4" opacity=".82"/>',
+   '<path d="M83 187 L96 171 116 191 107 217Z M165 191 L182 172 198 187 174 219Z" fill="'+highlight+'" opacity=".8"/>',
+   '<circle cx="139" cy="235" r="6" fill="'+highlight+'" stroke="#fff4c6" stroke-width="2"/>',
+   '</g>'
+  ].join('');
+  if(/hoodie/.test(id))return [
+   '<g class="lc37-hoodie">',
+   '<path d="M108 161 Q94 146 100 125 Q109 147 127 151 L156 151 Q173 145 180 126 Q186 147 173 161 L163 183 146 195 125 190Z" fill="'+c+'" stroke="'+highlight+'" stroke-width="4"/>',
+   '<path d="M108 161 Q139 183 173 160 L160 182 Q141 194 126 181Z" fill="#251539" stroke="'+highlight+'" stroke-width="2"/>',
+   '<path d="M124 180 L120 228 M153 179 L157 228" fill="none" stroke="'+highlight+'" stroke-width="3"/>',
+   '<path d="M110 237 Q142 247 170 238 L167 263 115 263Z" fill="'+c+'" stroke="'+highlight+'" stroke-width="3"/>',
+   '<path d="M124 240 V252 M154 240 V252" stroke="'+highlight+'" stroke-width="2"/>',
+   '</g>'
+  ].join('');
+  // Bomber: puffy shoulders, knitted cuffs, shorter fitted waist.
+  return [
+   '<g class="lc37-bomber">',
+   '<path d="M98 176 Q72 172 59 195 Q48 223 57 245 L83 242 102 199Z M184 175 Q213 169 221 194 Q236 227 225 247 L196 240 180 199Z" fill="'+c+'" stroke="'+dark+'" stroke-width="5"/>',
+   '<path d="M101 173 L118 191 139 207 161 188 182 171 179 230 Q143 248 102 229Z" fill="'+c+'" stroke="'+dark+'" stroke-width="5"/>',
+   '<path d="M101 230 Q141 243 180 230 L180 256 Q139 270 102 257Z" fill="#27183b" stroke="'+highlight+'" stroke-width="3"/>',
+   '<path d="M116 190 L139 207 163 188 M139 207 V255" fill="none" stroke="'+highlight+'" stroke-width="3"/>',
+   '<path d="M60 228 L85 229 81 250 57 251 M196 229 L223 228 229 250 198 251" fill="'+highlight+'" opacity=".8"/>',
+   '<path d="M111 214 H123 M155 213 H167" stroke="'+highlight+'" stroke-width="3"/>',
+   '</g>'
+  ].join('');
+ }
+ if(g.type==='pants'){
+  if(/cargo/.test(id))return [
+   '<g class="lc37-cargo">',
+   '<path d="M85 285 L115 290 116 331 84 333Z M163 289 L192 284 194 331 165 332Z" fill="'+c+'" stroke="'+highlight+'" stroke-width="3"/>',
+   '<path d="M86 298 H114 M164 299 H192 M87 315 H115 M165 316 H193" stroke="'+highlight+'" stroke-width="3"/>',
+   '<path d="M78 266 L84 340 M198 266 L202 341" stroke="'+highlight+'" stroke-width="3" opacity=".65"/>',
+   '<path d="M96 327 H112 M176 327 H192" stroke="#151126" stroke-width="4"/>',
+   '</g>'
+  ].join('');
+  if(/royal|emperor|goldline|diamond/.test(id))return [
+   '<g class="lc37-tailored">',
+   '<path d="M98 264 L87 351 108 363 121 282Z M157 281 L173 362 199 348 183 265Z" fill="'+c+'" opacity=".52"/>',
+   '<path d="M98 266 L93 340 M176 265 L192 340" fill="none" stroke="'+highlight+'" stroke-width="5"/>',
+   '<path d="M84 341 L112 346 M172 346 L199 341 M104 275 L119 281 M163 281 L181 277" stroke="'+highlight+'" stroke-width="3"/>',
+   '<path d="M139 268 L139 293" stroke="'+highlight+'" stroke-width="4"/>',
+   '</g>'
+  ].join('');
+  return '<g class="lc37-denim"><path d="M91 276 L104 291 117 279 M159 279 L175 290 187 277" stroke="'+highlight+'" stroke-width="3" fill="none"/><path d="M93 317 L111 318 M165 318 L184 316" stroke="'+highlight+'" stroke-width="2"/></g>';
+ }
+ if(g.type==='shoes'){
+  const boots=/boots|emperor|royal|diamond/.test(id);
+  if(boots)return [
+   '<g class="lc37-boots">',
+   '<path d="M70 321 L113 323 114 357 Q124 366 126 380 Q98 394 58 382 Q55 367 70 352Z M165 321 L207 323 207 355 Q222 365 225 380 Q195 394 159 382 Q157 367 165 353Z" fill="'+c+'" stroke="'+dark+'" stroke-width="5"/>',
+   '<path d="M70 329 L113 332 M165 332 L207 329 M61 380 Q89 391 123 380 M161 380 Q195 391 221 380" stroke="'+highlight+'" stroke-width="4" fill="none"/>',
+   '<path d="M84 345 L109 344 M173 344 L197 345" stroke="#fff0cc" stroke-width="3"/>',
+   '</g>'
+  ].join('');
+  return [
+   '<g class="lc37-sneakers">',
+   '<path d="M69 350 Q86 341 109 351 L120 372 Q97 387 56 380 Q60 361 69 350Z M166 351 Q188 341 203 353 L223 374 Q194 388 160 381Z" fill="'+c+'" stroke="'+dark+'" stroke-width="5"/>',
+   '<path d="M74 356 L104 353 M72 362 L108 361 M170 357 L199 356 M171 362 L201 362" stroke="'+highlight+'" stroke-width="3"/>',
+   '<path d="M60 377 Q90 389 120 375 M163 379 Q189 390 220 377" fill="none" stroke="'+highlight+'" stroke-width="5"/>',
+   '</g>'
+  ].join('');
+ }
+ if(g.type==='hat'){
+  if(/crown|obsidian/.test(id))return [
+   '<g class="lc37-crown">',
+   '<path d="M93 82 L86 39 111 56 138 17 167 56 194 37 185 84Z" fill="'+c+'" stroke="'+highlight+'" stroke-width="5"/>',
+   '<path d="M94 80 Q138 89 187 80" stroke="#33234b" stroke-width="9"/>',
+   '<circle cx="138" cy="60" r="9" fill="'+highlight+'" stroke="#fff" stroke-width="2"/>',
+   '<circle cx="105" cy="71" r="4" fill="#f9e3c3"/><circle cx="173" cy="72" r="4" fill="#f9e3c3"/>',
+   '</g>'
+  ].join('');
+  if(/bucket|fedora|cowboy/.test(id))return [
+   '<g class="lc37-brim">',
+   '<path d="M105 45 Q137 32 171 45 L183 86 96 86Z" fill="'+c+'" stroke="'+highlight+'" stroke-width="4"/>',
+   '<path d="M72 90 Q140 106 204 88 Q183 110 146 103 Q104 112 72 90Z" fill="'+c+'" stroke="'+highlight+'" stroke-width="4"/>',
+   '<path d="M109 74 Q137 81 174 74" stroke="#ffdd8c" stroke-width="5"/>',
+   '</g>'
+  ].join('');
+  if(/beanie/.test(id))return '<path d="M96 90 Q89 36 139 32 Q181 32 187 90 L188 105 Q141 112 96 105Z" fill="'+c+'" stroke="'+highlight+'" stroke-width="4"/><path d="M100 88 H185 M115 54 V84 M138 44 V84 M163 54 V84" fill="none" stroke="'+highlight+'" stroke-width="3"/>';
+  return '<g class="lc37-cap"><path d="M94 81 Q98 41 138 36 Q176 35 185 79 L184 91 94 91Z" fill="'+c+'" stroke="'+highlight+'" stroke-width="4"/><path d="M97 85 Q139 75 198 91 Q172 104 97 97Z" fill="'+c+'" stroke="'+highlight+'" stroke-width="3"/><path d="M130 68 L138 62 147 69 138 77Z" fill="'+highlight+'"/></g>';
+ }
+ if(g.type==='accessory'){
+  if(/glasses/.test(id))return [
+   '<g class="lc37-glasses">',
+   '<rect x="97" y="102" width="35" height="25" rx="6" fill="'+c+'" fill-opacity=".28" stroke="'+highlight+'" stroke-width="4"/>',
+   '<rect x="145" y="102" width="35" height="25" rx="6" fill="'+c+'" fill-opacity=".28" stroke="'+highlight+'" stroke-width="4"/>',
+   '<path d="M132 107 Q140 102 145 107" stroke="'+highlight+'" stroke-width="3" fill="none"/>',
+   '</g>'
+  ].join('');
+  if(/chain/.test(id))return '<g class="lc37-chain"><path d="M117 162 Q140 208 164 162" fill="none" stroke="'+highlight+'" stroke-width="8"/><path d="M132 190 L140 179 149 191 140 202Z" fill="'+c+'" stroke="#fff6cf" stroke-width="2"/></g>';
+  return '<g class="lc37-headphones"><path d="M99 90 Q99 49 140 48 Q186 48 191 91" fill="none" stroke="'+c+'" stroke-width="9"/><rect x="89" y="91" width="21" height="39" rx="9" fill="'+c+'" stroke="'+highlight+'" stroke-width="3"/><rect x="180" y="91" width="20" height="39" rx="9" fill="'+c+'" stroke="'+highlight+'" stroke-width="3"/></g>';
+ }
+ return '';
+}
+
 // Restore reliable inline art for Safari / VK WebView: external SVG <use>
 // rendered tiny thumbnails and unresolved gradients on iPhone.
 function lc33Avatar(){
  const c=lc33State();
  let svg=lc33AvatarFallback();
  const layerOrder=['pants','shoes','jacket','hat','accessory'];
- const details=layerOrder.map(type=>lc36AvatarMark(LC35_BY_ID.get(c.equipped[type]))).join('');
+ const details=layerOrder.map(type=>{
+  const item=LC35_BY_ID.get(c.equipped[type]);
+  return lc37Shape(item)+lc36AvatarMark(item);
+ }).join('');
  return svg.replace('</svg>',details+'</svg>');
 }
 function lc34SvgItem(g){return lc36ItemIcon(g);}
