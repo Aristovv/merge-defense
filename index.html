@@ -2540,49 +2540,27 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
  .crash-deluxe.casino-crash-busted .crashbox,.crash-deluxe.casino-crash-cashed .crashbox{animation:none!important}
 }
 
-/* Casino City 24.0 — original lobby artwork, responsive and accessible */
-.catalog-page .real-casino-hero{
- position:relative;overflow:hidden;
- min-height:clamp(155px,34vw,290px);
- border:2px solid #d7a75b;border-radius:18px;
- background:#170b29 url('assets/real-casino-lobby.svg') center 48%/cover no-repeat;
- box-shadow:inset 0 0 0 1px #fce7aa55,0 12px 30px #0008,0 0 25px #a45cff38;
- margin:10px 0 17px;
-}
-.catalog-page .real-casino-hero-caption{
- position:absolute;left:50%;bottom:10px;transform:translateX(-50%);
- white-space:nowrap;max-width:95%;padding:6px 13px;border-radius:99px;
- border:1px solid #eacb89a6;background:#150c28c9;
- color:#ffdfa1;font-size:clamp(9px,2.2vw,12px);font-weight:800;letter-spacing:1.4px;
- text-shadow:0 0 8px #ffc8788c;
-}
-@media(max-width:480px){.catalog-page .real-casino-hero{min-height:170px;background-position:center center}}
 
-/* Casino City 24.1 — six distinct illuminated slot cabinets in the catalog */
+/* Casino City 24.2 — full-bleed photographic slot cards */
 .catalog-page .featured-game .gameart{
- height:clamp(145px,38vw,230px)!important;
- background-color:#110b22!important;
- background-size:contain!important;
- background-position:center center!important;
+ height:clamp(145px,45vw,205px)!important;
+ background-size:cover!important;
+ background-position:center 42%!important;
  background-repeat:no-repeat!important;
- border-bottom:1px solid #b78a52;
- filter:saturate(1.13) contrast(1.05);
+ background-color:#150b25!important;
+ filter:none!important;
 }
+.catalog-page .featured-game .gameart:before{display:none!important}
 .catalog-page .featured-game .gameart:after{
- height:25px;background:linear-gradient(0deg,#10091dc9,transparent);
+ content:"";position:absolute;inset:auto 0 0;height:28px;
+ background:linear-gradient(0deg,#110a1ec9,transparent);
 }
 .catalog-page .featured-game{
- overflow:hidden;border:1px solid #bc8b57!important;
- background:linear-gradient(155deg,#2c1a38,#120d23)!important;
- box-shadow:inset 0 0 0 1px #e2c28b24,0 5px 17px #0007,0 0 12px #a05bdb26!important;
+ overflow:hidden;border:1px solid #b68b5f!important;
+ background:linear-gradient(155deg,#251735,#120d22)!important;
 }
-.catalog-page .featured-game .art-number{
- z-index:2;background:#160e2acc;border:1px solid #bd935e;
- color:#ffe1a5;border-radius:6px;padding:3px 5px;
-}
-@media(max-width:480px){
- .catalog-page .featured-game .gameart{height:clamp(138px,42vw,195px)!important}
-}
+.catalog-page .featured-game .art-number{z-index:2}
+@media(max-width:480px){.catalog-page .featured-game .gameart{height:clamp(145px,46vw,195px)!important}}
 </style><style>
 .casino-admin-search{display:flex;gap:8px;margin:12px 0;align-items:center}
 .casino-admin-search select{background:#181323;color:white;border:1px solid #8b719c;border-radius:10px;padding:10px;max-width:120px}.casino-admin-search input{flex:1;min-width:0;background:#181323;border:1px solid #8b719c;border-radius:10px;color:white;padding:11px}
@@ -3631,7 +3609,7 @@ function rewardCollection(){
  save();
  message('Коллекция: +'+newlyClaimed+' VIP за завершённые серии партий');
 }
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 24.1</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 24.2</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 /* Casino City admin console v1: server-verified read-only player directory */
 function casinoAdminVisible(){try{const q=new URLSearchParams(CASINO_LAUNCH_PARAMS||'');return q.get('vk_user_id')==='523218982'}catch(_){return false}}
 function casinoAdminScreen(){return '<div class="page casino-admin-page"><div class="section-intro casino-admin-hero"><div><span class="eyebrow">CASINO CITY · ADMIN</span><h1>Панель управления</h1></div><span class="catalog-count">OWNER</span></div><div class="casino-admin-tabs"><button class="btn purple" data-admin-section-tab="players">👥 Игроки</button><button class="btn" data-admin-section-tab="resources">💰 Ресурсы</button><button class="btn" data-admin-section-tab="stats">📊 Статистика</button><button class="btn" data-admin-section-tab="history">📋 История</button><button class="btn" data-admin-section-tab="reset">⚠️ Сбросы</button></div><div class="panel" data-admin-section="players"><h3>Игроки Casino City</h3><p class="subline">Доступ проверяется сервером по подписи ВКонтакте. Поиск показывает данные общего рейтинга.</p><div class="casino-admin-search"><input id="casino-admin-query" maxlength="64" placeholder="VK ID или имя игрока"><button class="btn purple" data-casino-admin-search="1">Найти</button></div><div id="casino-admin-results" class="subline">Загружаем игроков…</div></div><div class="panel" data-admin-section="players"><h3>Прогресс игрока</h3><p class="subline">Просмотр облачного баланса и уровня без изменения данных.</p><div class="casino-admin-search"><input id="casino-player-vk" inputmode="numeric" placeholder="VK ID игрока"><button class="btn purple" data-casino-admin-player="1">Посмотреть</button></div><div id="casino-admin-player-detail" class="subline">Введи VK ID для просмотра</div></div><div class="panel" data-admin-section="resources" style="display:none"><h3>Выдать ресурсы</h3><p class="subline">Выдача работает только для игроков, у которых уже есть облачное сохранение. Выбери валюту и введи VK ID.</p><div class="casino-admin-search"><input id="casino-grant-vk" placeholder="VK ID игрока" inputmode="numeric"></div><div class="casino-admin-search"><select id="casino-grant-field"><option value="chips">Фишки</option><option value="coins">Монеты</option><option value="vip">VIP</option><option value="xp">Опыт (XP)</option></select><input id="casino-grant-amount" placeholder="Количество" inputmode="numeric"></div><button class="btn purple" data-casino-admin-grant="1">Выдать</button><div id="casino-grant-status" class="subline"></div></div><div class="panel" data-admin-section="resources" style="display:none"><h3>Управление имуществом игрока</h3><p class="subline">Выдавай, забирай или устанавливай точное количество ресурсов, статистики и уровней построек. Изменения сохраняются в облаке и журнале действий.</p><div class="casino-admin-search"><input id="casino-adjust-vk" inputmode="numeric" placeholder="VK ID игрока"></div><div class="casino-admin-search"><select id="casino-adjust-field"><option value="chips">Фишки</option><option value="coins">Монеты</option><option value="vip">VIP</option><option value="xp">Опыт XP</option><option value="level">Уровень</option><option value="plays">Сыграно партий</option><option value="wins">Победы</option><option value="best">Лучший результат</option><option value="earned">Всего заработано</option><option value="building">Постройка (уровень)</option></select><select id="casino-adjust-mode"><option value="add">Выдать / добавить</option><option value="remove">Забрать / уменьшить</option><option value="set">Установить значение</option></select></div><div class="casino-admin-search"><input id="casino-adjust-index" inputmode="numeric" placeholder="Номер постройки 1–14 (если выбрана)"><input id="casino-adjust-amount" inputmode="numeric" placeholder="Количество"></div><button class="btn purple" data-casino-admin-adjust="1" data-casino-admin-adjust-action="1">Применить</button><div id="casino-adjust-status" class="subline"></div></div><div class="panel" data-admin-section="stats" style="display:none"><h3>Статистика Casino City</h3><p class="subline">Реальные показатели облачной базы. Активность — обновления за 24 часа, не онлайн.</p><button class="btn purple" data-casino-admin-stats="1">Обновить статистику</button><div id="casino-admin-stats" class="subline">Нажми «Обновить статистику»</div></div><div class="panel" data-admin-section="history" style="display:none"><h3>История действий</h3><p class="subline">Последние 30 операций администратора.</p><div class="casino-admin-search"><input id="casino-audit-vk" inputmode="numeric" placeholder="VK ID (необязательно)"><button class="btn purple" data-casino-admin-audit="1">Обновить историю</button></div><div id="casino-admin-audit" class="subline">Нажми «Обновить историю»</div></div><div class="panel" data-admin-section="reset" style="display:none"><h3>Сброс облачного прогресса игрока</h3><p class="subline">Удаляет игровые ресурсы, уровень, статистику и постройки из облачного сохранения выбранного игрока. Общий рейтинг и турниры не сбрасываются. Действие необратимо для облака.</p><div class="casino-admin-search"><input id="casino-reset-vk" inputmode="numeric" placeholder="VK ID игрока"></div><button class="btn purple" data-casino-admin-reset="1">Сбросить игрока</button><div id="casino-reset-status" class="subline"></div></div><div class="panel" data-admin-section="reset" style="display:none"><h3>Массовый сброс тестеров</h3><p class="subline">Сбросит облачные сохранения всех игроков до 1 200 фишек и 2 500 монет, обнулит очки всех игроков в общем рейтинге без удаления профилей и очистит турнирные записи. Действие необратимо.</p><label><input type="checkbox" id="casino-reset-all-check"> Я понимаю, что сброшу прогресс всех игроков</label><div><button class="btn" data-casino-admin-reset-all="1">Сбросить всех игроков</button></div><div id="casino-reset-all-status" class="subline"></div></div></div>'}
@@ -3933,7 +3911,7 @@ const district=visible.map((b,i)=>'<div class="district-card district-'+i+'"><di
 return '<div class="page city-page"><div class="section-intro"><div><span class="eyebrow">МОЯ ИМПЕРИЯ</span><h1>Город казино</h1></div><span class="city-rank">'+ic('vip')+' '+level+' уровень</span></div><div class="city-visual"><div class="city-visual-overlay"><span class="city-sign">'+ic('star')+' CASINO CITY <span class="live-dot"></span></span><div class="city-visual-bottom"><strong>ГОРОД, КОТОРЫЙ<br>НЕ СПИТ</strong><small>Твой путь от первого зала до столицы развлечений</small></div></div><div class="cc14-neon-traffic"><span class="cc14-car"></span><span class="cc14-car second"></span><span class="cc14-city-beam"></span></div><div class="city-stats"><div><span>ПОСТРОЕНО</span><strong>'+have+' <small>/ 14</small></strong></div><div><span>ДОХОД / ЧАС</span><strong>'+fmt(rate())+'</strong></div></div></div><div class="city-progress"><div class="city-progress-head"><strong>Развитие города</strong><span>'+have+'/14 объектов</span></div><div class="city-progress-track"><span style="width:'+(have/14*100)+'%"></span></div><small>Доход начисляется по часовой ставке, даже пока игра закрыта (до 8 часов). Строй новые районы и улучшай существующие.</small></div>'+cc14CityWidgets()+'<div class="city-cta"><button class="btn gold-action" data-action="collect">'+ic('coin')+' Собрать доход</button><button class="btn purple" data-tab="games">'+ic('games')+' Играть</button></div><div class="casino-strip"><span class="casino-strip-mark">'+ic('spark')+'</span><div><strong>ТВОЯ ИМПЕРИЯ РАСТЁТ</strong><small>Улучшай объекты — открывай возможности</small></div><span class="casino-strip-right">'+have+'/14</span></div><div class="sectionhead district-heading"><h2>Мои заведения</h2><span class="mini">'+(expandedDistrict?'Все объекты':'Первые шесть объектов')+'</span></div><div class="district-grid">'+district+'</div><button class="all-buildings-btn" data-action="district">'+(expandedDistrict?'Свернуть список':'Показать все 14 зданий')+ic(expandedDistrict?'back':'up')+'</button></div>';
 }
 function gamesScreen(){
-return '<div class="page catalog-page"><div class="section-intro"><div><span class="eyebrow">CASINO CITY · ИГРОВЫЕ ЗАЛЫ</span><h1>Выбери свою игру</h1></div><span class="catalog-count">16 ИГР</span></div><div class="real-casino-hero" role="img" aria-label="Роскошный неоновый зал Casino City"><span class="real-casino-hero-caption">НОВАЯ ГРАФИКА · REAL CASINO 24.0</span></div><div class="catalog-feature"><div class="catalog-feature-icon">'+ic('chip')+'</div><div><strong>Твой билет в мир удачи</strong><p>Казино на виртуальные фишки. Все залы доступны сразу.</p></div></div>'+cc14GamePanel()+'<div class="catalog-label">'+ic('star')+' 6 ФИРМЕННЫХ СЛОТОВ</div><div class="games">'+GAMES.slice(0,6).map((g,i)=>'<button class="gamecard featured-game" data-game="'+i+'"><div class="gameart art-slot-'+i+'"><span class="art-number">'+String(i+1).padStart(2,'0')+'</span></div><div class="gamecard-description"><h3>'+g[0]+'</h3><p>'+g[2]+'</p></div><span class="play-pill">'+ic('games')+'</span></button>').join('')+'</div><div class="catalog-label more-games">'+ic('games')+' 10 ДОПОЛНИТЕЛЬНЫХ ИГР</div><div class="games">'+GAMES.slice(6).map((g,j)=>'<button class="gamecard premium-extra art-extra-'+j+'" data-game="'+(j+6)+'"><div class="gameart theme-'+g[1]+'"><span class="art-halo"></span><span class="art-stage">'+ic(g[3])+'</span><span class="art-number">'+String(j+7).padStart(2,'0')+'</span></div><div class="gamecard-description"><h3>'+g[0]+'</h3><p>'+g[2]+'</p></div><span class="play-pill">'+ic('games')+'</span></button>').join('')+'</div></div>';
+return '<div class="page catalog-page"><div class="section-intro"><div><span class="eyebrow">CASINO CITY · ИГРОВЫЕ ЗАЛЫ</span><h1>Выбери свою игру</h1></div><span class="catalog-count">16 ИГР</span></div><div class="catalog-feature"><div class="catalog-feature-icon">'+ic('chip')+'</div><div><strong>Твой билет в мир удачи</strong><p>Казино на виртуальные фишки. Все залы доступны сразу.</p></div></div>'+cc14GamePanel()+'<div class="catalog-label">'+ic('star')+' 6 ФИРМЕННЫХ СЛОТОВ</div><div class="games">'+GAMES.slice(0,6).map((g,i)=>'<button class="gamecard featured-game" data-game="'+i+'"><div class="gameart art-slot-'+i+'"><span class="art-number">'+String(i+1).padStart(2,'0')+'</span></div><div class="gamecard-description"><h3>'+g[0]+'</h3><p>'+g[2]+'</p></div><span class="play-pill">'+ic('games')+'</span></button>').join('')+'</div><div class="catalog-label more-games">'+ic('games')+' 10 ДОПОЛНИТЕЛЬНЫХ ИГР</div><div class="games">'+GAMES.slice(6).map((g,j)=>'<button class="gamecard premium-extra art-extra-'+j+'" data-game="'+(j+6)+'"><div class="gameart theme-'+g[1]+'"><span class="art-halo"></span><span class="art-stage">'+ic(g[3])+'</span><span class="art-number">'+String(j+7).padStart(2,'0')+'</span></div><div class="gamecard-description"><h3>'+g[0]+'</h3><p>'+g[2]+'</p></div><span class="play-pill">'+ic('games')+'</span></button>').join('')+'</div></div>';
 }
 function betRow(){return '<div class="betbar"><button class="btn ghost" data-action="betdown" '+(busy||round?'disabled':'')+'>−</button><div><div class="mini">СТАВКА</div><strong>'+fmt(bet)+' '+ic('chip')+'</strong></div><button class="btn ghost" data-action="betup" '+(busy||round?'disabled':'')+'>+</button></div>'}
 function resultBox(){return '<div class="result" id="game-result">Игровые фишки не имеют денежной стоимости</div>'}
