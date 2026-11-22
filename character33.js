@@ -125,8 +125,8 @@ function lc33Avatar(){
 }
 function lc33Screen(){
  const c=lc33State(),active=LC33_GROUPS.find(g=>g[0]===lc33Category)||LC33_GROUPS[0];
- const list=LC33_GOODS.filter(g=>g.type===lc33Category);
- const selected=LC33_GOODS.find(g=>g.id===lc33Selected)||list[0];
+ const list=LC33_GOODS.filter(g=>g.type===lc33Category&&g.payment!=='locked');
+ const selected=list.find(g=>g.id===lc33Selected)||list.find(g=>g.id===c.equipped[lc33Category])||list[0];
  const cards=list.map(g=>{
   const owned=c.owned.includes(g.id),equipped=c.equipped[g.type]===g.id;
   const rarity=g.rarity==='Редкая'?'rare':g.rarity==='Эпическая'?'epic':g.rarity==='Легендарная'?'legend':'';
@@ -137,18 +137,18 @@ function lc33Screen(){
  const view=lc33Subtab==='wardrobe'?
   '<div class="lc33-stage"><aside class="lc33-cats">'+LC33_GROUPS.map(g=>'<button data-lc33-cat="'+g[0]+'" class="'+(lc33Category===g[0]?'active':'')+'">'+g[2]+' '+g[1]+'</button>').join('')+'</aside>'+
   '<div class="lc33-figure"><div class="lc33-city">✧ ✦ ✧</div><div class="lc33-halo"></div><div class="lc33-person">'+lc33Avatar()+'</div></div>'+
-  '<div class="lc33-side"><div>🪙 Бонус дохода<b>0% · только стиль</b></div><div>🛡️ Защита клана<b>Скоро</b></div><div>👑 Активный образ<b>LUCKY CITY</b></div></div></div>'+
+  '<div class="lc33-side"><div>🪙 Бонус дохода<b>0% · только стиль</b></div><div>👕 Вещей в коллекции<b>'+c.owned.length+' предметов</b></div><div>👑 Активный образ<b>LUCKY CITY</b></div></div></div>'+
   '<section class="lc33-section"><h2>'+rankEsc(active[2])+' '+rankEsc(active[1])+'</h2><div class="lc33-items">'+cards+'</div>'+
   (selected?'<div class="lc33-detail">'+lc33SvgItem(selected)+'<div><strong>'+rankEsc(selected.name)+'</strong><p>'+rankEsc(selected.rarity)+' · '+(selected.payment==='premium'?'Премиальный внешний вид':selected.payment==='coin'?'Покупается за игровые монеты':'Стиль персонажа')+'</p><small>Одежда не влияет на шанс выигрыша</small></div></div>':'')+'</section>':
   '<section class="lc33-section"><h2>'+(lc33Subtab==='collection'?'Моя коллекция':'Бонусы персонажа')+'</h2>'+
   (lc33Subtab==='collection'?'<div class="lc33-items">'+LC33_GOODS.filter(g=>c.owned.includes(g.id)).map(g=>'<article class="lc33-item">'+lc33SvgItem(g)+'<strong>'+rankEsc(g.name)+'</strong><button data-lc33-cat="'+g.type+'">Посмотреть</button></article>').join('')+'</div>':
-   '<div class="lc33-empty">Персонаж пока косметический. Бонусы к доходу и клановой защите не подключены, чтобы не менять игровую экономику.</div>')+'</section>';
+   '<div class="lc33-empty">Персонаж пока косметический: одежда не влияет на выигрыш или доход. Дополнительные бонусы ещё не подключены.</div>')+'</section>';
  return '<main class="lc33"><div class="lc33-hero"><h1>ПЕРСОНАЖ</h1></div>'+
  '<div class="lc33-tabs">'+[['wardrobe','♧ Гардероб'],['collection','♛ Коллекция'],['bonuses','✧ Бонусы']].map(([id,name])=>'<button class="'+(lc33Subtab===id?'active':'')+'" data-lc33-tab="'+id+'">'+name+'</button>').join('')+'</div>'+view+'</main>';
 }
 document.addEventListener('click',function(e){
  const t=e.target.closest('[data-lc33-tab]');if(t){lc33Subtab=t.dataset.lc33Tab;render();return}
- const g=e.target.closest('[data-lc33-cat]');if(g){lc33Category=g.dataset.lc33Cat;lc33Subtab='wardrobe';render();return}
+ const g=e.target.closest('[data-lc33-cat]');if(g){lc33Category=g.dataset.lc33Cat;lc33Selected=lc33State().equipped[lc33Category]||LC33_GOODS.find(x=>x.type===lc33Category&&x.payment!=='locked')?.id||'cap';lc33Subtab='wardrobe';render();return}
  const b=e.target.closest('[data-lc33-item]');if(!b)return;
  const item=LC33_GOODS.find(x=>x.id===b.dataset.lc33Item);if(!item)return;
  lc33Selected=item.id;const c=lc33State();
