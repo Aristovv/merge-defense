@@ -2934,6 +2934,20 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 @keyframes casinoSlotShine325{to{left:120%}}
 .slot-scene .slot-multi-line-banner{line-height:1.45;overflow-wrap:anywhere}
 @media(prefers-reduced-motion:reduce){.slot-scene .slot-big-win-banner::after,.slot-scene .slot-jackpot-banner::after{animation:none!important;display:none}}
+
+/* CASINO CITY 32.6 — mobile usability, no gameplay changes */
+@media(max-width:600px){
+.nav{gap:3px;padding:7px 6px calc(env(safe-area-inset-bottom) + 6px)}
+.nav button{min-height:58px;min-width:0;touch-action:manipulation}
+.game-card button,.casino-card button,.game-card .btn,.casino-card .btn{min-height:42px;touch-action:manipulation}
+.slot-scene .slot-line-match-details span{font-size:12px;line-height:1.35;white-space:normal;padding:6px 8px;text-align:center}
+.slot-scene .slot-line-guide{font-size:12px;line-height:1.4}
+.slot-scene .slot-winning-line-numbers{font-size:12px;line-height:1.5}
+.slot-scene .slot-line-chip{min-width:34px;width:34px;height:34px;font-size:12px}
+.slot-scene .slot-line-reset{min-height:40px;font-size:12px}
+.slot-scene .slot-payout-info{line-height:1.5;overflow-wrap:anywhere}
+}
+@media(max-width:360px){.nav{gap:0;padding-left:3px;padding-right:3px}.nav button{font-size:10px}.slot-scene .slot-line-chip{min-width:32px;width:32px;height:32px}}
 </style><style>
 .casino-admin-search{display:flex;gap:8px;margin:12px 0;align-items:center}
 .casino-admin-search select{background:#181323;color:white;border:1px solid #8b719c;border-radius:10px;padding:10px;max-width:120px}.casino-admin-search input{flex:1;min-width:0;background:#181323;border:1px solid #8b719c;border-radius:10px;color:white;padding:11px}
