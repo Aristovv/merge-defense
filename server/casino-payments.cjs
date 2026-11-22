@@ -53,16 +53,18 @@ function registerCasinoPayments(app,pool){
   if(!validSignature(b))return res.json(error(10,'Invalid signature'));
   if(process.env.VK_APP_ID&&b.app_id!==process.env.VK_APP_ID)return res.json(error(11,'Wrong app'));
   const type=b.notification_type;
-  if(type==='get_item'||type==='get_item_test'){
+  // Live-only configuration: never grant rewards from free VK test orders.
+  if(type==='get_item_test'||type==='order_status_change_test')return res.json(error(11,'Test purchases are disabled'));
+  if(type==='get_item'){
    const item=goods[b.item];return item?res.json({response:{item_id:item.id,title:item.name,price:item.price,photo_url:''}}):res.json(error(20,'Unknown item'));
   }
-  if(!['order_status_change','order_status_change_test'].includes(type)||b.status!=='chargeable')return res.json(error(11,'Unsupported event'));
+  if(type!=='order_status_change'||b.status!=='chargeable')return res.json(error(11,'Unsupported event'));
   const item=byId.get(String(b.item_id));
   if(!item)return res.json(error(20,'Unknown item'));
   if(b.item_price!==undefined&&Number(b.item_price)!==item.price)return res.json(error(21,'Price mismatch'));
   const vkId=String(b.receiver_id||b.user_id||''),order=String(b.order_id||'');
   if(!/^[1-9][0-9]{0,18}$/.test(vkId)||!/^[1-9][0-9]{0,18}$/.test(order))return res.json(error(11,'Invalid order'));
-  const provider=type.endsWith('_test')?'vk_test':'vk_live';
+  const provider='vk_live';
   let client;
   try{
    client=await pool.connect();await client.query('BEGIN');
