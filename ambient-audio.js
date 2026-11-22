@@ -22,11 +22,13 @@ function currentScene(){
   if(typeof tab==='string'){
    if(tab==='game'){
     const i=typeof selected==='number'?selected:-1;
-    if(i>=0&&i<6)return 'slot:'+i;
-    const name=typeof GAMES!=='undefined'&&GAMES[i]?String(GAMES[i][1]).toLowerCase():'';
-    if(name.includes('plinko'))return 'plinko';
-    if(name.includes('crash'))return 'crash';
-    if(name.includes('roulette'))return 'roulette';
+    const entry=typeof GAMES!=='undefined'&&GAMES[i]?GAMES[i]:null;
+    const name=entry?String(entry[0]).toLowerCase():'';
+    const type=entry?String(entry[1]).toLowerCase():'';
+    if(type==='slot')return 'slot:'+i;
+    if(type.includes('plinko')||name.includes('plinko'))return 'plinko';
+    if(type.includes('crash')||name.includes('crash'))return 'crash';
+    if(type.includes('roulette')||name.includes('roulette'))return 'roulette';
     return 'games';
    }
    if(tab==='city')return 'city';
@@ -40,12 +42,54 @@ function setup(){
  if(ctx)return;
  ctx=new AC();
  master=ctx.createGain();master.gain.value=0;
- filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=3400;filter.Q.value=.35;
+ filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=5600;filter.Q.value=.35;
  delay=ctx.createDelay(.8);delay.delayTime.value=.29;
  feedback=ctx.createGain();feedback.gain.value=.11;
  wet=ctx.createGain();wet.gain.value=.10;
  filter.connect(master);filter.connect(delay);delay.connect(feedback);feedback.connect(delay);delay.connect(wet);wet.connect(master);
  master.connect(ctx.destination);
+}
+
+// Procedurally recorded-style instruments, generated once as reusable PCM samples.
+// Unlike raw oscillator notes, each voice has its own transient and decaying harmonics.
+const samples={};
+function buildSample(kind){
+ const rate=22050,duration=kind==='pad'?3.4:kind==='bass'?2.0:kind==='bell'?2.3:1.7;
+ const n=Math.floor(rate*duration),buf=ctx.createBuffer(1,n,rate),data=buf.getChannelData(0);
+ const base=kind==='bass'?110:kind==='pad'?220:440;
+ for(let i=0;i<n;i++){
+  const t=i/rate,fade=Math.max(0,1-t/duration);
+  let v=0;
+  if(kind==='piano'){
+   v=(Math.sin(2*Math.PI*base*t)+.31*Math.sin(2*Math.PI*base*2.003*t)+.13*Math.sin(2*Math.PI*base*3.01*t)+.055*Math.sin(2*Math.PI*base*4.02*t));
+   v*=Math.exp(-2.2*t)*(1-Math.exp(-180*t));
+  }else if(kind==='bell'){
+   v=(Math.sin(2*Math.PI*base*t)+.42*Math.sin(2*Math.PI*base*2.76*t)+.21*Math.sin(2*Math.PI*base*5.4*t));
+   v*=Math.exp(-2.6*t)*(1-Math.exp(-330*t));
+  }else if(kind==='bass'){
+   v=(Math.sin(2*Math.PI*base*t)+.20*Math.sin(2*Math.PI*base*2*t)+.07*Math.sin(2*Math.PI*base*3*t));
+   v*=Math.exp(-1.1*t)*(1-Math.exp(-70*t));
+  }else{
+   v=(Math.sin(2*Math.PI*base*t)+.18*Math.sin(2*Math.PI*base*2.001*t)+.08*Math.sin(2*Math.PI*base*3.005*t));
+   v*=Math.min(1,t/.35)*fade;
+  }
+  data[i]=v*.42*fade;
+ }
+ samples[kind]={buffer:buf,base};
+}
+function instrument(midi,when,dur,amp,kind='piano'){
+ if(!ctx||when<ctx.currentTime-.1)return;
+ if(!samples[kind])buildSample(kind);
+ const {buffer,base}=samples[kind],src=ctx.createBufferSource(),g=ctx.createGain();
+ src.buffer=buffer;
+ src.playbackRate.value=440*Math.pow(2,(midi-69)/12)/base;
+ const hold=Math.max(.08,Math.min(dur,kind==='pad'?3.0:kind==='bell'?1.7:1.45));
+ const attack=kind==='pad'?.22:.012;
+ g.gain.setValueAtTime(.00001,when);
+ g.gain.linearRampToValueAtTime(amp,when+Math.min(attack,hold*.35));
+ g.gain.setTargetAtTime(.00001,when+hold*.65,Math.max(.05,hold*.15));
+ src.connect(g);g.connect(filter);
+ src.start(when);src.stop(when+hold+.12);
 }
 function tone(midi,when,dur,amp,wave='sine',attack=.035){
  if(!ctx||when<ctx.currentTime-.1)return;
@@ -59,18 +103,12 @@ function tone(midi,when,dur,amp,wave='sine',attack=.035){
  o.start(when);o.stop(when+dur+.02);
 }
 function playBeat(at){
- const kind=scene.split(':')[0];
- const t=tracks[kind]||tracks.city;
+ const kind=scene.split(':')[0],t=tracks[kind]||tracks.city;
  const b=beat%32,bar=Math.floor(b/8)%4,root=t.roots[bar],chord=t.chords[bar];
- const beatSec=60/t.bpm/2;
- // Original arrangements: soft electric piano, plucked bells, warm pads and restrained bass.
+ const step=60/t.bpm/2;
  if(b%8===0){
-  chord.forEach((interval,i)=>{
-   const note=root+interval+12;
-   tone(note,at,beatSec*7.7,kind==='city'?.008:.006,'sine',.55);
-   if(i<3)tone(note+12,at+.035,beatSec*6.8,.0035,'triangle',.7);
-  });
-  tone(root-12,at,beatSec*7.4,kind==='crash'?.045:.06,'sine',.10);
+  chord.slice(0,3).forEach((n,i)=>instrument(root+n+12,at+i*.045,step*7.6,.025,'pad'));
+  instrument(root-12,at,step*7.5,.14,'bass');
  }
  const patterns={
   city:[0,null,2,null,1,null,3,null],
@@ -81,27 +119,18 @@ function playBeat(at){
   roulette:[0,null,2,1,null,3,2,null],
   calm:[0,null,null,2,null,1,null,3]
  };
- const order=(patterns[kind]||patterns.city)[b%8];
- if(order!==null){
-  const n=root+chord[order]+12;
-  const pluck=kind==='plinko'||kind==='slot';
-  tone(n,at,beatSec*(pluck?.82:1.55),pluck?.021:.016,kind==='crash'?'triangle':'sine',.012);
-  if(pluck)tone(n+12,at+.012,beatSec*.55,.005,'triangle',.006);
+ const idx=(patterns[kind]||patterns.city)[b%8];
+ if(idx!==null){
+  const inst=kind==='plinko'||kind==='slot'?'bell':'piano';
+  instrument(root+chord[idx]+12,at,step*1.65,.055,inst);
  }
- // Melodic lead: different timbres and phrasing for each game.
- const n=t.melody[b];
- if(n!==null){
-  const note=root+n+12;
-  const lead=kind==='crash'?'triangle':kind==='slot'?'triangle':'sine';
-  const strength=kind==='calm'?.022:kind==='crash'?.028:.035;
-  tone(note,at,beatSec*(b%4===0?2.8:1.6),strength,lead,.035);
-  if(kind==='city'||kind==='roulette')tone(note+12,at+.045,beatSec*1.3,.005,'sine',.045);
+ const note=t.melody[b];
+ if(note!==null){
+  const inst=kind==='slot'||kind==='plinko'?'bell':'piano';
+  instrument(root+note+12,at,step*(b%4===0?2.7:1.8),kind==='calm'?.07:.12,inst);
  }
- // Musical accents without harsh noise or disruptive effects.
- if(kind==='slot'&&b%8===4)tone(root+31,at,beatSec*.65,.012,'triangle',.009);
- if(kind==='plinko'&&b%4===2)tone(root+36,at,beatSec*.52,.012,'sine',.009);
- if(kind==='crash'&&b%4===0)tone(root-24,at,beatSec*1.3,.034,'sine',.015);
- if(kind==='roulette'&&b%8===6)tone(root+28,at,beatSec*2.3,.009,'sine',.08);
+ if(kind==='crash'&&b%4===0)instrument(root-24,at,step*1.5,.07,'bass');
+ if(kind==='roulette'&&b%8===6)instrument(root+28,at,step*2.5,.04,'bell');
  beat++;
 }
 function tick(){
