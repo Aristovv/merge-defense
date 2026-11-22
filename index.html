@@ -4604,7 +4604,7 @@ function crashStart(){
    crashValue=crashAutoTarget;crashCash(true);return;
   }
   if(next>=crashStop){
-   crashValue=crashStop;clearInterval(crashTimer);crashTimer=null;busy=false;
+   crashValue=crashStop;updateCrashGraph();const shown=$('multiple');if(shown)shown.textContent='×'+crashValue.toFixed(2);clearInterval(crashTimer);crashTimer=null;busy=false;
    state.pendingMiniRound=null;crashHistory.unshift(crashStop);crashHistory=crashHistory.slice(0,8);crashLastStatus='КРАШ НА ×'+crashStop.toFixed(2);
    const hint=document.querySelector('.crash-mult-hint');if(hint)hint.textContent='РАУНД ЗАВЕРШЁН';
    finish(0,'Краш на ×'+crashStop.toFixed(2));return;
@@ -4618,7 +4618,9 @@ function crashStart(){
 }
 function crashCash(automatic=false){
  if(!busy||!crashTimer||state.pendingMiniRound?.kind!=='crash')return;
- const now=performance.now();if(Number.isFinite(crashStartedAt)){const live=Math.min(8,Math.exp(.29*(now-crashStartedAt)/1000));if(automatic&&live<crashAutoTarget)return;if(live>=crashStop||automatic&&(crashAutoTarget<=0||crashAutoTarget>=crashStop)){clearInterval(crashTimer);crashTimer=null;busy=false;state.pendingMiniRound=null;crashValue=crashStop;crashHistory.unshift(crashStop);crashHistory=crashHistory.slice(0,8);crashLastStatus='КРАШ НА ×'+crashStop.toFixed(2);finish(0,'Краш на ×'+crashStop.toFixed(2));return}crashValue=automatic?crashAutoTarget:Math.max(crashValue,live)}
+ const now=performance.now();if(Number.isFinite(crashStartedAt)){const live=Math.min(8,Math.exp(.29*(now-crashStartedAt)/1000));if(automatic&&live<crashAutoTarget)return;if((!automatic&&live>=crashStop)||(automatic&&(crashAutoTarget<=0||crashAutoTarget>=crashStop))){clearInterval(crashTimer);crashTimer=null;busy=false;state.pendingMiniRound=null;crashValue=crashStop;crashHistory.unshift(crashStop);crashHistory=crashHistory.slice(0,8);crashLastStatus='КРАШ НА ×'+crashStop.toFixed(2);finish(0,'Краш на ×'+crashStop.toFixed(2));return}crashValue=automatic?crashAutoTarget:Math.max(crashValue,live)}
+ updateCrashGraph();
+ const display=$('multiple');if(display)display.textContent='×'+crashValue.toFixed(2);
  clearInterval(crashTimer);crashTimer=null;busy=false;
  state.pendingMiniRound=null;crashHistory.unshift(crashValue);crashHistory=crashHistory.slice(0,8);crashLastStatus='ЗАБРАНО НА ×'+crashValue.toFixed(2);
  finish(Math.floor(roundBet*crashValue),'Вывел на ×'+crashValue.toFixed(2));
