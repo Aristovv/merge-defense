@@ -2926,6 +2926,14 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 .slot-scene .slot-line-chip:focus-visible,.slot-scene .slot-line-reset:focus-visible{outline:3px solid #fff3b4;outline-offset:3px}
 @media(max-width:430px){.slot-scene .slot-line-guide{gap:7px;flex-wrap:wrap;justify-content:center;text-align:center}.slot-scene .slot-line-chip{min-width:32px;width:32px;height:32px;font-size:12px}.slot-scene .slot-line-reset{min-height:36px;padding:7px 11px}.slot-scene .slot-winning-line-number{min-width:27px;min-height:27px}}
 @media(prefers-reduced-motion:reduce){.slot-scene .slot-winning-line-number{animation:none!important;transition:none!important}}
+
+/* CASINO CITY 32.5: emphasize actual slot payouts and winning paths */
+.slot-scene .casino-winning-payline:not(.slot-lines-preview *){stroke-width:5;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 3px currentColor)}
+.slot-scene .slot-big-win-banner,.slot-scene .slot-jackpot-banner{position:relative;isolation:isolate;overflow:hidden;border:2px solid #ffe4a0;box-shadow:0 0 18px #ffcb6891,inset 0 0 16px #ffe1a72b;text-shadow:0 0 12px #ffde9a;font-variant-numeric:tabular-nums}
+.slot-scene .slot-big-win-banner::after,.slot-scene .slot-jackpot-banner::after{content:'';position:absolute;inset:-30% auto -30% -55%;width:36%;transform:skewX(-22deg);background:linear-gradient(90deg,transparent,#fff9d24d,transparent);pointer-events:none;animation:casinoSlotShine325 2.6s ease-in-out 2}
+@keyframes casinoSlotShine325{to{left:120%}}
+.slot-scene .slot-multi-line-banner{line-height:1.45;overflow-wrap:anywhere}
+@media(prefers-reduced-motion:reduce){.slot-scene .slot-big-win-banner::after,.slot-scene .slot-jackpot-banner::after{animation:none!important;display:none}}
 </style><style>
 .casino-admin-search{display:flex;gap:8px;margin:12px 0;align-items:center}
 .casino-admin-search select{background:#181323;color:white;border:1px solid #8b719c;border-radius:10px;padding:10px;max-width:120px}.casino-admin-search input{flex:1;min-width:0;background:#181323;border:1px solid #8b719c;border-radius:10px;color:white;padding:11px}
