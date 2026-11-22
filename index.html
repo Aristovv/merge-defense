@@ -3859,6 +3859,11 @@ let casinoCloudRevision=null,casinoCloudDirty=false,casinoCloudBusy=false,casino
 function casinoCloudBackup(reason){
  try{localStorage.setItem('casino_city_cloud_backup_'+Date.now(),JSON.stringify({reason,save:state}));}catch(_){}
 }
+// NEW ERA 30.0 Stage 17: preserve the server copy for manual conflict recovery.
+function casinoCloudPreserveRemote(result,reason){
+ if(!result||!result.save)return;
+ try{localStorage.setItem('casino_city_cloud_remote_conflict',JSON.stringify({reason,revision:result.revision,savedAt:Date.now(),save:result.save}))}catch(_){}
+}
 function casinoCloudNotice(text){
  console.warn(text);
  try{message(text)}catch(_){}
@@ -3876,7 +3881,7 @@ async function casinoCloudStart(){
  try{
   const result=await casinoCloudFetch('GET');
   if(result.save){
-   if(result.save.pendingMiniRound&&['plinko','crash'].includes(result.save.pendingMiniRound.kind)&&!state.pendingMiniRound){casinoCloudBackup('Cloud contains an unfinished '+result.save.pendingMiniRound.kind+' round; manual reconciliation required');casinoCloudRevision=null;casinoCloudNotice('В облаке найден незавершённый раунд '+(result.save.pendingMiniRound.kind==='plinko'?'Plinko':'Crash')+'. Автоматическая замена сохранения остановлена для защиты фишек.');return;}
+   if(result.save.pendingMiniRound&&['plinko','crash'].includes(result.save.pendingMiniRound.kind)&&!state.pendingMiniRound){casinoCloudBackup('Cloud contains an unfinished '+result.save.pendingMiniRound.kind+' round; manual reconciliation required');casinoCloudPreserveRemote(result,'unfinished round');casinoCloudRevision=null;casinoCloudNotice('В облаке найден незавершённый раунд '+(result.save.pendingMiniRound.kind==='plinko'?'Plinko':'Crash')+'. Автоматическая замена сохранения остановлена для защиты фишек.');return;}
    const localChanged=casinoCloudDirty||JSON.stringify(state)!==startingSnapshot;
    const localStamp=Number(state.stamp)||0,remoteStamp=Number(result.save.stamp)||0;
    const remoteReset=Number(result.save.resetEpoch)||0;
@@ -3893,6 +3898,7 @@ async function casinoCloudStart(){
     // Never overwrite newer local activity or an administrator's cloud revision automatically.
     // Keep both copies and require explicit recovery rather than destructive auto-merge.
     casinoCloudBackup('Local progress differs from cloud revision '+result.revision);
+    casinoCloudPreserveRemote(result,'local and cloud diverged');
     casinoCloudRevision=null;
     casinoCloudNotice('Обнаружены разные сохранения. Локальная копия сохранена; облачная синхронизация приостановлена.');
     return;
@@ -3918,6 +3924,7 @@ async function casinoCloudUpload(){
  }catch(error){
   if(error.status===409){
    casinoCloudBackup('Cloud revision conflict on upload '+revision);
+   // The next startup fetch can capture the remote copy; do not guess its contents.
    casinoCloudRevision=null;
    casinoCloudNotice('Облачное сохранение изменилось. Локальный прогресс сохранён отдельно; перезапусти игру для проверки.');
   }else console.warn('Cloud upload failed',error.message);
