@@ -183,6 +183,16 @@ function lc33AvatarFallback(){
  '<path d="M138 110 L134 124 L143 125" fill="none" stroke="#ab6e70" stroke-width="2.4" stroke-linecap="round"/>'+
  '<path d="M125 138 Q139 144 153 132" fill="none" stroke="#964c60" stroke-width="3.5" stroke-linecap="round"/>'+
  '<path d="M103 127 L110 132 M168 126 L176 120" stroke="#fb8e92" stroke-width="2" opacity=".7"/>');
+ // Lucky City 38: hand-drawn facial features and balanced warm skin shading.
+ svg.push(
+ '<path d="M97 101 Q88 96 87 111 Q88 126 101 127 M180 101 Q193 96 192 111 Q192 124 180 126" fill="url(#lc33skin)" stroke="#9b6178" stroke-width="2.4"/>'+
+ '<path d="M104 123 Q110 130 117 129 M160 128 Q170 128 174 122" stroke="#fa9e97" opacity=".38" fill="none" stroke-width="3"/>'+
+ '<path d="M107 88 Q116 85 127 90 M147 91 Q158 86 169 90" stroke="#27172d" fill="none" stroke-width="3" stroke-linecap="round"/>'+
+ '<path d="M113 115 Q118 116 123 115 M153 115 Q158 116 164 114" fill="none" stroke="#724257" opacity=".53" stroke-width="1.4"/>'+
+ '<path d="M130 148 Q139 152 150 147" fill="none" stroke="#ffdec0" opacity=".6" stroke-width="1.5"/>'+
+ '<path d="M101 94 Q104 80 111 75" stroke="#fff3d5" stroke-width="2" fill="none" opacity=".22"/>'+
+ '<path d="M180 94 Q181 106 178 117" stroke="#8b4c65" stroke-width="2" fill="none" opacity=".23"/>'+
+ '<path d="M134 127 Q138 130 142 128" fill="none" stroke="#ffd2b8" opacity=".56" stroke-width="1.4"/>');
  // Hair fringe after face, no silly helmet
  svg.push('<path d="M96 91 Q81 74 93 57 Q107 36 142 40 Q168 39 185 57 Q196 79 185 96 L171 83 Q160 64 150 66 Q134 88 110 94 L110 82Z" fill="#211632" stroke="#0f0b23" stroke-width="3"/>'+
  '<path d="M109 67 Q125 49 144 55 M149 52 Q173 53 178 70" stroke="#554164" stroke-width="4" fill="none" stroke-linecap="round"/>');
@@ -440,6 +450,20 @@ function lc37Shape(g) {
 
 // Restore reliable inline art for Safari / VK WebView: external SVG <use>
 // rendered tiny thumbnails and unresolved gradients on iPhone.
+/* Premium VFX are cosmetic-only and based on worn rare items. */
+function lc38Aura(items){
+ const selected=items.filter(Boolean);
+ const hero=selected.find(x=>x.rarity==='Мифическая')||selected.find(x=>x.rarity==='Легендарная');
+ if(!hero)return '';
+ const theme=lc36Theme(hero);
+ const c=({crystal:'#9cf4ff',flame:'#ffb054',space:'#b5a2ff',royal:'#ffe2a0',nature:'#d7a9ef',shadow:'#b5a1c8',neon:'#8af3ee',street:'#eed2ff'})[theme];
+ return '<g class="lc38-aura" aria-hidden="true">'+
+  '<path d="M51 310 Q14 215 73 131 M226 310 Q264 215 207 131" stroke="'+c+'" stroke-width="2" fill="none" opacity=".46" stroke-dasharray="3 12"/>'+
+  '<path d="M43 178 L47 169 51 178 59 182 51 186 47 196 43 186 35 182Z M224 152 L228 143 232 152 239 156 232 160 228 170 224 160 216 156Z" fill="'+c+'" opacity=".88"/>'+
+  '<circle cx="48" cy="268" r="2.5" fill="'+c+'"/><circle cx="234" cy="234" r="3" fill="'+c+'"/>'+
+  '</g>';
+}
+
 function lc33Avatar(){
  const c=lc33State();
  let svg=lc33AvatarFallback();
@@ -448,7 +472,8 @@ function lc33Avatar(){
   const item=LC35_BY_ID.get(c.equipped[type]);
   return lc37Shape(item)+lc36AvatarMark(item);
  }).join('');
- return svg.replace('</svg>',details+'</svg>');
+ const special=lc38Aura(layerOrder.map(type=>LC35_BY_ID.get(c.equipped[type])));
+ return svg.replace('</svg>',special+details+'</svg>');
 }
 function lc34SvgItem(g){return lc36ItemIcon(g);}
 function lc33Screen(){
