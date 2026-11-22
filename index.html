@@ -3098,6 +3098,23 @@ button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--elite
 @media(hover:hover){.gamecard:hover{transform:translateY(-3px);border-color:rgba(244,205,119,.5)!important;box-shadow:0 15px 36px rgba(101,46,171,.25)!important}}
 @media(max-width:600px){.top{border-radius:16px!important}.gamecard{border-radius:16px!important}.catalog-feature{border-radius:15px!important}}
 @media(prefers-reduced-motion:reduce){.gamecard{transition:none!important}}
+</style><style>
+/* Casino City Elite 3 — immersive game screens, responsive controls */
+.game-page{position:relative;isolation:isolate}
+.game-page:before{content:"";position:absolute;z-index:-1;pointer-events:none;top:0;left:-12px;right:-12px;height:420px;background:radial-gradient(ellipse at 50% 15%,rgba(141,67,225,.16),transparent 70%)}
+.game-page button:not(:disabled){-webkit-tap-highlight-color:transparent}
+.game-page button:focus-visible{outline:2px solid #f5ce77;outline-offset:3px}
+.game-page input,.game-page select{accent-color:#b47aff}
+.game-page input[type=number],.game-page input[type=text],.game-page select{border:1px solid rgba(187,142,249,.3);background-color:rgba(16,13,33,.9);color:#f7f0ff;border-radius:12px}
+.game-page input:focus,.game-page select:focus{outline:2px solid rgba(200,155,255,.52);outline-offset:1px}
+.roulette-wheel,.roulette-scene,.roulette-board,.plinko-board,.crashbox,.dice-cube,.slot-cabinet{filter:drop-shadow(0 10px 22px rgba(0,0,0,.23))}
+.plinko-bin{transition:filter .18s ease,transform .18s ease}
+.plinko-bin-won{filter:brightness(1.25) drop-shadow(0 0 9px rgba(222,176,255,.7))}
+.crashbox{border-radius:18px;overflow:hidden}
+.game-page .section-intro h1,.game-page h1{letter-spacing:-.025em}
+.game-page .eyebrow{letter-spacing:.11em}
+@media(max-width:600px){.game-page input,.game-page select{font-size:16px}.game-page button{min-height:38px}}
+@media(prefers-reduced-motion:reduce){.plinko-bin{transition:none!important}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
