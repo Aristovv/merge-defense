@@ -3435,6 +3435,41 @@ body{background:radial-gradient(ellipse 85% 45% at 50% -7%,var(--cc-theme-glow,r
 .era30-jumpnav button{min-width:0;min-height:62px;border-radius:13px;padding:8px 3px;font:800 10px/1.3 Manrope,system-ui,sans-serif;cursor:pointer}
 .era30-jumpnav button .ic{width:19px;height:19px;margin-bottom:4px}
 @media(min-width:440px){.era30-jumpnav button{font-size:12px}}
+<style>
+/* NEW ERA 30.0 — Stage 3: individual illustrated buildings; visual-only update */
+.city-page .district-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.city-page .era30-property{display:flex;flex-direction:column;min-width:0;overflow:hidden;border-radius:19px;border:1px solid #9775d388;background:linear-gradient(165deg,#29203e,#141126);box-shadow:0 12px 24px #0006,0 0 20px #8044c81c}
+.era30-property-scene{height:154px;position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at 50% 90%,var(--era-glow,#b369ff88),transparent 65%),linear-gradient(155deg,var(--era-sky,#392051),#0e0b21 90%)}
+.era30-property-theme-0{--era-glow:#a15fff88;--era-sky:#42215f;--era-light:#e3a9ff}
+.era30-property-theme-1{--era-glow:#28c9e088;--era-sky:#153c53;--era-light:#8befff}
+.era30-property-theme-2{--era-glow:#f0a04b88;--era-sky:#55301e;--era-light:#ffe3a0}
+.era30-property-theme-3{--era-glow:#ff4aaf88;--era-sky:#521e46;--era-light:#ffb3e0}
+.era30-property-theme-4{--era-glow:#4f9eff88;--era-sky:#1d2c62;--era-light:#a6caff}
+.era30-property-halo{position:absolute;width:140px;height:140px;top:-55px;right:-30px;border:1px solid #ffffff30;border-radius:50%;box-shadow:0 0 0 25px #ffffff08,0 0 0 52px #ffffff05}
+.era30-property-building{position:absolute;bottom:-8px;left:50%;width:92px;height:108px;transform:translateX(-50%);border:2px solid var(--era-light);border-bottom:0;border-radius:17px 17px 0 0;background:linear-gradient(90deg,#ffffff17,transparent 25%,#ffffff1a 75%,#ffffff0d),linear-gradient(160deg,#281b3c,#100d20);box-shadow:0 0 20px var(--era-glow),inset 0 0 20px #0009}
+.era30-property-roof{position:absolute;left:-10px;right:-10px;top:12px;height:8px;background:var(--era-light);border-radius:4px;box-shadow:0 0 14px var(--era-light)}
+.era30-property-windows{position:absolute;left:12px;right:12px;top:31px;height:49px;background:repeating-linear-gradient(90deg,transparent 0 13px,var(--era-light) 13px 18px,transparent 18px 25px);opacity:.8;mask-image:repeating-linear-gradient(0deg,#000 0 9px,transparent 9px 17px)}
+.era30-property-entrance{position:absolute;bottom:0;left:34px;width:23px;height:29px;border:2px solid var(--era-light);border-radius:12px 12px 0 0;box-shadow:0 0 15px var(--era-glow)}
+.era30-property-emblem{position:absolute;top:35px;left:50%;transform:translateX(-50%);color:var(--era-light);filter:drop-shadow(0 0 9px var(--era-light))}
+.era30-property-emblem .ic{width:28px;height:28px}
+.era30-property .era30-building-index{top:9px;left:9px}
+.era30-property-level{position:absolute;bottom:8px;right:8px;font-size:9px;font-weight:900;letter-spacing:.3px;color:#fff3d9;padding:5px 7px;background:#0c0a1bdc;border:1px solid #ffffff44;border-radius:8px}
+.era30-property.is-unbuilt .era30-property-building{filter:saturate(.4);opacity:.65}
+.era30-property-body{display:flex;flex-direction:column;flex:1;gap:10px;padding:12px 10px 11px}
+.era30-property-title strong{display:block;font-size:13px;line-height:1.3;min-height:34px;color:#fff0d7}
+.era30-property-title .era30-building-status{margin-top:4px}
+.era30-property-stats{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.era30-property-stats>div{min-width:0;background:#08091999;border:1px solid #ffffff19;border-radius:9px;padding:8px 5px}
+.era30-property-stats small{display:block;color:#b4a6cc;font-size:8px;line-height:1.4}
+.era30-property-stats b{display:block;margin:4px 0;color:#fff2d7;font-size:clamp(11px,2.8vw,16px);overflow-wrap:anywhere}
+.era30-property-footer{display:flex;justify-content:space-between;gap:4px;flex-wrap:wrap;font-size:9px;color:#c5b6d5}
+.era30-property-gain{color:#8ef2c7;font-weight:800}
+.city-page .era30-property-action{display:flex;justify-content:space-between;align-items:center;gap:4px;width:100%;margin-top:auto;padding:10px 8px;min-height:43px;font-size:10px;text-align:left}
+.era30-property-action b{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.era30-property-action .ic{width:14px;height:14px}
+@media(max-width:350px){.city-page .district-grid{gap:7px}.era30-property-scene{height:125px}.era30-property-body{padding:9px 7px}.era30-property-title strong{font-size:11px}.era30-property-stats small{font-size:7px}.city-page .era30-property-action{font-size:9px}}
+@media(min-width:540px){.era30-property-scene{height:180px}.era30-property-body{padding:15px}.era30-property-title strong{font-size:16px}}
+@media(prefers-reduced-motion:no-preference){.era30-property.is-owned .era30-property-emblem{animation:era30-property-pulse 3.5s ease-in-out infinite}@keyframes era30-property-pulse{50%{filter:drop-shadow(0 0 15px var(--era-light))}}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
@@ -4586,7 +4621,18 @@ let expandedDistrict=false;
 function cityScreen(){
 const level=state.buildings.reduce((a,b)=>a+b,0),have=state.buildings.filter(x=>x>0).length;
 const visible=expandedDistrict?BUILDINGS:BUILDINGS.slice(0,6);
-const district=visible.map((b,i)=>'<div class="district-card district-'+i+'"><span class="era30-building-index">ОБЪЕКТ '+String(i+1).padStart(2,'0')+'</span><div class="district-illustration">'+ic(b[1])+'<span class="district-rank">'+(state.buildings[i]?'УР. '+state.buildings[i]:'НОВОЕ')+'</span></div><div class="district-info"><strong>'+b[0]+'</strong><span>'+(state.buildings[i]?fmt(buildingHourlyIncome(i))+' монет / час':'Открыть объект')+'</span><span class="era30-building-status '+(state.buildings[i]?'':'locked')+'">'+(state.buildings[i]?'● Работает':'◇ Ожидает постройки')+'</span><small class="district-economy">+'+fmt(buildingNextIncome(i)-buildingHourlyIncome(i))+'/час после улучшения · окупаемость ~'+buildingPayback(i)+' ч</small><button class="district-upgrade" data-up="'+i+'" '+(state.coins<cost(i)?'disabled':'')+'>'+(state.buildings[i]?'Улучшить':'Построить')+' <b>'+fmt(cost(i))+'</b>'+ic('coin')+'</button></div></div>').join('');
+const district=visible.map((b,i)=>{
+ const owned=state.buildings[i]>0,upgradePrice=cost(i),canAfford=state.coins>=upgradePrice;
+ const currentIncome=buildingHourlyIncome(i),nextIncome=buildingNextIncome(i);
+ const icons=['slot','games','roulette','cards','chip','hotel','vip','tower','plinko','crash','city','star','spark','trophy'];
+ const theme=i%5;
+ return '<article class="district-card district-'+i+' era30-property era30-property-theme-'+theme+(owned?' is-owned':' is-unbuilt')+'">'+
+ '<div class="era30-property-scene"><div class="era30-property-halo"></div><div class="era30-property-building"><span class="era30-property-roof"></span><span class="era30-property-windows"></span><span class="era30-property-entrance"></span></div><div class="era30-property-emblem">'+ic(icons[i])+'</div><span class="era30-building-index">№ '+String(i+1).padStart(2,'0')+'</span><span class="era30-property-level">'+(owned?'УРОВЕНЬ '+state.buildings[i]:'НЕ ПОСТРОЕНО')+'</span></div>'+
+ '<div class="era30-property-body"><div class="era30-property-title"><strong>'+b[0]+'</strong><span class="era30-building-status '+(owned?'':'locked')+'">'+(owned?'● Работает':'◇ Новый объект')+'</span></div>'+
+ '<div class="era30-property-stats"><div><small>ДОХОД СЕЙЧАС</small><b>'+fmt(currentIncome)+'</b><small>монет / час</small></div><div><small>ПОСЛЕ УЛУЧШЕНИЯ</small><b>'+fmt(nextIncome)+'</b><small>монет / час</small></div></div>'+
+ '<div class="era30-property-footer"><span>Окупаемость ~'+buildingPayback(i)+' ч</span><span class="era30-property-gain">+'+fmt(nextIncome-currentIncome)+'/ч</span></div>'+
+ '<button class="district-upgrade era30-property-action" data-up="'+i+'" '+(!canAfford?'disabled':'')+'><span>'+(owned?'Улучшить здание':'Построить здание')+'</span><b>'+fmt(upgradePrice)+' '+ic('coin')+'</b></button></div></article>';
+}).join('');
 const era30Hero='<section class="era30-hero" aria-label="CASINO CITY NEW ERA"><div class="era30-hero-glow"></div><div class="era30-hero-top"><span class="era30-pill">✦ NEW ERA 30.0</span><span class="era30-level">УРОВЕНЬ '+state.level+'</span></div><div class="era30-hero-title">ТВОЙ ГОРОД.<br><em>ТВОЯ ИМПЕРИЯ.</em></div><p>Развивай казино, открывай новые районы и поднимайся в рейтинге.</p><div class="era30-metrics"><div><small>ЗДАНИЯ</small><strong>'+have+' / '+BUILDINGS.length+'</strong></div><div><small>МОНЕТ / ЧАС</small><strong>'+fmt(rate())+'</strong></div><div><small>УРОВНИ ЗДАНИЙ</small><strong>'+level+'</strong></div></div><div class="era30-hero-actions"><button class="btn gold-action" data-action="collect">Собрать доход</button><button class="btn purple" data-tab="games">Игровые залы</button></div></section>';
 return '<div class="page city-page">'+era30Hero+'<nav class="era30-jumpnav" aria-label="Разделы города"><button type="button" data-era30-scroll="city-overview">'+ic('city')+'Обзор города</button><button type="button" data-era30-scroll="city-buildings">'+ic('tower')+'Здания</button><button type="button" data-era30-scroll="city-upgrades">'+ic('up')+'Улучшения</button></nav><div id="city-overview" class="section-intro"><div><span class="eyebrow">МОЯ ИМПЕРИЯ</span><h1>Город казино</h1></div><span class="city-rank">'+ic('vip')+' '+level+' уровень</span></div><div class="city-visual"><div class="city-visual-overlay"><span class="city-sign">'+ic('star')+' CASINO CITY <span class="live-dot"></span></span><div class="city-visual-bottom"><strong>ГОРОД, КОТОРЫЙ<br>НЕ СПИТ</strong><small>Твой путь от первого зала до столицы развлечений</small></div></div><div class="cc14-neon-traffic"><span class="cc14-car"></span><span class="cc14-car second"></span><span class="cc14-city-beam"></span></div><div class="city-stats"><div><span>ПОСТРОЕНО</span><strong>'+have+' <small>/ 14</small></strong></div><div><span>ДОХОД / ЧАС</span><strong>'+fmt(rate())+'</strong></div></div></div><div class="city-progress"><div class="city-progress-head"><strong>Развитие города</strong><span>'+have+'/14 объектов</span></div><div class="city-progress-track"><span style="width:'+(have/14*100)+'%"></span></div><small>Доход начисляется по часовой ставке, даже пока игра закрыта (до 8 часов). Строй новые районы и улучшай существующие.</small></div>'+cc14CityWidgets()+'<div class="city-cta"><button class="btn gold-action" data-action="collect">'+ic('coin')+' Собрать доход</button><button class="btn purple" data-tab="games">'+ic('games')+' Играть</button></div><div class="casino-strip"><span class="casino-strip-mark">'+ic('spark')+'</span><div><strong>ТВОЯ ИМПЕРИЯ РАСТЁТ</strong><small>Улучшай объекты — открывай возможности</small></div><span class="casino-strip-right">'+have+'/14</span></div><div id="city-buildings" class="sectionhead district-heading"><h2>Мои заведения</h2><span class="mini">'+(expandedDistrict?'Все объекты':'Первые шесть объектов')+'</span></div><div id="city-upgrades" class="district-grid">'+district+'</div><button class="all-buildings-btn" data-action="district">'+(expandedDistrict?'Свернуть список':'Показать все 14 зданий')+ic(expandedDistrict?'back':'up')+'</button></div>';
 }
