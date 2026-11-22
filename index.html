@@ -2778,6 +2778,61 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 @media(prefers-reduced-motion:reduce){
  .slot-scene .slot-reel-stopped .slot-cell-winning .slot-realistic{animation:none!important}
 }
+
+/* Casino City 24.8 — Crash + Plinko visual refinement, mechanics unchanged */
+.game-mode-plinko .plinko-board,.plinko-stage .plinko-board{
+ border:2px solid #8872bd!important;
+ border-radius:18px!important;
+ background:
+ radial-gradient(ellipse at 50% 10%,#4a28617d,transparent 65%),
+ linear-gradient(165deg,#19132e,#0c1020 75%)!important;
+ box-shadow:inset 0 0 0 1px #d8b5ff2a,inset 0 -25px 45px #030510a8,0 9px 22px #0007,0 0 12px #8e61cf2b!important;
+}
+.plinko-board .plinko-peg{
+ background:radial-gradient(circle at 28% 24%,#fff,#b3e7ff 42%,#5676b6 80%)!important;
+ box-shadow:0 0 5px #91cbff8c,0 1px 2px #02030b!important;
+}
+.plinko-board .plinko-moving-ball{
+ background:radial-gradient(circle at 30% 22%,#fff 0%,#b8f3ff 25%,#668de8 65%,#463b99 100%)!important;
+ border:1px solid #ffffffa8!important;
+ box-shadow:inset -2px -3px 4px #17145a8c,0 0 9px #8edcff,0 0 15px #6b81faaa!important;
+ will-change:transform;
+}
+.plinko-board .bins span,.plinko-bins-13 span{
+ border-radius:7px 7px 10px 10px!important;
+ box-shadow:inset 0 2px 2px #ffffff54,inset 0 -3px 5px #09091b55,0 3px 8px #0008!important;
+}
+.crashbox{
+ border:2px solid #bb82bd!important;
+ border-radius:19px!important;
+ background:
+ radial-gradient(ellipse at 55% 85%,#54244b88,transparent 65%),
+ linear-gradient(145deg,#15172e,#1c102b 76%)!important;
+ box-shadow:inset 0 0 0 1px #ffe2ff1a,inset 0 0 28px #08051499,0 9px 23px #0008!important;
+}
+.crashbox:before{
+ background:
+ repeating-linear-gradient(0deg,transparent 0 39px,#ffd3ed10 40px 41px),
+ repeating-linear-gradient(90deg,transparent 0 39px,#ffd3ed10 40px 41px)!important;
+ opacity:.72!important;
+}
+.crashbox .multiple{
+ font-variant-numeric:tabular-nums;
+ font-weight:900!important;
+ letter-spacing:-1.5px;
+ text-shadow:0 2px 3px #090616,0 0 15px #ffc07c88!important;
+}
+.crash-graph-line{
+ box-shadow:0 0 7px #ff83c8,0 0 14px #ffc58299!important;
+}
+@media(max-width:480px){
+ .crashbox{border-radius:15px!important}
+ .plinko-board{border-radius:15px!important}
+ .crashbox .multiple{font-size:clamp(34px,11vw,48px)!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .plinko-board .plinko-moving-ball{will-change:auto}
+}
 </style><style>
 .casino-admin-search{display:flex;gap:8px;margin:12px 0;align-items:center}
 .casino-admin-search select{background:#181323;color:white;border:1px solid #8b719c;border-radius:10px;padding:10px;max-width:120px}.casino-admin-search input{flex:1;min-width:0;background:#181323;border:1px solid #8b719c;border-radius:10px;color:white;padding:11px}
@@ -3826,7 +3881,7 @@ function rewardCollection(){
  save();
  message('Коллекция: +'+newlyClaimed+' VIP за завершённые серии партий');
 }
-function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 24.7</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
+function mainHeader(){return '<header class="top"><div class="brand"><div class="logo"><div class="emblem">'+ic('vip')+'</div><div><div class="brand-name">CASINO CITY</div><div class="sub">ГОРОД УДАЧИ · 24.8</div></div></div><div class="status">Ур. '+state.level+' · '+rankEsc(rankAt(state.level))+'</div></div><div class="balances"><div class="balance">'+ic('coin')+'<b>'+fmt(state.coins)+'</b></div><div class="balance">'+ic('chip')+'<b>'+fmt(state.chips)+'</b></div><div class="balance">'+ic('vip')+'<b>'+fmt(state.vip)+'</b></div></div></header>'}
 /* Casino City admin console v1: server-verified read-only player directory */
 function casinoAdminVisible(){try{const q=new URLSearchParams(CASINO_LAUNCH_PARAMS||'');return q.get('vk_user_id')==='523218982'}catch(_){return false}}
 function casinoAdminScreen(){return '<div class="page casino-admin-page"><div class="section-intro casino-admin-hero"><div><span class="eyebrow">CASINO CITY · ADMIN</span><h1>Панель управления</h1></div><span class="catalog-count">OWNER</span></div><div class="casino-admin-tabs"><button class="btn purple" data-admin-section-tab="players">👥 Игроки</button><button class="btn" data-admin-section-tab="resources">💰 Ресурсы</button><button class="btn" data-admin-section-tab="stats">📊 Статистика</button><button class="btn" data-admin-section-tab="history">📋 История</button><button class="btn" data-admin-section-tab="reset">⚠️ Сбросы</button></div><div class="panel" data-admin-section="players"><h3>Игроки Casino City</h3><p class="subline">Доступ проверяется сервером по подписи ВКонтакте. Поиск показывает данные общего рейтинга.</p><div class="casino-admin-search"><input id="casino-admin-query" maxlength="64" placeholder="VK ID или имя игрока"><button class="btn purple" data-casino-admin-search="1">Найти</button></div><div id="casino-admin-results" class="subline">Загружаем игроков…</div></div><div class="panel" data-admin-section="players"><h3>Прогресс игрока</h3><p class="subline">Просмотр облачного баланса и уровня без изменения данных.</p><div class="casino-admin-search"><input id="casino-player-vk" inputmode="numeric" placeholder="VK ID игрока"><button class="btn purple" data-casino-admin-player="1">Посмотреть</button></div><div id="casino-admin-player-detail" class="subline">Введи VK ID для просмотра</div></div><div class="panel" data-admin-section="resources" style="display:none"><h3>Выдать ресурсы</h3><p class="subline">Выдача работает только для игроков, у которых уже есть облачное сохранение. Выбери валюту и введи VK ID.</p><div class="casino-admin-search"><input id="casino-grant-vk" placeholder="VK ID игрока" inputmode="numeric"></div><div class="casino-admin-search"><select id="casino-grant-field"><option value="chips">Фишки</option><option value="coins">Монеты</option><option value="vip">VIP</option><option value="xp">Опыт (XP)</option></select><input id="casino-grant-amount" placeholder="Количество" inputmode="numeric"></div><button class="btn purple" data-casino-admin-grant="1">Выдать</button><div id="casino-grant-status" class="subline"></div></div><div class="panel" data-admin-section="resources" style="display:none"><h3>Управление имуществом игрока</h3><p class="subline">Выдавай, забирай или устанавливай точное количество ресурсов, статистики и уровней построек. Изменения сохраняются в облаке и журнале действий.</p><div class="casino-admin-search"><input id="casino-adjust-vk" inputmode="numeric" placeholder="VK ID игрока"></div><div class="casino-admin-search"><select id="casino-adjust-field"><option value="chips">Фишки</option><option value="coins">Монеты</option><option value="vip">VIP</option><option value="xp">Опыт XP</option><option value="level">Уровень</option><option value="plays">Сыграно партий</option><option value="wins">Победы</option><option value="best">Лучший результат</option><option value="earned">Всего заработано</option><option value="building">Постройка (уровень)</option></select><select id="casino-adjust-mode"><option value="add">Выдать / добавить</option><option value="remove">Забрать / уменьшить</option><option value="set">Установить значение</option></select></div><div class="casino-admin-search"><input id="casino-adjust-index" inputmode="numeric" placeholder="Номер постройки 1–14 (если выбрана)"><input id="casino-adjust-amount" inputmode="numeric" placeholder="Количество"></div><button class="btn purple" data-casino-admin-adjust="1" data-casino-admin-adjust-action="1">Применить</button><div id="casino-adjust-status" class="subline"></div></div><div class="panel" data-admin-section="stats" style="display:none"><h3>Статистика Casino City</h3><p class="subline">Реальные показатели облачной базы. Активность — обновления за 24 часа, не онлайн.</p><button class="btn purple" data-casino-admin-stats="1">Обновить статистику</button><div id="casino-admin-stats" class="subline">Нажми «Обновить статистику»</div></div><div class="panel" data-admin-section="history" style="display:none"><h3>История действий</h3><p class="subline">Последние 30 операций администратора.</p><div class="casino-admin-search"><input id="casino-audit-vk" inputmode="numeric" placeholder="VK ID (необязательно)"><button class="btn purple" data-casino-admin-audit="1">Обновить историю</button></div><div id="casino-admin-audit" class="subline">Нажми «Обновить историю»</div></div><div class="panel" data-admin-section="reset" style="display:none"><h3>Сброс облачного прогресса игрока</h3><p class="subline">Удаляет игровые ресурсы, уровень, статистику и постройки из облачного сохранения выбранного игрока. Общий рейтинг и турниры не сбрасываются. Действие необратимо для облака.</p><div class="casino-admin-search"><input id="casino-reset-vk" inputmode="numeric" placeholder="VK ID игрока"></div><button class="btn purple" data-casino-admin-reset="1">Сбросить игрока</button><div id="casino-reset-status" class="subline"></div></div><div class="panel" data-admin-section="reset" style="display:none"><h3>Массовый сброс тестеров</h3><p class="subline">Сбросит облачные сохранения всех игроков до 1 200 фишек и 2 500 монет, обнулит очки всех игроков в общем рейтинге без удаления профилей и очистит турнирные записи. Действие необратимо.</p><label><input type="checkbox" id="casino-reset-all-check"> Я понимаю, что сброшу прогресс всех игроков</label><div><button class="btn" data-casino-admin-reset-all="1">Сбросить всех игроков</button></div><div id="casino-reset-all-status" class="subline"></div></div></div>'}
