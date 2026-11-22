@@ -4642,7 +4642,7 @@ function plinkoPlay(){
  busy=true;roundBet=stake;casinoCurrentStake=total;state.chips-=total;state.plays++;recordCasinoQuestEvent('plays',1);xp(4);save();
  plinkoHits=[];plinkoLastSector=-1;
  const table=PLINKO_PAYTABLES[plinkoRisk],board=$('plinko-board'),bins=$('plinko-bins'),hits=$('plinko-hits');
- const width=board?.clientWidth||320,center=width/2,step=width/15,duration=3200,launchGap=0,pegs=board?Array.from(board.querySelectorAll('.plinko-peg')):[],binEls=bins?Array.from(bins.querySelectorAll('span')):[],boardHeight=board?.clientHeight||305,boardRect=board?.getBoundingClientRect();
+ const width=board?.clientWidth||320,center=width/2,step=width/15,duration=3000,launchGap=180,pegs=board?Array.from(board.querySelectorAll('.plinko-peg')):[],binEls=bins?Array.from(bins.querySelectorAll('span')):[],boardHeight=board?.clientHeight||305,boardRect=board?.getBoundingClientRect();
  const results=Array.from({length:count},()=>{
   let index=0;const path=[];
   for(let i=0;i<12;i++){index+=rand(2);path.push(index)}
@@ -4650,7 +4650,7 @@ function plinkoPlay(){
  });
  state.pendingMiniRound={kind:'plinko',stake:total,prize:results.reduce((sum,item)=>sum+item.prize,0)};save();
  let completed=0,earned=0;
- if(hits)hits.textContent='Одновременно летят: '+count+' · Приземлилось: 0/'+count;
+ if(hits)hits.textContent='Запущено: '+count+' · Приземлилось: 0/'+count;
  results.forEach((result,n)=>{
   const ball=document.createElement('div');
   ball.className='plinko-moving-ball';ball.setAttribute('aria-label','Шарик '+(n+1)+' из '+count);ball.style.opacity='0';ball.style.zIndex=String(10+n);ball.style.filter='';ball.classList.add('plinko-ball-elite');ball.style.willChange='left,top';ball.style.setProperty('--plinko-ball-color',['#ffe4a2','#8de9ff','#ffa9e8','#c4ffab','#ffffff'][n%5]);
