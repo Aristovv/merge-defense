@@ -61,6 +61,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
     }
     for(const key of ['nick','frame','title','background','effect','theme'])if(pack[key])add(key+'s',pack[key]);
     if(pack.vipBadge)add('badges','vip');
+    save.donationEquipped={...(save.donationEquipped||{}),...Object.fromEntries(['nick','frame','title','background','effect','theme'].filter(key=>pack[key]).map(key=>[key,pack[key]])),...(pack.vipBadge?{badge:'vip'}:{})};
     if(pack.boost){
      const now=Date.now(),expires=now+7*86400000;
      const old=save.donationIncomeBoost||{};
@@ -70,7 +71,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
     const split=id.indexOf(':'),type=id.slice(0,split),value=id.slice(split+1),key=type==='badge'?'badges':type+'s';
     if(mode==='grant')add(key,value);else remove(key,value);
    }
-   save.donationInventory=inventory;save.stamp=Date.now();
+   save.donationInventory=inventory;save.resetEpoch=Math.max(0,Number(save.resetEpoch)||0)+1;save.stamp=Date.now();
    await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(save)]);
    await client.query('INSERT INTO public.casino_city_donation_actions(request_id,admin_vk_id,target_vk_id,payload) VALUES($1,$2,$3,$4::jsonb)',[requestId,ADMIN_ID,vkId,JSON.stringify({kind,id,mode})]);
    await client.query(`CREATE TABLE IF NOT EXISTS public.casino_city_admin_audit(
@@ -79,6 +80,34 @@ function registerCasinoAdmin(app,pool,requireAuth){
    await client.query('INSERT INTO public.casino_city_admin_audit(admin_vk_id,target_vk_id,action,details) VALUES($1,$2,$3,$4::jsonb)',[ADMIN_ID,vkId,'donation',JSON.stringify({kind,id,mode,requestId})]);
    await client.query('COMMIT');res.set('Cache-Control','no-store');res.json({ok:true,vkId,kind,id,mode});
   }catch(e){if(client)await client.query('ROLLBACK').catch(()=>{});console.error('casino donation failed',e.code||e.message);res.status(503).json({error:'DONATION_UNAVAILABLE'})}
+  finally{client?.release()}
+ });
+
+
+ // Reconcile an earlier successful grant without paying out the bundle a second time.
+ app.post('/api/casino/admin/donation-refresh',guard,async(req,res)=>{
+  if(!pool)return res.status(503).json({error:'DATABASE_UNAVAILABLE'});
+  const vkId=String(req.body?.vkId||'').trim();
+  if(!/^[1-9][0-9]{0,18}$/.test(vkId))return res.status(400).json({error:'INVALID_VK_ID'});
+  let client;
+  try{
+   client=await pool.connect();await client.query('BEGIN');
+   const q=await client.query('SELECT save FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vkId]);
+   if(!q.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'CLOUD_SAVE_NOT_FOUND'})}
+   const save=q.rows[0].save;
+   if(!save.donationInventory||typeof save.donationInventory!=='object'){await client.query('ROLLBACK');return res.status(409).json({error:'NO_DONATION_TO_REFRESH'})}
+   if(!save.donationEquipped?.title){
+    const inv=save.donationInventory||{};
+    const pick=key=>Array.isArray(inv[key])&&inv[key].length?inv[key][inv[key].length-1]:null;
+    save.donationEquipped={...(save.donationEquipped||{}),...Object.fromEntries([['nick','nicks'],['frame','frames'],['title','titles'],['background','backgrounds'],['effect','effects'],['theme','themes'],['badge','badges']].map(([type,key])=>[type,pick(key)]).filter(([,value])=>value))};
+   }
+   save.resetEpoch=Math.max(0,Number(save.resetEpoch)||0)+1;
+   save.stamp=Date.now();
+   await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(save)]);
+   await client.query(`CREATE TABLE IF NOT EXISTS public.casino_city_admin_audit(id BIGSERIAL PRIMARY KEY,admin_vk_id BIGINT NOT NULL,target_vk_id BIGINT NOT NULL,action TEXT NOT NULL,details JSONB NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+   await client.query('INSERT INTO public.casino_city_admin_audit(admin_vk_id,target_vk_id,action,details) VALUES($1,$2,$3,$4::jsonb)',[ADMIN_ID,vkId,'donation_refresh',JSON.stringify({resetEpoch:save.resetEpoch})]);
+   await client.query('COMMIT');res.set('Cache-Control','no-store');res.json({ok:true,vkId,resetEpoch:save.resetEpoch});
+  }catch(e){if(client)await client.query('ROLLBACK').catch(()=>{});console.error('casino donation refresh failed',e.code||e.message);res.status(503).json({error:'DONATION_REFRESH_UNAVAILABLE'})}
   finally{client?.release()}
  });
 
@@ -166,7 +195,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
    ]);
    const c=cloud.rows[0],p=rank.rows[0],v=c?.save;
    res.set('Cache-Control','no-store');
-   res.json({vkId,cloud:c?{revision:Number(c.revision),updatedAt:c.updated_at,chips:v.chips,coins:v.coins,vip:v.vip,xp:v.xp,level:v.level,plays:v.plays,wins:v.wins,buildings:v.buildings,stamp:v.stamp}:null,ranking:p||null,reset:{available:false,reason:'RESET_DISABLED_PENDING_SAFE_RECONCILIATION'}});
+   res.json({vkId,cloud:c?{revision:Number(c.revision),updatedAt:c.updated_at,chips:v.chips,coins:v.coins,vip:v.vip,xp:v.xp,level:v.level,plays:v.plays,wins:v.wins,buildings:v.buildings,stamp:v.stamp,donationInventory:v.donationInventory||{},donationEquipped:v.donationEquipped||{},donationIncomeBoost:v.donationIncomeBoost||null}:null,ranking:p||null,reset:{available:false,reason:'RESET_DISABLED_PENDING_SAFE_RECONCILIATION'}});
   }catch(e){console.error('casino admin player',e.code||e.message);res.status(503).json({error:'PLAYER_READ_UNAVAILABLE'})}
  });
  // Reset only one player's cloud game progress. The reset epoch prevents older
