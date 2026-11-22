@@ -36,3 +36,8 @@
 .lc33-detail small{color:#a4fc9d}.lc33-empty{padding:28px 10px;text-align:center;color:#c6b2dc;font-size:13px}
 @media(min-width:600px){.lc33-stage{grid-template-columns:170px minmax(0,1fr) 180px}.lc33-side{grid-column:auto;display:flex;flex-direction:column;justify-content:center;border-left:1px solid #a86ace55;border-top:0;padding-left:10px}.lc33-figure{min-height:405px}.lc33-person{height:390px}.lc33-items{grid-template-columns:repeat(4,minmax(0,1fr))}.lc33-cats button{font-size:15px}}
 @media(max-width:370px){.lc33{padding-left:8px;padding-right:8px}.lc33-stage{grid-template-columns:113px minmax(0,1fr)}.lc33-cats button{font-size:11px;padding:8px 5px}.lc33-item strong{font-size:11px}}
+
+/* Eight compact navigation destinations stay in a single mobile row. */
+.nav.era30-global-nav{display:grid!important;grid-template-columns:repeat(8,minmax(0,1fr))!important;gap:1px!important;padding-left:3px!important;padding-right:3px!important}
+.nav.era30-global-nav button{font-size:clamp(8px,1.8vw,11px)!important;min-width:0!important;overflow:hidden;white-space:nowrap;padding:5px 1px!important}
+.nav.era30-global-nav button .ic{width:clamp(16px,4.2vw,22px);height:clamp(16px,4.2vw,22px)}
