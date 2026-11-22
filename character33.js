@@ -74,7 +74,7 @@ function lc33Avatar(){
  '<linearGradient id="lc33pantBody" x2="1" y2="1"><stop stop-color="'+p+'"/><stop offset=".65" stop-color="#21162f"/><stop offset="1" stop-color="'+p+'"/></linearGradient>'+
  '<linearGradient id="lc33metal" x2="1" y2="1"><stop stop-color="#fff4c3"/><stop offset=".5" stop-color="#f2b53c"/><stop offset="1" stop-color="#9c502a"/></linearGradient>'+
  '<linearGradient id="lc33shoe" x2="1" y2="1"><stop stop-color="'+s+'"/><stop offset=".6" stop-color="#d2afd1"/><stop offset="1" stop-color="'+s+'"/></linearGradient>'+
- '<filter id="lc33soft"><feGaussianBlur stdDeviation="7"/></filter></defs>');
+ '<filter id="lc33soft"><feGaussianBlur stdDeviation="7"/></filter><filter id="lc33glow"><feGaussianBlur stdDeviation="2"/></filter></defs>');
  // Ground and rear shadow
  svg.push('<ellipse cx="140" cy="386" rx="105" ry="13" fill="#901bf0" opacity=".55" filter="url(#lc33soft)"/>'+
  '<path d="M99 248 Q113 245 137 250 L130 335 114 369 71 366 Q89 320 90 288Z M145 249 Q170 244 186 247 L195 321 216 361 166 371 142 309Z" fill="url(#lc33pantBody)" stroke="#120b27" stroke-width="6" stroke-linejoin="round"/>'+
@@ -121,6 +121,42 @@ function lc33Avatar(){
  if(accId==='headphones')svg.push('<path d="M99 90 Q95 52 138 52 Q186 50 190 95" fill="none" stroke="'+a+'" stroke-width="9"/><path d="M102 86 L102 123 M185 86 L185 123" stroke="#e9a83f" stroke-width="12" stroke-linecap="round"/><rect x="92" y="93" width="19" height="34" rx="8" fill="'+a+'" stroke="#ffead0" stroke-width="3"/><rect x="177" y="93" width="19" height="34" rx="8" fill="'+a+'" stroke="#ffead0" stroke-width="3"/>');
  if(accId==='glasses')svg.push('<rect x="100" y="100" width="31" height="22" rx="7" fill="#513c92aa" stroke="'+a+'" stroke-width="3"/><rect x="145" y="100" width="31" height="22" rx="7" fill="#513c92aa" stroke="'+a+'" stroke-width="3"/><path d="M131 105 Q138 100 145 105" fill="none" stroke="'+a+'" stroke-width="4"/>');
  if(accId==='chain')svg.push('<path d="M119 162 Q137 201 161 163" fill="none" stroke="'+a+'" stroke-width="6"/><path d="M135 185 L140 178 146 185 140 193Z" fill="url(#lc33metal)"/>');
+
+ // Fine wardrobe detail is painted as a separate, lightweight overlay; no economy changes.
+ const jacketId=jacket?.id||'varsity',pantId=pants?.id||'jeans',shoeId=shoes?.id||'sneakers';
+ if(jacketId==='varsity')svg.push(
+ '<path d="M99 177 L80 200 L76 215 M178 178 L199 200 L202 213" stroke="#f6b74f" stroke-width="6" fill="none" stroke-linecap="round"/>'+
+ '<path d="M99 237 L118 241 M162 241 L179 237" stroke="#ffe09c" stroke-width="2" opacity=".65"/>'+
+ '<path d="M117 238 L117 253 M162 238 L162 253" stroke="#b17aa1" stroke-width="2"/>');
+ if(jacketId==='hoodie')svg.push(
+ '<path d="M109 154 Q138 181 172 154 Q168 173 153 186 L125 186 Q110 175 109 154Z" fill="#321054" stroke="#d28fff" stroke-width="3"/>'+
+ '<path d="M127 185 L123 222 M152 183 L156 222" stroke="#f0bcff" stroke-width="3"/>'+
+ '<path d="M116 234 Q141 248 165 233" fill="none" stroke="#9447d4" stroke-width="4"/>');
+ if(jacketId==='goldcoat')svg.push(
+ '<path d="M101 177 L115 190 120 216 L112 239 M178 178 L165 190 159 215 L169 238" fill="none" stroke="#fff0a0" stroke-width="5"/>'+
+ '<path d="M120 248 Q141 253 164 248" stroke="#ffda66" fill="none" stroke-width="4"/>'+
+ '<path d="M79 224 L87 224 M198 224 L206 224" stroke="#ffebae" stroke-width="5"/>');
+ if(pantId==='cargo')svg.push(
+ '<path d="M89 297 L111 303 L111 326 L88 326Z M161 299 L186 295 L187 324 L163 327Z" fill="#34244f" stroke="#b699e2" stroke-width="2"/>'+
+ '<path d="M90 309 H110 M164 308 H186" stroke="#e8c279" stroke-width="3"/>'+
+ '<path d="M98 326 L98 347 M175 325 L179 345" stroke="#8573a6" stroke-width="2"/>');
+ if(pantId==='royalpants')svg.push(
+ '<path d="M101 270 L93 339 M164 269 L186 340" stroke="#ddb1ff" stroke-width="4" opacity=".9"/>'+
+ '<path d="M98 320 L117 323 M168 323 L186 319" stroke="#f6c877" stroke-width="3"/>'+
+ '<path d="M109 296 L112 305 M173 297 L177 306" stroke="#af70ed" stroke-width="3"/>');
+ if(shoeId==='neonboots')svg.push(
+ '<path d="M62 375 Q90 386 122 376 M163 375 Q188 387 220 375" stroke="#24eeff" stroke-width="5" fill="none" filter="url(#lc33glow)"/>'+
+ '<path d="M70 357 L111 355 M171 357 L202 359" stroke="#74efff" stroke-width="3"/>');
+ if(shoeId==='goldboots')svg.push(
+ '<path d="M61 377 Q93 391 123 378 M161 378 Q188 391 223 378" stroke="#ffe09b" stroke-width="6" fill="none"/>'+
+ '<path d="M75 352 L108 349 M169 351 L200 355" stroke="#ffc848" stroke-width="6"/>'+
+ '<path d="M90 345 L97 352 104 343 M179 344 L186 352 193 345" fill="none" stroke="#fef5bf" stroke-width="2"/>');
+ // Highlights on fabric and face: specular illumination from the purple showroom.
+ svg.push('<path d="M100 114 Q104 135 118 143" fill="none" stroke="#fff3d9" stroke-width="2" opacity=".29"/>'+
+ '<path d="M175 113 Q172 128 162 139" fill="none" stroke="#733456" stroke-width="2" opacity=".28"/>'+
+ '<path d="M89 191 Q83 215 78 240 M193 192 Q200 217 203 239" fill="none" stroke="#eb8cff" stroke-width="2" opacity=".35"/>'+
+ '<circle cx="136" cy="53" r="1.7" fill="#ffffff" opacity=".35"/>');
+
  svg.push('</svg>');return svg.join('');
 }
 function lc33Screen(){
