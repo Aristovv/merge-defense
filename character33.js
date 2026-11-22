@@ -493,7 +493,7 @@ function lc39SetCards(){
     const g=LC35_BY_ID.get(id);return '<span title="'+rankEsc(g?.name||id)+'">'+lc34SvgItem(g)+'</span>';
   }).join('');
   return '<article class="lc39-set-card'+(preview?' preview':'')+(isOn?' worn':'')+'" style="--set-glow:'+set.accent+'"><div class="lc39-set-top"><strong>'+set.name+'</strong><small>'+set.tier+'</small></div>'+
-   '<div class="lc39-mini-items">'+chips+'</div><p>'+set.description+'</p>'+
+   '<div class="lc40-set-visual">'+lc40Emblem(set)+'<div class="lc39-mini-items">'+chips+'</div></div><p>'+set.description+'</p>'+
    '<p class="lc39-set-status">'+(isOn?'✓ Сейчас надет':missing.length?'Есть '+(5-missing.length)+' из 5 предметов':'✓ Все 5 предметов в коллекции')+'</p>'+
    (missing.length?'<p class="lc39-set-price">Не хватает: '+missing.map(id=>rankEsc(LC35_BY_ID.get(id)?.name||id)).join(', ')+(price?' · '+fmt(price)+' 🪙':'')+(premium?' · есть донатные вещи':'')+'</p>':'')+
    '<div class="lc39-set-actions"><button type="button" data-lc39-preview="'+set.id+'">'+(preview?'В примерочной':'Примерить')+'</button>'+
@@ -502,6 +502,78 @@ function lc39SetCards(){
  (lc39Preview?'<button type="button" class="lc39-reset" data-lc39-reset="1">Вернуться к своему персонажу</button>':'')+
  '</section>';
 }
+/* Lucky City 40: hand-crafted, set-specific couture elements.
+   Render exclusively as inline SVG to avoid Safari's external SVG <use> regressions. */
+function lc40FullSet(equipped){
+ return LC39_SETS.find(set=>Object.entries(set.equipped).every(([type,id])=>equipped[type]===id))||null;
+}
+function lc40SetMark(set){
+ if(!set)return '';
+ const id=set.id;
+ if(id==='street')return [
+  '<g class="lc40-street">',
+  '<path d="M95 182 L107 172 119 187 109 221 91 225Z M172 186 L184 172 196 183 187 225 171 220Z" fill="#183f7f" stroke="#77eaff" stroke-width="3"/>',
+  '<path d="M118 209 L137 215 150 209 160 214 148 233 127 233Z" fill="#1a204c" stroke="#84faff" stroke-width="2"/>',
+  '<path d="M123 214 L134 214 129 223 139 223 127 237 130 227 121 227Z" fill="#87faff"/>',
+  '<path d="M86 306 H112 M164 308 H193 M83 327 L116 327 M163 327 L194 327" fill="none" stroke="#56e0fa" stroke-width="4" stroke-dasharray="11 4"/>',
+  '<path d="M60 375 H123 M160 376 H223" fill="none" stroke="#8dfaff" stroke-width="3"/>',
+  '<circle cx="86" cy="201" r="4" fill="#fff"/><circle cx="196" cy="203" r="4" fill="#fff"/>',
+  '</g>'
+ ].join('');
+ if(id==='sakura')return [
+  '<g class="lc40-sakura">',
+  '<path d="M103 181 Q136 197 174 180" fill="none" stroke="#ffbfdc" stroke-width="5"/>',
+  '<path d="M108 237 Q136 250 173 237" fill="none" stroke="#ffcce5" stroke-width="3"/>',
+  '<path d="M133 209 Q129 201 134 195 Q140 196 140 203 Q146 195 153 200 Q151 209 144 213 Q152 214 150 222 Q140 223 139 218 Q136 229 129 222 Q127 214 133 209Z" fill="#ffc5ea" stroke="#fff1f7" stroke-width="2"/>',
+  '<path d="M108 310 L120 314 M164 309 L181 314 M83 359 L106 351 M170 350 L195 358" stroke="#f5a3d4" stroke-width="4" fill="none"/>',
+  '<path d="M65 146 Q75 136 77 150 Q88 141 92 154 Q80 164 65 146Z M205 243 Q216 229 222 245 Q233 242 231 253 Q212 264 205 243Z M43 275 Q52 259 62 273 Q71 263 74 282 Q61 294 43 275Z" fill="#ffc2e3" opacity=".78"/>',
+  '</g>'
+ ].join('');
+ if(id==='phantom')return [
+  '<g class="lc40-phantom">',
+  '<path d="M95 176 Q71 196 52 276 L33 338 84 313 106 258Z M184 176 Q214 193 230 274 L248 335 198 313 176 256Z" fill="#120f2b" stroke="#8a75ca" stroke-width="5"/>',
+  '<path d="M79 215 Q64 276 49 320 M203 215 Q217 276 233 320" stroke="#ae96e2" stroke-width="2" fill="none" opacity=".6"/>',
+  '<path d="M105 105 Q120 114 133 108 M146 108 Q162 114 176 104" stroke="#a39fe8" stroke-width="3" fill="none"/>',
+  '<path d="M107 120 Q140 134 174 121 L161 150 119 151Z" fill="#211b3b" stroke="#aaa5eb" stroke-width="3"/>',
+  '<path d="M121 222 L139 209 158 222 139 245Z" fill="#6653a8" stroke="#d6caff" stroke-width="2"/>',
+  '<path d="M90 302 L113 315 M167 315 L191 301" stroke="#9184c8" stroke-width="4"/>',
+  '</g>'
+ ].join('');
+ if(id==='emperor')return [
+  '<g class="lc40-emperor">',
+  '<path d="M101 162 L83 174 70 198 90 201 108 187Z M174 163 L193 174 210 198 191 201 170 188Z" fill="#e9b950" stroke="#fff0aa" stroke-width="4"/>',
+  '<path d="M99 206 L117 229 138 249 159 229 181 205" fill="none" stroke="#ffebb5" stroke-width="6"/>',
+  '<path d="M132 228 L139 220 147 228 139 239Z" fill="#b562ff" stroke="#fff5cc" stroke-width="2"/>',
+  '<path d="M75 282 L66 327 106 310 123 273 M195 281 L215 326 174 310 157 272" fill="none" stroke="#ffe5a3" stroke-width="4"/>',
+  '<path d="M82 196 Q88 218 92 232 M197 196 Q191 218 188 232" fill="none" stroke="#f9cc72" stroke-width="3"/>',
+  '<path d="M100 289 L91 300 100 310 111 301Z M178 289 L168 301 179 311 190 300Z" fill="#f5cb74" stroke="#fff4c5" stroke-width="2"/>',
+  '<circle cx="48" cy="215" r="4" fill="#ffdf86"/><circle cx="230" cy="194" r="4" fill="#ffdf86"/>',
+  '</g>'
+ ].join('');
+ if(id==='galaxy')return [
+  '<g class="lc40-galaxy">',
+  '<path d="M107 188 Q136 208 174 188 L169 258 Q136 274 110 258Z" fill="#302776" opacity=".5" stroke="#b6a7ff" stroke-width="3"/>',
+  '<path d="M138 201 L144 216 160 217 148 228 153 245 138 235 122 245 128 228 116 217 132 216Z" fill="#cbc5ff" stroke="#fff" stroke-width="2"/>',
+  '<circle cx="113" cy="227" r="3" fill="#83edff"/><circle cx="162" cy="249" r="2.5" fill="#f7d2ff"/>',
+  '<path d="M108 278 Q121 269 133 283 Q146 297 164 283 Q178 273 190 282" fill="none" stroke="#a2b8ff" stroke-width="3"/>',
+  '<path d="M85 352 L105 340 M178 341 L201 352" stroke="#a7fdff" stroke-width="3"/>',
+  '<path d="M44 209 L49 198 54 209 66 215 54 221 49 233 44 221 33 215Z M227 280 L231 273 235 281 243 285 235 289 231 296 227 290 219 285Z" fill="#aaa0ff" opacity=".9"/>',
+  '</g>'
+ ].join('');
+ return '';
+}
+function lc40Emblem(set){
+ const color=set.accent;
+ const symbols={
+  street:'<path d="M38 14 L52 14 43 31 57 31 29 65 35 41 23 41Z" fill="'+color+'" stroke="#e9fdff" stroke-width="2"/>',
+  sakura:'<path d="M40 33 Q24 9 17 27 Q16 39 33 42 Q12 43 22 58 Q34 65 40 48 Q44 69 57 57 Q63 45 46 42 Q66 36 58 24 Q46 15 40 33Z" fill="'+color+'" stroke="#fff" stroke-width="2"/><circle cx="40" cy="42" r="6" fill="#ffedb5"/>',
+  phantom:'<path d="M15 21 L40 12 65 21 61 52 40 68 19 52Z" fill="#28213f" stroke="'+color+'" stroke-width="3"/><path d="M27 35 L37 40 40 37 43 40 54 35" fill="none" stroke="#e7dcff" stroke-width="4"/>',
+  emperor:'<path d="M13 53 L11 21 27 34 40 12 53 34 69 21 67 53Z" fill="'+color+'" stroke="#fff1c1" stroke-width="3"/><path d="M14 53 H67 V61 H14Z" fill="#9d692b"/><circle cx="40" cy="42" r="5" fill="#9a5bdf"/>',
+  galaxy:'<path d="M40 10 L47 31 70 31 52 44 58 67 40 54 22 67 28 44 10 31 33 31Z" fill="'+color+'" stroke="#f5f2ff" stroke-width="2"/><circle cx="40" cy="42" r="7" fill="#3d276e"/>'
+ };
+ return '<svg class="lc40-emblem" viewBox="0 0 80 80" aria-hidden="true">'+(symbols[set.id]||'')+'</svg>';
+}
+
 function lc33Avatar(){
  const c=lc33State();
  const equipped=lc39CurrentEquipped();
@@ -512,7 +584,8 @@ function lc33Avatar(){
   return lc37Shape(item)+lc36AvatarMark(item);
  }).join('');
  const special=lc38Aura(layerOrder.map(type=>LC35_BY_ID.get(equipped[type])));
- return svg.replace('</svg>',special+details+'</svg>');
+ const outfit=lc40SetMark(lc40FullSet(equipped));
+ return svg.replace('</svg>',special+details+outfit+'</svg>');
 }
 function lc34SvgItem(g){return lc36ItemIcon(g);}
 function lc33Screen(){
@@ -535,7 +608,7 @@ function lc33Screen(){
   '<section class="lc33-section"><h2>'+(lc33Subtab==='collection'?'Моя коллекция':'Бонусы персонажа')+'</h2>'+
   (lc33Subtab==='collection'?'<div class="lc33-items">'+LC33_GOODS.filter(g=>c.owned.includes(g.id)).map(g=>'<article class="lc33-item">'+lc34SvgItem(g)+'<strong>'+rankEsc(g.name)+'</strong><button data-lc33-cat="'+g.type+'">Посмотреть</button></article>').join('')+'</div>':
    '<div class="lc33-empty">Персонаж пока косметический: одежда не влияет на выигрыш или доход. Дополнительные бонусы ещё не подключены.</div>')+'</section>';
- const previewStage=lc33Subtab==='sets'?'<div class="lc39-preview-stage"><div class="lc39-preview-label">'+(lc39Preview?'ПРИМЕРКА · '+lc39Preview.name:'МОЙ ПЕРСОНАЖ')+'</div><div class="lc39-preview-avatar">'+lc33Avatar()+'</div></div>':'';
+ const previewStage=lc33Subtab==='sets'?'<div class="lc39-preview-stage lc40-stage-'+(lc39Preview?.id||'default')+'"><div class="lc39-preview-label">'+(lc39Preview?'ПРИМЕРКА · '+lc39Preview.name:'МОЙ ПЕРСОНАЖ')+'</div><div class="lc39-preview-avatar">'+lc33Avatar()+'</div></div>':'';
  return '<main class="lc33"><div class="lc33-hero"><h1>ПЕРСОНАЖ</h1></div>'+
  '<div class="lc33-tabs">'+[['wardrobe','♧ Гардероб'],['sets','✦ Образы'],['collection','♛ Коллекция'],['bonuses','✧ Бонусы']].map(([id,name])=>'<button class="'+(lc33Subtab===id?'active':'')+'" data-lc33-tab="'+id+'">'+name+'</button>').join('')+'</div>'+previewStage+view+'</main>';
 }
