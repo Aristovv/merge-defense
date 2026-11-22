@@ -3565,6 +3565,19 @@ body{background:radial-gradient(ellipse 85% 45% at 50% -7%,var(--cc-theme-glow,r
 .game-layout .roulette-ball-track .ball{box-shadow:inset -3px -3px 4px #626270,0 1px 5px #000,0 0 8px #fff8}
 .game-layout .roulette-3d-stage{transform-style:preserve-3d}
 @media(prefers-reduced-motion:reduce){.game-layout .plinko-peg-hit,.game-layout .plinko-bin-won{animation:none!important;transition:none!important}}
+<style>
+/* NEW ERA 30.0 Stage 8: smoother Crash and roulette presentation */
+.game-layout .crash-display{position:relative;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at 50% 100%,#8e4ddd29,transparent 65%),linear-gradient(160deg,#18132f,#090d20);border:1px solid #a786d580}
+.game-layout .crash-display:before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(0deg,transparent 0 27px,#ffffff08 28px),repeating-linear-gradient(90deg,transparent 0 27px,#ffffff07 28px);mask-image:linear-gradient(180deg,transparent,#000 35%,#000 80%,transparent)}
+.game-layout .crash-display>*{position:relative;z-index:1}
+.game-layout #crashgraph{stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 5px #d39cff)}
+.game-layout #crash-dot{filter:drop-shadow(0 0 5px #ffe3ae)}
+.game-layout .roulette-hall{background:radial-gradient(ellipse at 50% 38%,#b782d226,transparent 70%),linear-gradient(160deg,#2b1b38,#100e23);box-shadow:inset 0 1px #ffffff29,0 13px 24px #0009}
+.game-layout .roulette-3d-stage{will-change:transform;backface-visibility:hidden}
+.game-layout .roulette-ball-track{will-change:transform}
+.game-layout .roulette-number.chosen,.game-layout .choice.on{box-shadow:0 0 13px #a35bdb70,inset 0 1px #ffffff3d}
+.game-layout .roulette-history-number{box-shadow:0 3px 8px #0007}
+@media(prefers-reduced-motion:reduce){.game-layout .roulette-3d-stage,.game-layout .roulette-ball-track{will-change:auto}.game-layout #crashgraph,.game-layout #crash-dot{filter:none}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
@@ -4287,7 +4300,7 @@ function updateCrashGraph(){
  const graph=$('crashgraph');if(!graph)return;
  const progress=Math.min(1,Math.log(Math.max(1,crashValue))/Math.log(8));
  const x=8+progress*284,y=172-Math.pow(progress,1.5)*145;
- const samples=48,path=Array.from({length:samples+1},(_,i)=>{const t=progress*i/samples;return (i?'L ':'M ')+(8+t*284).toFixed(1)+' '+(172-Math.pow(t,1.5)*145).toFixed(1)}).join(' ');
+ const samples=Math.max(12,Math.min(72,Math.ceil(progress*72))),path=Array.from({length:samples+1},(_,i)=>{const t=progress*i/samples;return (i?'L ':'M ')+(8+t*284).toFixed(1)+' '+(172-Math.pow(t,1.5)*145).toFixed(1)}).join(' ');
  graph.setAttribute('d',path);
  const dot=$('crash-dot');if(dot){dot.setAttribute('cx',x);dot.setAttribute('cy',y)}
 }
