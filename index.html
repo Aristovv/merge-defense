@@ -3075,6 +3075,29 @@ button:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--elite
 @media(hover:hover){.game-card:hover,.casino-card:hover{transform:translateY(-2px);box-shadow:0 12px 34px rgba(112,52,177,.2)}}
 @media(max-width:600px){button,.btn{touch-action:manipulation}#app{overflow-x:clip}}
 @media(prefers-reduced-motion:reduce){button,.btn,[role="button"],.game-card,.casino-card{transition:none!important}}
+</style><style>
+/* Casino City Elite 2 — lobby, cabinet and header visual refinement */
+:root{--elite-surface:rgba(25,17,46,.88);--elite-edge:rgba(215,172,255,.22)}
+.top{position:relative;overflow:hidden;border:1px solid var(--elite-edge)!important;border-radius:20px!important;background:linear-gradient(120deg,rgba(37,23,68,.97),rgba(15,13,33,.97))!important;box-shadow:0 12px 34px rgba(0,0,0,.26),inset 0 1px rgba(255,255,255,.07)!important}
+.top:before{content:"";position:absolute;pointer-events:none;inset:0;background:radial-gradient(ellipse at 12% -20%,rgba(203,137,255,.23),transparent 55%);z-index:0}
+.top>*{position:relative;z-index:1}
+.brand-name{letter-spacing:.065em;text-shadow:0 0 22px rgba(188,119,255,.28)}
+.balance{background:linear-gradient(145deg,rgba(79,49,114,.48),rgba(19,16,35,.7))!important;border:1px solid rgba(214,174,255,.19)!important;border-radius:13px!important;box-shadow:inset 0 1px rgba(255,255,255,.07)}
+.catalog-page .section-intro h1{letter-spacing:-.025em;text-shadow:0 5px 25px rgba(174,96,255,.19)}
+.catalog-feature{position:relative;overflow:hidden;border:1px solid rgba(229,182,255,.23)!important;background:linear-gradient(120deg,rgba(70,38,116,.45),rgba(27,19,49,.9))!important;border-radius:18px!important}
+.catalog-feature:after{content:"";position:absolute;width:120px;height:120px;right:-40px;top:-55px;border-radius:50%;background:rgba(231,180,255,.09);filter:blur(8px);pointer-events:none}
+.catalog-label{letter-spacing:.08em}
+.gamecard{position:relative;overflow:hidden;border:1px solid rgba(193,143,245,.23)!important;background:linear-gradient(155deg,rgba(44,28,76,.96),rgba(15,13,33,.96))!important;box-shadow:0 9px 22px rgba(0,0,0,.23),inset 0 1px rgba(255,255,255,.06)!important;transition:transform .18s ease,box-shadow .2s ease,border-color .2s ease}
+.gamecard:after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:linear-gradient(125deg,rgba(255,255,255,.075),transparent 34%,transparent 70%,rgba(166,92,247,.08))}
+.gamecard:active{transform:scale(.98)}
+.gamecard .gameart{filter:drop-shadow(0 8px 14px rgba(0,0,0,.24))}
+.gamecard .play-pill{box-shadow:0 3px 14px rgba(179,108,255,.23);border:1px solid rgba(255,220,165,.23)}
+.slot-cabinet{box-shadow:0 22px 55px rgba(0,0,0,.38),0 0 34px rgba(137,74,221,.11),inset 0 2px rgba(255,255,255,.09)!important}
+.slot-scene{isolation:isolate}
+.slot-scene-art{filter:drop-shadow(0 4px 18px rgba(173,96,255,.15))}
+@media(hover:hover){.gamecard:hover{transform:translateY(-3px);border-color:rgba(244,205,119,.5)!important;box-shadow:0 15px 36px rgba(101,46,171,.25)!important}}
+@media(max-width:600px){.top{border-radius:16px!important}.gamecard{border-radius:16px!important}.catalog-feature{border-radius:15px!important}}
+@media(prefers-reduced-motion:reduce){.gamecard{transition:none!important}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
