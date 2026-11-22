@@ -69,7 +69,19 @@ function registerCasinoAdmin(app,pool,requireAuth){
     }
    }else{
     const split=id.indexOf(':'),type=id.slice(0,split),value=id.slice(split+1),key=type==='badge'?'badges':type+'s';
-    if(mode==='grant')add(key,value);else remove(key,value);
+    save.donationEquipped={...(save.donationEquipped||{})};
+    if(mode==='grant'){
+     add(key,value);
+     // A granted single cosmetic becomes visible immediately, not just owned.
+     save.donationEquipped[type]=value;
+    }else{
+     remove(key,value);
+     if(save.donationEquipped[type]===value){
+      const left=inventory[key]||[];
+      if(left.length)save.donationEquipped[type]=left[left.length-1];
+      else delete save.donationEquipped[type];
+     }
+    }
    }
    save.donationInventory=inventory;save.resetEpoch=Math.max(0,Number(save.resetEpoch)||0)+1;save.stamp=Date.now();
    await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(save)]);
@@ -96,11 +108,15 @@ function registerCasinoAdmin(app,pool,requireAuth){
    if(!q.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'CLOUD_SAVE_NOT_FOUND'})}
    const save=q.rows[0].save;
    if(!save.donationInventory||typeof save.donationInventory!=='object'){await client.query('ROLLBACK');return res.status(409).json({error:'NO_DONATION_TO_REFRESH'})}
-   if(!save.donationEquipped?.title){
-    const inv=save.donationInventory||{};
-    const pick=key=>Array.isArray(inv[key])&&inv[key].length?inv[key][inv[key].length-1]:null;
-    save.donationEquipped={...(save.donationEquipped||{}),...Object.fromEntries([['nick','nicks'],['frame','frames'],['title','titles'],['background','backgrounds'],['effect','effects'],['theme','themes'],['badge','badges']].map(([type,key])=>[type,pick(key)]).filter(([,value])=>value))};
+   const inv=save.donationInventory||{};
+   const existing=save.donationEquipped&&typeof save.donationEquipped==='object'?save.donationEquipped:{};
+   const equipped={...existing};
+   for(const [type,key] of [['nick','nicks'],['frame','frames'],['title','titles'],['background','backgrounds'],['effect','effects'],['theme','themes'],['badge','badges']]){
+    const items=Array.isArray(inv[key])?inv[key]:[];
+    if(items.length&&(!equipped[type]||!items.includes(equipped[type])))equipped[type]=items[items.length-1];
+    if(!items.length&&equipped[type])delete equipped[type];
    }
+   save.donationEquipped=equipped;
    save.resetEpoch=Math.max(0,Number(save.resetEpoch)||0)+1;
    save.stamp=Date.now();
    await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(save)]);
