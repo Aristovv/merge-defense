@@ -4603,9 +4603,9 @@ function updateCrashGraph(){
  const graph=$('crashgraph');if(!graph)return;
  const progress=Math.min(1,Math.log(Math.max(1,crashValue))/Math.log(8));
  const x=8+progress*284,y=172-Math.pow(progress,1.5)*145;
- const samples=Math.max(12,Math.min(72,Math.ceil(progress*72))),path=Array.from({length:samples+1},(_,i)=>{const t=progress*i/samples;return (i?'L ':'M ')+(8+t*284).toFixed(1)+' '+(172-Math.pow(t,1.5)*145).toFixed(1)}).join(' ');
+ const samples=Math.max(8,Math.min(36,Math.ceil(progress*36))),path=Array.from({length:samples+1},(_,i)=>{const t=progress*i/samples;return (i?'L ':'M ')+(8+t*284).toFixed(1)+' '+(172-Math.pow(t,1.5)*145).toFixed(1)}).join(' ');
  graph.setAttribute('d',path);
- const glow=$('crashgraph-glow');if(glow)glow.setAttribute('d',path);
+ const glow=$('crashgraph-glow');if(glow&&!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches))glow.setAttribute('d',path);
  const halo=$('crash-dot-halo');if(halo){halo.setAttribute('cx',x);halo.setAttribute('cy',y)}
  const dot=$('crash-dot');if(dot){dot.setAttribute('cx',x);dot.setAttribute('cy',y)}
 }
