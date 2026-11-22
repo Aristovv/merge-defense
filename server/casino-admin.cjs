@@ -70,7 +70,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
     const split=id.indexOf(':'),type=id.slice(0,split),value=id.slice(split+1),key=type==='badge'?'badges':type+'s';
     if(mode==='grant')add(key,value);else remove(key,value);
    }
-   save.donationInventory=inventory;save.stamp=Date.now();
+   save.donationInventory=inventory;save.resetEpoch=Math.max(0,Number(save.resetEpoch)||0)+1;save.stamp=Date.now();
    await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(save)]);
    await client.query('INSERT INTO public.casino_city_donation_actions(request_id,admin_vk_id,target_vk_id,payload) VALUES($1,$2,$3,$4::jsonb)',[requestId,ADMIN_ID,vkId,JSON.stringify({kind,id,mode})]);
    await client.query(`CREATE TABLE IF NOT EXISTS public.casino_city_admin_audit(
