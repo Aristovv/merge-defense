@@ -4322,17 +4322,17 @@ function alignSlotWinningLines(){
  if(!svg||tab!=='game'||selected<0||selected>=6)return;
  const bounds=overlay.getBoundingClientRect();if(bounds.width<1||bounds.height<1)return;
  svg.setAttribute('viewBox','0 0 '+bounds.width+' '+bounds.height);
+ // NEW ERA stage 27: measure each visible symbol once instead of per winning line.
+ const centers=Array.from({length:5},(_,col)=>{
+  const reel=document.getElementById('reel'+col),strip=reel?.querySelector('.casino-reel-finished');
+  const cells=strip?Array.from(strip.children).slice(-4):Array.from(reel?.children||[]);
+  return cells.map(cell=>{const rect=cell.getBoundingClientRect();return [rect.left+rect.width/2-bounds.left,rect.top+rect.height/2-bounds.top]});
+ });
  svg.querySelectorAll('polyline').forEach(line=>{
   const n=Number(line.dataset.lineIndex),coords=SLOT_LINES[n];
   if(!coords)return;
-  const points=coords.map(([col,row])=>{
-   const reel=document.getElementById('reel'+col),strip=reel?.querySelector('.casino-reel-finished');
-   const elements=strip?Array.from(strip.children).slice(-4):Array.from(reel?.children||[]);
-   const cell=elements[row];if(!cell)return null;
-   const rect=cell.getBoundingClientRect();
-   return (rect.left+rect.width/2-bounds.left)+','+(rect.top+rect.height/2-bounds.top);
-  }).filter(Boolean);
-  if(points.length===5)line.setAttribute('points',points.join(' '));
+  const points=coords.map(([col,row])=>centers[col]?.[row]).filter(Boolean);
+  if(points.length===5)line.setAttribute('points',points.map(([x,y])=>x+','+y).join(' '));
  });
 }
 let casinoSlotResizeFrame=0;
