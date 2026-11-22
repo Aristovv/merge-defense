@@ -189,7 +189,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
    ]);
    const c=cloud.rows[0],p=rank.rows[0],v=c?.save;
    res.set('Cache-Control','no-store');
-   res.json({vkId,cloud:c?{revision:Number(c.revision),updatedAt:c.updated_at,chips:v.chips,coins:v.coins,vip:v.vip,xp:v.xp,level:v.level,plays:v.plays,wins:v.wins,buildings:v.buildings,stamp:v.stamp}:null,ranking:p||null,reset:{available:false,reason:'RESET_DISABLED_PENDING_SAFE_RECONCILIATION'}});
+   res.json({vkId,cloud:c?{revision:Number(c.revision),updatedAt:c.updated_at,chips:v.chips,coins:v.coins,vip:v.vip,xp:v.xp,level:v.level,plays:v.plays,wins:v.wins,buildings:v.buildings,stamp:v.stamp,donationInventory:v.donationInventory||{},donationEquipped:v.donationEquipped||{},donationIncomeBoost:v.donationIncomeBoost||null}:null,ranking:p||null,reset:{available:false,reason:'RESET_DISABLED_PENDING_SAFE_RECONCILIATION'}});
   }catch(e){console.error('casino admin player',e.code||e.message);res.status(503).json({error:'PLAYER_READ_UNAVAILABLE'})}
  });
  // Reset only one player's cloud game progress. The reset epoch prevents older
