@@ -82,6 +82,29 @@ function registerCasinoAdmin(app,pool,requireAuth){
   finally{client?.release()}
  });
 
+
+ // Reconcile an earlier successful grant without paying out the bundle a second time.
+ app.post('/api/casino/admin/donation-refresh',guard,async(req,res)=>{
+  if(!pool)return res.status(503).json({error:'DATABASE_UNAVAILABLE'});
+  const vkId=String(req.body?.vkId||'').trim();
+  if(!/^[1-9][0-9]{0,18}$/.test(vkId))return res.status(400).json({error:'INVALID_VK_ID'});
+  let client;
+  try{
+   client=await pool.connect();await client.query('BEGIN');
+   const q=await client.query('SELECT save FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vkId]);
+   if(!q.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'CLOUD_SAVE_NOT_FOUND'})}
+   const save=q.rows[0].save;
+   if(!save.donationInventory||typeof save.donationInventory!=='object'){await client.query('ROLLBACK');return res.status(409).json({error:'NO_DONATION_TO_REFRESH'})}
+   save.resetEpoch=Math.max(0,Number(save.resetEpoch)||0)+1;
+   save.stamp=Date.now();
+   await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(save)]);
+   await client.query(`CREATE TABLE IF NOT EXISTS public.casino_city_admin_audit(id BIGSERIAL PRIMARY KEY,admin_vk_id BIGINT NOT NULL,target_vk_id BIGINT NOT NULL,action TEXT NOT NULL,details JSONB NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+   await client.query('INSERT INTO public.casino_city_admin_audit(admin_vk_id,target_vk_id,action,details) VALUES($1,$2,$3,$4::jsonb)',[ADMIN_ID,vkId,'donation_refresh',JSON.stringify({resetEpoch:save.resetEpoch})]);
+   await client.query('COMMIT');res.set('Cache-Control','no-store');res.json({ok:true,vkId,resetEpoch:save.resetEpoch});
+  }catch(e){if(client)await client.query('ROLLBACK').catch(()=>{});console.error('casino donation refresh failed',e.code||e.message);res.status(503).json({error:'DONATION_REFRESH_UNAVAILABLE'})}
+  finally{client?.release()}
+ });
+
  // Modify cloud saves only. Players without a cloud save are not eligible.
  // The revision increment prevents stale clients from overwriting an admin change.
  app.post('/api/casino/admin/grant',guard,async(req,res)=>{
