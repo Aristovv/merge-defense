@@ -14,6 +14,74 @@ function registerCasinoAdmin(app,pool,requireAuth){
   }catch(e){console.error('casino admin read',e.code||e.message);res.status(503).json({error:'ADMIN_READ_UNAVAILABLE'})}
  });
 
+
+ // Server-authoritative catalog. Admin grants never initiate or simulate a payment.
+ const DONATION_PACKS=Object.freeze({
+  chips800:{chips:800},chips5000:{chips:5000},chips10000:{chips:10000},chips50000:{chips:50000},chips500000:{chips:500000},
+  coins800:{coins:800},coins5000:{coins:5000},coins10000:{coins:10000},coins50000:{coins:50000},coins500000:{coins:500000},
+  starter:{coins:2500,chips:1000,nick:'nick-neon-blue',frame:'frame-neon',title:'Стильный игрок',background:'night',effect:'',boost:0},
+  royal:{coins:7500,chips:3000,nick:'nick-legend',frame:'frame-royal',title:'Король города',background:'gold',effect:'gold',boost:5},
+  galaxy:{coins:15000,chips:6000,nick:'nick-galaxy',frame:'frame-diamond',title:'Повелитель галактики',background:'galaxy',effect:'stars',boost:8,vipBadge:true},
+  ultimate:{coins:30000,chips:12000,nick:'nick-rainbow',frame:'frame-rainbow',title:'Легенда Lucky City',background:'animated',effect:'fireworks',boost:10,vipBadge:true,theme:'ultimate'}
+ });
+ const DONATION_ITEMS=Object.freeze({
+  nick:['nick-white','nick-gold','nick-neon-blue','nick-legend','nick-galaxy','nick-rainbow'],
+  frame:['frame-silver','frame-neon','frame-royal','frame-diamond','frame-rainbow'],
+  title:['Стильный игрок','Король города','Повелитель галактики','Легенда Lucky City'],
+  background:['night','gold','galaxy','animated'],effect:['gold','stars','fireworks'],theme:['ultimate'],badge:['vip']
+ });
+ app.post('/api/casino/admin/donation',guard,async(req,res)=>{
+  if(!pool)return res.status(503).json({error:'DATABASE_UNAVAILABLE'});
+  const {vkId,kind,id,mode='grant',requestId}=req.body||{};
+  if(!/^[1-9][0-9]{0,18}$/.test(String(vkId||''))||!['pack','item'].includes(kind)||
+    !['grant','revoke'].includes(mode)||typeof id!=='string'||id.length>80||
+    !/^[a-zA-Z0-9_-]{12,80}$/.test(String(requestId||''))||
+    (kind==='pack'&&(!DONATION_PACKS[id]||mode!=='grant'))||
+    (kind==='item'&&(!DONATION_ITEMS[id?.split(':')[0]]||!DONATION_ITEMS[id.split(':')[0]].includes(id.slice(id.indexOf(':')+1)))))
+   return res.status(400).json({error:'INVALID_DONATION'});
+  let client;
+  try{
+   client=await pool.connect();await client.query('BEGIN');
+   await client.query(`CREATE TABLE IF NOT EXISTS public.casino_city_donation_actions(
+    request_id TEXT PRIMARY KEY,admin_vk_id BIGINT NOT NULL,target_vk_id BIGINT NOT NULL,
+    payload JSONB NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+   const previous=await client.query('SELECT payload FROM public.casino_city_donation_actions WHERE request_id=$1',[requestId]);
+   if(previous.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'ALREADY_PROCESSED'})}
+   const q=await client.query('SELECT save FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vkId]);
+   if(!q.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'CLOUD_SAVE_NOT_FOUND'})}
+   const save=q.rows[0].save,inventory=save.donationInventory&&typeof save.donationInventory==='object'?save.donationInventory:{};
+   const ensure=(key)=>{if(!Array.isArray(inventory[key]))inventory[key]=[]};
+   const add=(key,value)=>{ensure(key);if(value&&!inventory[key].includes(value))inventory[key].push(value)};
+   const remove=(key,value)=>{ensure(key);inventory[key]=inventory[key].filter(x=>x!==value)};
+   if(kind==='pack'){
+    const pack=DONATION_PACKS[id];
+    for(const key of ['chips','coins'])if(pack[key]){
+     if(!Number.isSafeInteger(save[key])||save[key]<0||save[key]+pack[key]>Number.MAX_SAFE_INTEGER)throw Error('BALANCE_OVERFLOW');
+     save[key]+=pack[key];
+    }
+    for(const key of ['nick','frame','title','background','effect','theme'])if(pack[key])add(key+'s',pack[key]);
+    if(pack.vipBadge)add('badges','vip');
+    if(pack.boost){
+     const now=Date.now(),expires=now+7*86400000;
+     const old=save.donationIncomeBoost||{};
+     save.donationIncomeBoost={percent:old.until>now?Math.max(Number(old.percent)||0,pack.boost):pack.boost,from:now,until:expires};
+    }
+   }else{
+    const split=id.indexOf(':'),type=id.slice(0,split),value=id.slice(split+1),key=type==='badge'?'badges':type+'s';
+    if(mode==='grant')add(key,value);else remove(key,value);
+   }
+   save.donationInventory=inventory;save.stamp=Date.now();
+   await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(save)]);
+   await client.query('INSERT INTO public.casino_city_donation_actions(request_id,admin_vk_id,target_vk_id,payload) VALUES($1,$2,$3,$4::jsonb)',[requestId,ADMIN_ID,vkId,JSON.stringify({kind,id,mode})]);
+   await client.query(`CREATE TABLE IF NOT EXISTS public.casino_city_admin_audit(
+    id BIGSERIAL PRIMARY KEY,admin_vk_id BIGINT NOT NULL,target_vk_id BIGINT NOT NULL,
+    action TEXT NOT NULL,details JSONB NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+   await client.query('INSERT INTO public.casino_city_admin_audit(admin_vk_id,target_vk_id,action,details) VALUES($1,$2,$3,$4::jsonb)',[ADMIN_ID,vkId,'donation',JSON.stringify({kind,id,mode,requestId})]);
+   await client.query('COMMIT');res.set('Cache-Control','no-store');res.json({ok:true,vkId,kind,id,mode});
+  }catch(e){if(client)await client.query('ROLLBACK').catch(()=>{});console.error('casino donation failed',e.code||e.message);res.status(503).json({error:'DONATION_UNAVAILABLE'})}
+  finally{client?.release()}
+ });
+
  // Modify cloud saves only. Players without a cloud save are not eligible.
  // The revision increment prevents stale clients from overwriting an admin change.
  app.post('/api/casino/admin/grant',guard,async(req,res)=>{
