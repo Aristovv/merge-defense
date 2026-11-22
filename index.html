@@ -3429,13 +3429,13 @@ body{background:radial-gradient(ellipse 85% 45% at 50% -7%,var(--cc-theme-glow,r
 .era30-building-status.locked{color:#c6b2d8}
 @media(max-width:380px){.era30-jumpnav{gap:5px}.era30-jumpnav button{font-size:10px;min-height:52px}.city-page .district-grid{gap:9px}}
 @media(prefers-reduced-motion:reduce){.city-page .district-card{transition:none}}
-</style><style>
+</style></style><style>
 /* Stage 2.2: compact VK-friendly navigation */
 .era30-jumpnav{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
 .era30-jumpnav button{min-width:0;min-height:62px;border-radius:13px;padding:8px 3px;font:800 10px/1.3 Manrope,system-ui,sans-serif;cursor:pointer}
 .era30-jumpnav button .ic{width:19px;height:19px;margin-bottom:4px}
 @media(min-width:440px){.era30-jumpnav button{font-size:12px}}
-<style>
+</style><style>
 /* NEW ERA 30.0 — Stage 3: individual illustrated buildings; visual-only update */
 .city-page .district-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .city-page .era30-property{display:flex;flex-direction:column;min-width:0;overflow:hidden;border-radius:19px;border:1px solid #9775d388;background:linear-gradient(165deg,#29203e,#141126);box-shadow:0 12px 24px #0006,0 0 20px #8044c81c}
@@ -3470,6 +3470,23 @@ body{background:radial-gradient(ellipse 85% 45% at 50% -7%,var(--cc-theme-glow,r
 @media(max-width:350px){.city-page .district-grid{gap:7px}.era30-property-scene{height:125px}.era30-property-body{padding:9px 7px}.era30-property-title strong{font-size:11px}.era30-property-stats small{font-size:7px}.city-page .era30-property-action{font-size:9px}}
 @media(min-width:540px){.era30-property-scene{height:180px}.era30-property-body{padding:15px}.era30-property-title strong{font-size:16px}}
 @media(prefers-reduced-motion:no-preference){.era30-property.is-owned .era30-property-emblem{animation:era30-property-pulse 3.5s ease-in-out infinite}@keyframes era30-property-pulse{50%{filter:drop-shadow(0 0 15px var(--era-light))}}}
+</style><style>
+.city-page nav.era30-jumpnav{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;width:100%!important;margin:0 0 14px!important}
+.city-page nav.era30-jumpnav>button{display:flex!important;position:static!important;float:none!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;width:100%!important;max-width:none!important;min-width:0!important;height:62px!important;min-height:0!important;margin:0!important;padding:7px 2px!important;font-size:10px!important;line-height:1.2!important;white-space:normal!important;border-radius:13px!important}
+.city-page nav.era30-jumpnav>button .ic{display:inline-flex!important;width:20px!important;height:20px!important;margin:0 0 5px!important}
+.city-page .district-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+.city-page .era30-property-scene{height:115px!important}
+.city-page .era30-property-building{height:83px;width:78px}
+.city-page .era30-property-body{gap:7px;padding:10px 9px}
+.city-page .era30-property-title strong{min-height:0;font-size:13px;line-height:1.25}
+.city-page .era30-property-stats{grid-template-columns:1fr;gap:5px}
+.city-page .era30-property-stats>div{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:2px;padding:6px 7px}
+.city-page .era30-property-stats small{font-size:9px}
+.city-page .era30-property-stats small:last-child{display:none}
+.city-page .era30-property-stats b{font-size:14px;margin:0}
+.city-page .era30-property-footer{font-size:10px}
+.city-page .era30-property-action{font-size:10px;min-height:42px;padding:9px 6px}
+@media(max-width:360px){.city-page .era30-property-scene{height:102px!important}.city-page .era30-property-body{padding:8px 6px}.city-page .era30-property-stats small{font-size:8px}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
