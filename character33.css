@@ -219,3 +219,11 @@
 @keyframes lc40-gentle{0%,100%{opacity:.79}50%{opacity:1}}
 @media(max-width:385px){.lc40-set-visual{grid-template-columns:55px minmax(0,1fr);padding:5px 3px;gap:2px}.lc40-emblem{width:52px;height:52px}.lc40-set-visual .lc39-mini-items svg{height:31px}}
 @media(prefers-reduced-motion:reduce){.lc40-sakura,.lc40-galaxy,.lc40-emperor{animation:none}}
+
+/* 41.0 — skin/face finish and collectible embroidery. Inline SVG only on iOS. */
+.lc33-person svg,.lc39-preview-avatar svg{shape-rendering:geometricPrecision}
+.lc41-couture{pointer-events:none;filter:drop-shadow(0 0 1.5px #fff8db52)}
+.lc33-figure .lc33-person{filter:drop-shadow(0 8px 5px #09041170) drop-shadow(0 0 10px #9955ff55)}
+.lc39-preview-stage .lc39-preview-avatar{filter:drop-shadow(0 8px 8px #0b041488)}
+.lc33-item.legend svg,.lc33-item.mythic svg{shape-rendering:geometricPrecision}
+@media(prefers-reduced-motion:reduce){.lc33-person{animation:none}}
