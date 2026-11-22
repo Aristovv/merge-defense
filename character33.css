@@ -1,0 +1,38 @@
+/* LUCKY CITY — Character wardrobe 33.0. Self-contained and mobile-first. */
+.lc33{--lc-violet:#a649f6;--lc-gold:#ffcf76;--lc-line:#794cbb;max-width:1100px;margin:0 auto;padding:18px 13px 110px;color:#f9efff;font-family:inherit}
+.lc33 *{box-sizing:border-box}
+.lc33-hero{text-align:center;position:relative;margin:2px 0 16px}
+.lc33-hero h1{font-size:clamp(27px,6vw,42px);font-weight:1000;line-height:1.2;letter-spacing:2px;margin:7px 0 15px;text-shadow:0 0 22px #b536ff;color:#fff}
+.lc33-hero h1:before,.lc33-hero h1:after{content:'❧';font-size:22px;color:#f9ca73;margin:0 10px}
+.lc33-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:15px}
+.lc33-tabs button,.lc33-cats button{border:1px solid #7954bc;color:#dbc8f5;background:linear-gradient(155deg,#382158,#19122f);border-radius:14px;padding:13px 8px;font-size:13px;font-weight:800}
+.lc33-tabs button.active,.lc33-cats button.active{color:#fff;border-color:#ebb6ff;background:linear-gradient(155deg,#bd4afa,#5924a9);box-shadow:0 0 20px #a434f988}
+.lc33-stage{display:grid;grid-template-columns:136px minmax(0,1fr);gap:9px;min-height:322px;border-radius:20px;border:1px solid #814cb4;background:radial-gradient(ellipse at 48% 30%,#50348c88,transparent 65%),linear-gradient(#20153a,#140c2a);box-shadow:inset 0 0 55px #651f9c33,0 10px 28px #08031055;padding:10px;margin-bottom:14px;overflow:hidden}
+.lc33-cats{display:flex;flex-direction:column;gap:8px;justify-content:center}
+.lc33-cats button{font-size:12px;min-height:49px;text-align:left;white-space:normal}
+.lc33-figure{position:relative;min-height:325px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#341e6144,#14102a22),repeating-linear-gradient(90deg,transparent 0 29px,#a553ff0b 30px 31px);border-radius:16px}
+.lc33-city{position:absolute;bottom:10%;left:0;right:0;opacity:.38;font-size:24px;letter-spacing:13px;text-shadow:0 0 14px #df5cfe;text-align:center;pointer-events:none}
+.lc33-halo{position:absolute;bottom:20px;left:13%;width:74%;height:30px;border:3px solid #c66fff;border-radius:50%;box-shadow:0 0 20px #af36ff,0 0 35px #6f35ff inset;background:#8b38e71a}
+.lc33-person{height:310px;width:100%;max-width:280px;position:relative;z-index:1;filter:drop-shadow(0 0 16px #9d4aff77)}
+.lc33-person svg{width:100%;height:100%;overflow:visible}
+.lc33-side{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;border-top:1px solid #a86ace55;padding-top:10px}
+.lc33-side div{border-radius:9px;background:#150d2c99;border:1px solid #764ca544;padding:7px 3px;text-align:center;font-size:10px}
+.lc33-side b{display:block;color:#80f991;font-size:12px;margin-top:3px}
+.lc33-section{border:1px solid #7851bc;border-radius:20px;padding:13px 10px;margin-top:12px;background:linear-gradient(150deg,#2b194c,#160e2c);box-shadow:0 5px 22px #05030f66}
+.lc33-section h2{font-size:21px;margin:2px 0 13px}
+.lc33-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.lc33-item{border-radius:15px;padding:9px 7px;min-width:0;display:flex;flex-direction:column;gap:6px;align-items:center;border:1px solid #8260c4;background:linear-gradient(155deg,#353066,#17112f);min-height:186px;color:#fff;position:relative}
+.lc33-item.on{outline:2px solid #e5c5ff;background:linear-gradient(140deg,#553385,#25123d)}
+.lc33-item.rare{border-color:#3c9bf7}.lc33-item.epic{border-color:#cf5afa}.lc33-item.legend{border-color:#ffb852}
+.lc33-item .rar{font-size:10px;align-self:flex-start;border-radius:20px;background:#683da488;padding:3px 7px}
+.lc33-item svg{width:68px;height:68px;filter:drop-shadow(0 0 10px #943fff88)}
+.lc33-item strong{font-size:12px;text-align:center;line-height:1.3;min-height:29px;overflow-wrap:anywhere}
+.lc33-item button{width:100%;min-height:34px;margin-top:auto;border:1px solid #bd82e7;border-radius:19px;background:linear-gradient(#8658bd,#50317d);color:#fff;font-size:12px;font-weight:800}
+.lc33-item button:disabled{opacity:.85;color:#ccf5c8;border-color:#71c891}
+.lc33-coin{color:#ffe38b}.lc33-locked{color:#c9afd8;font-size:11px}
+.lc33-detail{border-radius:15px;border:1px solid #8f55bf;padding:12px;margin-top:13px;display:flex;gap:12px;align-items:center;background:linear-gradient(110deg,#4c2b72,#22133a)}
+.lc33-detail svg{width:66px;height:66px;flex:none}
+.lc33-detail div{min-width:0}.lc33-detail strong{font-size:15px}.lc33-detail p{margin:4px 0;color:#e5d7f4;font-size:12px;line-height:1.4}
+.lc33-detail small{color:#a4fc9d}.lc33-empty{padding:28px 10px;text-align:center;color:#c6b2dc;font-size:13px}
+@media(min-width:600px){.lc33-stage{grid-template-columns:170px minmax(0,1fr) 180px}.lc33-side{grid-column:auto;display:flex;flex-direction:column;justify-content:center;border-left:1px solid #a86ace55;border-top:0;padding-left:10px}.lc33-figure{min-height:405px}.lc33-person{height:390px}.lc33-items{grid-template-columns:repeat(4,minmax(0,1fr))}.lc33-cats button{font-size:15px}}
+@media(max-width:370px){.lc33{padding-left:8px;padding-right:8px}.lc33-stage{grid-template-columns:113px minmax(0,1fr)}.lc33-cats button{font-size:11px;padding:8px 5px}.lc33-item strong{font-size:11px}}
