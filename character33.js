@@ -609,10 +609,92 @@ function lc41CoutureDetail(item){
  if(item.type==='accessory'&&/chain|glasses/.test(id))return '<g class="lc41-couture"><path d="M134 184 L141 176 148 184 141 194Z" fill="'+shine+'" stroke="#fff" stroke-width="1.5"/></g>';
  return '';
 }
+/* Lucky City 42: redrawn base character (not an additional face overlay).
+   A single self-contained, inline SVG for VK iOS. Compatible with 37-41 apparel
+   coordinates and every existing wardrobe ID. Does not modify saved data. */
+function lc42AvatarBase(equipped){
+ const pick=type=>LC35_BY_ID.get(equipped[type])||LC33_GOODS.find(g=>g.type===type);
+ const hat=pick('hat'),jacket=pick('jacket'),pants=pick('pants'),shoes=pick('shoes'),acc=pick('accessory');
+ const h=hat?.color||'#1c203a',j=jacket?.color||'#23203f',p=pants?.color||'#2b2844',sn=shoes?.color||'#eff4ff',ac=acc?.color||'#e7bd67';
+ const head=hat?.style||hat?.id||'cap',accessory=acc?.style||acc?.id||'headphones';
+ const premiumHat=/crown|horns/.test(head),beanie=head==='beanie',bucket=head==='bucket',cowboy=head==='cowboy',cylinder=head==='cylinder',kitty=head==='kitty';
+ const coat=/coat-|emperor/.test(jacket?.id||''),hoodie=/hoodie/.test(jacket?.id||'');
+ const boots=/boots|emperor|royal|diamond/.test(shoes?.id||'');
+ const H=[];
+ H.push('<svg class="lc42-avatar" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 405" role="img" aria-label="Персонаж Lucky City в выбранной одежде"><defs>'+
+ '<linearGradient id="lc42skin" x1="12%" y1="0%" x2="88%" y2="96%"><stop stop-color="#ffe9d0"/><stop offset=".28" stop-color="#f6c4a6"/><stop offset=".64" stop-color="#dfa083"/><stop offset="1" stop-color="#ae7182"/></linearGradient>'+
+ '<linearGradient id="lc42lightSkin" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="#fff5df"/><stop offset=".58" stop-color="#eeb69e"/><stop offset="1" stop-color="#b97380"/></linearGradient>'+
+ '<linearGradient id="lc42hair" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="#44354e"/><stop offset=".48" stop-color="#282035"/><stop offset="1" stop-color="#100e23"/></linearGradient>'+
+ '<linearGradient id="lc42cloth" x1="0%" y1="0%" x2="95%" y2="100%"><stop stop-color="'+j+'"/><stop offset=".48" stop-color="#302443"/><stop offset="1" stop-color="'+j+'"/></linearGradient>'+
+ '<linearGradient id="lc42trouser" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="'+p+'"/><stop offset=".58" stop-color="#201a38"/><stop offset="1" stop-color="'+p+'"/></linearGradient>'+
+ '<linearGradient id="lc42shoe" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="#fff9ea"/><stop offset=".24" stop-color="'+sn+'"/><stop offset=".78" stop-color="'+sn+'"/><stop offset="1" stop-color="#50426e"/></linearGradient>'+
+ '<linearGradient id="lc42gold" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="#fff4c1"/><stop offset=".42" stop-color="#facf68"/><stop offset=".82" stop-color="#b97b32"/><stop offset="1" stop-color="#ffdea4"/></linearGradient>'+
+ '<radialGradient id="lc42iris"><stop stop-color="#75e1ed"/><stop offset=".68" stop-color="#307dba"/><stop offset="1" stop-color="#182c57"/></radialGradient>'+
+ '<filter id="lc42ground"><feGaussianBlur stdDeviation="7"/></filter></defs>');
+ // Balanced legs, carefully weighted feet; old outfit outlines share the same coordinate system.
+ H.push('<ellipse cx="140" cy="386" rx="94" ry="12" fill="#a65dff" opacity=".5" filter="url(#lc42ground)"/>'+
+ '<path d="M100 248 Q116 252 138 250 L130 294 121 351 110 372 73 368 Q84 335 90 292Z M144 250 Q171 244 185 249 L191 298 206 352 216 368 166 371 152 320 140 291Z" fill="url(#lc42trouser)" stroke="#1a122a" stroke-width="5" stroke-linejoin="round"/>'+
+ '<path d="M97 267 Q111 278 122 276 L111 324 M158 273 Q177 276 182 267 L190 324" stroke="#baa1de" stroke-width="2.5" opacity=".55" fill="none"/>'+
+ '<path d="M88 319 Q92 332 89 347 M191 315 Q197 330 200 344" stroke="#0b0a1d" stroke-width="4" opacity=".44" fill="none"/>'+
+ '<path d="M72 348 Q90 338 111 345 Q123 360 125 378 Q96 396 54 383 Q54 369 72 348Z M165 348 Q185 338 203 348 Q223 367 225 379 Q194 396 159 384 Q156 365 165 348Z" fill="url(#lc42shoe)" stroke="#211631" stroke-width="5" stroke-linejoin="round"/>'+
+ '<path d="M56 377 Q87 389 122 376 M162 379 Q192 389 222 376" stroke="#ffdf9d" stroke-width="4" fill="none"/>'+
+ '<path d="M78 360 L103 355 M74 366 L108 360 M174 360 L197 358 M173 367 L204 362" stroke="#fff7ef" stroke-width="2.8" stroke-linecap="round"/>');
+ // Torso with natural shoulder line and padded tailored arms.
+ H.push('<path d="M107 157 Q126 148 142 147 Q168 148 181 160 Q189 202 183 260 Q145 273 101 260 Q93 210 107 157Z" fill="url(#lc42cloth)" stroke="#1b122c" stroke-width="5"/>'+
+ '<path d="M107 161 Q98 156 86 163 Q61 179 49 222 L55 266 79 263 82 223 108 190Z M178 161 Q193 155 203 165 Q225 181 232 224 L222 265 197 262 198 222 174 190Z" fill="url(#lc42cloth)" stroke="#1d122d" stroke-width="5" stroke-linejoin="round"/>'+
+ '<path d="M82 175 Q67 199 64 225 M200 177 Q217 201 218 225" stroke="#d5b3d6" opacity=".42" stroke-width="2.3" fill="none"/>'+
+ '<path d="M55 251 Q66 256 80 251 L82 270 Q67 275 54 269Z M198 251 Q213 256 224 250 L229 268 Q213 274 196 268Z" fill="#20192f" stroke="#d3a5ef" stroke-width="2.4"/>'+
+ '<path d="M59 267 Q49 277 54 288 Q57 305 72 302 Q88 300 84 282 L79 267Z M202 266 Q192 280 197 294 Q207 307 224 300 Q237 289 226 273 L220 266Z" fill="url(#lc42skin)" stroke="#c58c89" stroke-width="2.5"/>'+
+ '<path d="M111 164 L139 199 164 164 L173 175 145 237 138 257 122 256 116 234 103 181Z" fill="#eeeaf7" stroke="#7a648f" stroke-width="2.3"/>'+
+ '<path d="M108 158 L124 198 139 209 125 228 101 261 93 252 110 205 91 178Z M172 157 L157 197 140 209 158 228 182 261 192 252 172 206 190 178Z" fill="url(#lc42cloth)" stroke="#25132d" stroke-width="4"/>'+
+ '<path d="M107 158 Q117 181 135 198 M174 157 Q164 182 144 200" stroke="#e5b76d" stroke-width="3.5" fill="none"/>'+
+ '<path d="M139 208 V261 M109 249 Q139 256 173 249" stroke="#a78ba3" stroke-width="2.1" opacity=".72" fill="none"/>');
+ // Neck and ears.
+ H.push('<path d="M122 138 Q141 149 163 136 L162 168 Q140 182 124 167Z" fill="url(#lc42skin)" stroke="#9e6776" stroke-width="2.8"/>'+
+ '<path d="M101 100 Q90 94 89 106 Q86 120 102 126 M179 100 Q194 93 192 109 Q192 124 177 127" fill="url(#lc42skin)" stroke="#ad7381" stroke-width="2.6"/>'+
+ '<path d="M97 85 Q93 54 115 41 Q139 29 167 41 Q188 54 187 86 L186 116 Q181 151 144 157 Q107 151 98 119Z" fill="url(#lc42hair)" stroke="#201827" stroke-width="4"/>'+
+ '<path d="M99 91 Q104 57 135 53 Q162 48 181 74 L182 115 Q175 149 144 154 Q111 147 101 118Z" fill="url(#lc42lightSkin)" stroke="#9f6573" stroke-width="2.7"/>'+
+ '<path d="M104 116 Q107 133 116 138 M173 118 Q170 134 158 140" fill="none" stroke="#f39d91" stroke-width="2.3" opacity=".37"/>'+
+ '<path d="M103 85 Q122 82 133 66 Q155 72 168 59 Q173 70 182 87 L184 70 Q177 42 145 41 Q111 39 98 62Z" fill="url(#lc42hair)" stroke="#241a30" stroke-width="3"/>'+
+ '<path d="M104 68 Q116 50 141 50 M148 47 Q168 48 177 64" fill="none" stroke="#64516e" stroke-width="3.3" opacity=".56"/>'+
+ // Face: different shape than old drawing, iris rings / eyebrows / subtle nose.
+ '<path d="M107 101 Q116 95 127 99 M149 99 Q159 95 172 101" stroke="#4d2e45" stroke-width="4" fill="none" stroke-linecap="round"/>'+
+ '<path d="M108 110 Q117 105 127 110 M149 109 Q159 105 170 110" stroke="#f8eee7" stroke-width="5" fill="none" stroke-linecap="round"/>'+
+ '<ellipse cx="118" cy="111" rx="5" ry="6.5" fill="url(#lc42iris)"/><ellipse cx="160" cy="111" rx="5" ry="6.5" fill="url(#lc42iris)"/>'+
+ '<circle cx="119" cy="108" r="2" fill="#fff"/><circle cx="161" cy="108" r="2" fill="#fff"/>'+
+ '<path d="M137 111 Q135 123 133 125 Q140 129 145 124" stroke="#b67979" fill="none" stroke-width="2.3" stroke-linecap="round"/>'+
+ '<path d="M125 138 Q139 147 154 136" stroke="#9b5764" fill="none" stroke-width="3" stroke-linecap="round"/>'+
+ '<path d="M128 143 Q140 146 151 141" stroke="#ffe6c7" fill="none" stroke-width="1.2" opacity=".8"/>'+
+ '<path d="M103 121 Q110 126 116 127 M164 127 Q171 126 176 120" stroke="#d98c90" fill="none" stroke-width="1.7" opacity=".46"/>'+
+ '<path d="M110 132 Q119 142 129 144 M169 131 Q160 142 151 145" stroke="#fff0d0" fill="none" stroke-width="1.4" opacity=".38"/>');
+ // Sculpted hair: volume, side part, overlapping fringe.
+ H.push('<path d="M99 91 Q86 80 96 60 Q104 39 128 35 Q148 30 165 41 Q183 45 190 69 L184 94 174 83 Q167 66 154 65 Q146 81 130 82 Q116 92 104 88Z" fill="url(#lc42hair)" stroke="#191323" stroke-width="3"/>'+
+ '<path d="M107 76 Q120 59 145 53 M149 53 Q168 57 178 74" stroke="#82708a" stroke-width="2.5" opacity=".53" fill="none" stroke-linecap="round"/>'+
+ '<path d="M101 84 L103 112 M181 83 L182 111" stroke="#271a32" stroke-width="6" opacity=".77"/>');
+ // Individual hats, aligned with face and hair.
+ let headwear='';
+ if(premiumHat)headwear='<path d="M96 77 L84 35 110 50 140 17 169 49 193 34 183 78Z" fill="url(#lc42gold)" stroke="#fff5cc" stroke-width="4.5"/><path d="M93 76 Q140 85 188 76" stroke="#7e4e37" stroke-width="8" fill="none"/><circle cx="140" cy="56" r="7.5" fill="#af66f0" stroke="#fff" stroke-width="2"/>';
+ else if(kitty)headwear='<path d="M96 84 L95 44 114 57 142 42 164 56 181 43 183 84Z" fill="'+h+'" stroke="#f2bcff" stroke-width="4"/><circle cx="89" cy="96" r="17" fill="#b55be9" stroke="#ffd5fb" stroke-width="4"/><circle cx="190" cy="96" r="17" fill="#b55be9" stroke="#ffd5fb" stroke-width="4"/>';
+ else if(cylinder)headwear='<path d="M113 13 H174 L171 74 H113Z" fill="'+h+'" stroke="#edd9ff" stroke-width="4"/><ellipse cx="140" cy="76" rx="64" ry="11" fill="'+h+'" stroke="#d2abeb" stroke-width="3"/><path d="M115 57 H171" stroke="#eeb765" stroke-width="7"/>';
+ else if(cowboy)headwear='<path d="M106 84 Q113 31 141 27 Q173 32 177 84Z" fill="'+h+'" stroke="#e8b0fc" stroke-width="4"/><path d="M74 86 Q141 110 204 85 Q184 108 140 100 Q94 110 74 86Z" fill="'+h+'" stroke="#ebc3f7" stroke-width="3"/>';
+ else if(beanie)headwear='<path d="M96 93 Q90 35 139 31 Q184 32 187 92 L186 106 Q141 112 96 106Z" fill="'+h+'" stroke="#efceff" stroke-width="4"/><path d="M99 85 Q144 81 185 85 M116 50 V82 M139 40 V83 M163 52 V82" stroke="#f5d9ff" opacity=".65" stroke-width="2.5" fill="none"/>';
+ else if(bucket)headwear='<path d="M111 42 Q141 34 173 42 L180 87 101 88Z" fill="'+h+'" stroke="#e1ddff" stroke-width="4"/><ellipse cx="141" cy="91" rx="59" ry="11" fill="'+h+'" stroke="#d1e6ff" stroke-width="3"/>';
+ else headwear='<path d="M95 84 Q101 39 139 36 Q179 35 184 83 L185 91 94 91Z" fill="'+h+'" stroke="#d3b6e8" stroke-width="3.5"/><path d="M96 83 Q141 75 196 90 Q167 104 97 96Z" fill="'+h+'" stroke="#bd9ad9" stroke-width="3"/><path d="M130 68 L140 60 150 69 140 78Z" fill="url(#lc42gold)"/>';
+ H.push(headwear);
+ // Correct accessory ordering: eyeglasses on face, headphones around crown, chain below neck.
+ if(accessory==='glasses')H.push('<rect x="100" y="100" width="32" height="24" rx="6" fill="'+ac+'" fill-opacity=".24" stroke="#e2d4ff" stroke-width="3"/><rect x="147" y="100" width="31" height="24" rx="6" fill="'+ac+'" fill-opacity=".24" stroke="#e2d4ff" stroke-width="3"/><path d="M132 108 Q140 104 147 108" stroke="#e7d4ff" stroke-width="3" fill="none"/>');
+ if(accessory==='headphones')H.push('<path d="M100 91 Q99 49 140 46 Q184 48 189 93" fill="none" stroke="'+ac+'" stroke-width="9"/><path d="M101 91 V123 M186 91 V123" stroke="#9d6d45" stroke-width="11"/><rect x="91" y="93" width="20" height="35" rx="8" fill="'+ac+'" stroke="#ffedc9" stroke-width="3"/><rect x="178" y="93" width="18" height="35" rx="8" fill="'+ac+'" stroke="#ffedc9" stroke-width="3"/>');
+ if(accessory==='chain')H.push('<path d="M117 162 Q140 202 163 162" fill="none" stroke="'+ac+'" stroke-width="6"/><path d="M134 185 L140 177 147 185 140 195Z" fill="url(#lc42gold)" stroke="#ffefd3" stroke-width="2"/>');
+ if(hoodie)H.push('<path d="M106 159 Q140 184 174 157 L164 182 Q140 193 122 182Z" fill="'+j+'" stroke="#deb8ff" stroke-width="3"/><path d="M124 185 L122 212 M155 185 L157 212" stroke="#f6d5ff" stroke-width="3"/>');
+ if(coat)H.push('<path d="M107 155 L140 201 172 155" fill="none" stroke="#fff0b9" stroke-width="3" opacity=".77"/>');
+ H.push('</svg>');
+ return H.join('');
+}
+
 function lc33Avatar(){
  const c=lc33State();
  const equipped=lc39CurrentEquipped();
- let svg=lc33AvatarFallback(equipped);
+ let svg=lc42AvatarBase(equipped);
  const layerOrder=['pants','shoes','jacket','hat','accessory'];
  const details=layerOrder.map(type=>{
   const item=LC35_BY_ID.get(equipped[type]);
