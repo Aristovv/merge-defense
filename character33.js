@@ -101,7 +101,7 @@ const LC35_OLD_PRICES={kitty:8,crown:19,cowboy:9,goldcoat:12,royalpants:10,goldb
 for(const g of LC33_GOODS)if(Object.prototype.hasOwnProperty.call(LC35_OLD_PRICES,g.id))g.price=LC35_OLD_PRICES[g.id];
 const LC35_BY_ID=new Map(LC33_GOODS.map(g=>[g.id,g]));
 
-let lc33Category='hat',lc33Subtab='wardrobe',lc33Selected='cap',lc35Filter='all';
+let lc33Category='hat',lc33Subtab='wardrobe',lc33Selected='cap',lc35Filter='all',lc39Preview=null;
 function lc33State(){
  if(!state.character33||typeof state.character33!=='object'||Array.isArray(state.character33))state.character33={};
  const c=state.character33;
@@ -139,8 +139,8 @@ function lc33SvgItem(g){
  if(id==='chain')shape='<path d="M16 15 Q15 60 40 65 Q65 60 64 15" fill="none" stroke="#f7ce68" stroke-width="8"/><path d="M16 15 Q15 60 40 65 Q65 60 64 15" fill="none" stroke="#fff1a6" stroke-width="2" stroke-dasharray="4 6"/><path d="M34 48 L40 40 46 48 40 60Z" fill="#f4bb45" stroke="#fff0ac" stroke-width="2"/>';
  return '<svg viewBox="0 0 80 80" aria-hidden="true"><defs><linearGradient id="lc33fabric" x2="1" y2="1"><stop stop-color="'+color+'"/><stop offset=".5" stop-color="#524184"/><stop offset="1" stop-color="'+color+'"/></linearGradient><linearGradient id="lc33gold" x2="1" y2="1"><stop stop-color="#fff0a5"/><stop offset=".45" stop-color="#f6b72d"/><stop offset="1" stop-color="#ae601a"/></linearGradient><linearGradient id="lc33purple" x2="1" y2="1"><stop stop-color="#e69cff"/><stop offset="1" stop-color="#6a23d5"/></linearGradient></defs>'+shape+'</svg>';
 }
-function lc33AvatarFallback(){
- const c=lc33State(),get=type=>LC33_GOODS.find(x=>x.id===c.equipped[type]);
+function lc33AvatarFallback(override){
+ const c=lc33State(),chosen=override||c.equipped,get=type=>LC33_GOODS.find(x=>x.id===chosen[type]);
  const hat=get('hat'),jacket=get('jacket'),pants=get('pants'),shoes=get('shoes'),acc=get('accessory');
  const h=hat?.color||'#191934',j=jacket?.color||'#181a39',p=pants?.color||'#25223c',s=shoes?.color||'#fff3e9',a=acc?.color||'#ffc045';
  const hatId=hat?.style||hat?.id||'cap',accId=acc?.style||acc?.id||'headphones';
@@ -464,15 +464,54 @@ function lc38Aura(items){
   '</g>';
 }
 
+/* LUCKY CITY 39: complete themed outfits using existing wardrobe items.
+   No new payments, no auto-spend, and no mutation of existing item IDs. */
+const LC39_SETS=[
+ {id:'street',name:'NEON STREET',description:'Уличный стиль: кепка, бомбер и светящиеся кеды.',tier:'Редкий',accent:'#65e7ff',
+  equipped:{hat:'cap-ice',jacket:'jacket-blue',pants:'cargo-navy',shoes:'shoes-ice',accessory:'glasses-cyan'}},
+ {id:'sakura',name:'SAKURA NIGHT',description:'Розовая худи, мягкие оттенки и яркие аксессуары.',tier:'Эпический',accent:'#ff91d5',
+  equipped:{hat:'beanie-rose',jacket:'hoodie-rose',pants:'pants-white',shoes:'shoes-rose',accessory:'chain-silver'}},
+ {id:'phantom',name:'DARK PHANTOM',description:'Тёмный силуэт, закрытая шляпа и карго Abyss.',tier:'Мифический',accent:'#a9a4ff',
+  equipped:{hat:'fedora-shadow',jacket:'jacket-black',pants:'cargo-abyss',shoes:'shoes-black',accessory:'glasses-legend'}},
+ {id:'emperor',name:'GOLDEN EMPEROR',description:'Золотая корона, длинный плащ и императорские ботинки.',tier:'Мифический',accent:'#ffd075',
+  equipped:{hat:'crown-obsidian',jacket:'coat-emperor',pants:'pants-emperor',shoes:'shoes-emperor',accessory:'chain-emperor'}},
+ {id:'galaxy',name:'COSMIC LEGEND',description:'Космическая худи, редкие брюки и ледяная обувь.',tier:'Мифический',accent:'#b5a1ff',
+  equipped:{hat:'beanie-night',jacket:'hoodie-cosmos',pants:'pants-galaxy',shoes:'shoes-diamond',accessory:'phones-diamond'}}
+];
+function lc39GetSet(id){return LC39_SETS.find(x=>x.id===id)||null;}
+function lc39Missing(set,c=lc33State()){return Object.values(set.equipped).filter(id=>!c.owned.includes(id));}
+function lc39CurrentEquipped(){return lc39Preview?.equipped||lc33State().equipped;}
+function lc39IsWearing(set,c=lc33State()){return Object.entries(set.equipped).every(([key,id])=>c.equipped[key]===id);}
+function lc39SetCards(){
+ const c=lc33State();
+ return '<section class="lc39-sets"><h2>✦ Коллекционные образы</h2><p class="subline">Примеряй готовые комплекты из пяти вещей. Купленные предметы сохраняются; просмотр не списывает монеты.</p>'+
+ '<div class="lc39-set-grid">'+LC39_SETS.map(set=>{
+  const missing=lc39Missing(set,c),isOn=lc39IsWearing(set,c),preview=lc39Preview?.id===set.id;
+  const price=missing.reduce((sum,id)=>{const g=LC35_BY_ID.get(id);return sum+(g?.payment==='coin'?g.price:0)},0);
+  const premium=missing.some(id=>LC35_BY_ID.get(id)?.payment==='premium');
+  const chips=Object.values(set.equipped).map(id=>{
+    const g=LC35_BY_ID.get(id);return '<span title="'+rankEsc(g?.name||id)+'">'+lc34SvgItem(g)+'</span>';
+  }).join('');
+  return '<article class="lc39-set-card'+(preview?' preview':'')+(isOn?' worn':'')+'" style="--set-glow:'+set.accent+'"><div class="lc39-set-top"><strong>'+set.name+'</strong><small>'+set.tier+'</small></div>'+
+   '<div class="lc39-mini-items">'+chips+'</div><p>'+set.description+'</p>'+
+   '<p class="lc39-set-status">'+(isOn?'✓ Сейчас надет':missing.length?'Есть '+(5-missing.length)+' из 5 предметов':'✓ Все 5 предметов в коллекции')+'</p>'+
+   (missing.length?'<p class="lc39-set-price">Не хватает: '+missing.map(id=>rankEsc(LC35_BY_ID.get(id)?.name||id)).join(', ')+(price?' · '+fmt(price)+' 🪙':'')+(premium?' · есть донатные вещи':'')+'</p>':'')+
+   '<div class="lc39-set-actions"><button type="button" data-lc39-preview="'+set.id+'">'+(preview?'В примерочной':'Примерить')+'</button>'+
+   '<button type="button" data-lc39-wear="'+set.id+'" '+(missing.length||isOn?'disabled':'')+'>'+(isOn?'✓ Надето':'Надеть комплект')+'</button></div></article>';
+ }).join('')+'</div>'+
+ (lc39Preview?'<button type="button" class="lc39-reset" data-lc39-reset="1">Вернуться к своему персонажу</button>':'')+
+ '</section>';
+}
 function lc33Avatar(){
  const c=lc33State();
- let svg=lc33AvatarFallback();
+ const equipped=lc39CurrentEquipped();
+ let svg=lc33AvatarFallback(equipped);
  const layerOrder=['pants','shoes','jacket','hat','accessory'];
  const details=layerOrder.map(type=>{
-  const item=LC35_BY_ID.get(c.equipped[type]);
+  const item=LC35_BY_ID.get(equipped[type]);
   return lc37Shape(item)+lc36AvatarMark(item);
  }).join('');
- const special=lc38Aura(layerOrder.map(type=>LC35_BY_ID.get(c.equipped[type])));
+ const special=lc38Aura(layerOrder.map(type=>LC35_BY_ID.get(equipped[type])));
  return svg.replace('</svg>',special+details+'</svg>');
 }
 function lc34SvgItem(g){return lc36ItemIcon(g);}
@@ -487,7 +526,7 @@ function lc33Screen(){
   return '<article class="lc33-item '+rarity+(equipped?' on':'')+(g.payment==='premium'?' lc35-premium':'')+'"><span class="rar">'+rankEsc(g.rarity)+'</span>'+lc34SvgItem(g)+'<strong>'+rankEsc(g.name)+'</strong>'+
    '<button data-lc33-item="'+g.id+'"'+(equipped?' disabled':'')+'>'+action+'</button></article>';
  }).join('');
- const view=lc33Subtab==='wardrobe'?
+ const view=lc33Subtab==='sets'?lc39SetCards():lc33Subtab==='wardrobe'?
   '<div class="lc33-stage"><aside class="lc33-cats">'+LC33_GROUPS.map(g=>'<button data-lc33-cat="'+g[0]+'" class="'+(lc33Category===g[0]?'active':'')+'">'+g[2]+' '+g[1]+'</button>').join('')+'</aside>'+
   '<div class="lc33-figure"><div class="lc33-city">✧ ✦ ✧</div><div class="lc33-halo"></div><div class="lc33-person">'+lc33Avatar()+'</div></div>'+
   '<div class="lc33-side"><div>🪙 Бонус дохода<b>0% · только стиль</b></div><div>👕 Вещей в коллекции<b>'+c.owned.length+' предметов</b></div><div>👑 Активный образ<b>LUCKY CITY</b></div></div></div>'+
@@ -497,9 +536,21 @@ function lc33Screen(){
   (lc33Subtab==='collection'?'<div class="lc33-items">'+LC33_GOODS.filter(g=>c.owned.includes(g.id)).map(g=>'<article class="lc33-item">'+lc34SvgItem(g)+'<strong>'+rankEsc(g.name)+'</strong><button data-lc33-cat="'+g.type+'">Посмотреть</button></article>').join('')+'</div>':
    '<div class="lc33-empty">Персонаж пока косметический: одежда не влияет на выигрыш или доход. Дополнительные бонусы ещё не подключены.</div>')+'</section>';
  return '<main class="lc33"><div class="lc33-hero"><h1>ПЕРСОНАЖ</h1></div>'+
- '<div class="lc33-tabs">'+[['wardrobe','♧ Гардероб'],['collection','♛ Коллекция'],['bonuses','✧ Бонусы']].map(([id,name])=>'<button class="'+(lc33Subtab===id?'active':'')+'" data-lc33-tab="'+id+'">'+name+'</button>').join('')+'</div>'+view+'</main>';
+ '<div class="lc33-tabs">'+[['wardrobe','♧ Гардероб'],['sets','✦ Образы'],['collection','♛ Коллекция'],['bonuses','✧ Бонусы']].map(([id,name])=>'<button class="'+(lc33Subtab===id?'active':'')+'" data-lc33-tab="'+id+'">'+name+'</button>').join('')+'</div>'+view+'</main>';
 }
 document.addEventListener('click',function(e){
+ const preview=e.target.closest('[data-lc39-preview]');
+ if(preview){const set=lc39GetSet(preview.dataset.lc39Preview);if(!set)return;
+  lc39Preview=set;render();message('Примерка: '+set.name);return}
+ const reset=e.target.closest('[data-lc39-reset]');
+ if(reset){lc39Preview=null;render();return}
+ const wear=e.target.closest('[data-lc39-wear]');
+ if(wear){const set=lc39GetSet(wear.dataset.lc39Wear);if(!set)return;
+  const c=lc33State(),missing=lc39Missing(set,c);
+  if(missing.length){message('Для комплекта нужны все пять предметов');return}
+  c.equipped={...c.equipped,...set.equipped};lc39Preview=null;
+  save();render();message('Комплект надет: '+set.name);return}
+
  const filter=e.target.closest('[data-lc35-filter]');if(filter){lc35Filter=filter.dataset.lc35Filter;render();return}
  const t=e.target.closest('[data-lc33-tab]');if(t){lc33Subtab=t.dataset.lc33Tab;render();return}
  const g=e.target.closest('[data-lc33-cat]');if(g){lc33Category=g.dataset.lc33Cat;lc35Filter='all';lc33Selected=lc33State().equipped[lc33Category]||LC33_GOODS.find(x=>x.type===lc33Category&&x.payment!=='locked')?.id||'cap';lc33Subtab='wardrobe';render();return}
