@@ -227,3 +227,12 @@
 .lc39-preview-stage .lc39-preview-avatar{filter:drop-shadow(0 8px 8px #0b041488)}
 .lc33-item.legend svg,.lc33-item.mythic svg{shape-rendering:geometricPrecision}
 @media(prefers-reduced-motion:reduce){.lc33-person{animation:none}}
+
+/* Lucky City 42: re-illustrated base figure; keep SVG entirely inline on iOS */
+.lc42-avatar{width:100%;height:100%;display:block;overflow:visible;shape-rendering:geometricPrecision}
+.lc33-person>.lc42-avatar,.lc39-preview-avatar>.lc42-avatar{object-fit:contain}
+.lc33-figure .lc33-person{transform-origin:50% 77%}
+.lc39-preview-avatar>.lc42-avatar{filter:drop-shadow(0 9px 7px #0804148c)}
+.lc33-figure .lc42-avatar{filter:drop-shadow(0 6px 4px #09051891)}
+@media(max-width:380px){.lc33-figure .lc42-avatar{max-width:100%}}
+@media(prefers-reduced-motion:reduce){.lc42-avatar{animation:none}}
