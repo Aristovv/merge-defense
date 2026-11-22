@@ -115,7 +115,7 @@ function lc33State(){
  return c;
 }
 function lc33SvgItem(g){
- const color=g?.color||'#bd6dff',t=g?.type||'hat',id=g?.id||'cap';
+ const color=g?.color||'#bd6dff',t=g?.type||'hat',id=g?.style||g?.id||'cap';
  const base='stroke="#c6a0ff" stroke-width="1.6" stroke-linejoin="round"';
  let shape='';
  const crown='<path d="M13 51 L11 24 27 37 40 12 54 37 69 24 67 51Z" fill="url(#lc33gold)" stroke="#ffeaa1" stroke-width="2.8"/><rect x="12" y="49" width="56" height="9" rx="3" fill="#de992d" stroke="#ffe78a" stroke-width="2"/><circle cx="40" cy="40" r="5" fill="#d16dff" stroke="#fff" stroke-width="1"/><circle cx="24" cy="46" r="2.5" fill="#44deff"/><circle cx="56" cy="46" r="2.5" fill="#44deff"/>';
@@ -143,7 +143,7 @@ function lc33AvatarFallback(){
  const c=lc33State(),get=type=>LC33_GOODS.find(x=>x.id===c.equipped[type]);
  const hat=get('hat'),jacket=get('jacket'),pants=get('pants'),shoes=get('shoes'),acc=get('accessory');
  const h=hat?.color||'#191934',j=jacket?.color||'#181a39',p=pants?.color||'#25223c',s=shoes?.color||'#fff3e9',a=acc?.color||'#ffc045';
- const hatId=hat?.id||'cap',accId=acc?.id||'headphones';
+ const hatId=hat?.style||hat?.id||'cap',accId=acc?.style||acc?.id||'headphones';
  const crown=['crown','horns'].includes(hatId),beanie=hatId==='beanie',cowboy=hatId==='cowboy',kitty=hatId==='kitty',cylinder=hatId==='cylinder',bucket=hatId==='bucket';
  const svg=[];
  svg.push('<svg viewBox="0 0 280 405" role="img" aria-label="Персонаж Lucky City в выбранной одежде"><defs>'+
@@ -202,7 +202,7 @@ function lc33AvatarFallback(){
  if(accId==='chain')svg.push('<path d="M119 162 Q137 201 161 163" fill="none" stroke="'+a+'" stroke-width="6"/><path d="M135 185 L140 178 146 185 140 193Z" fill="url(#lc33metal)"/>');
 
  // Fine wardrobe detail is painted as a separate, lightweight overlay; no economy changes.
- const jacketId=jacket?.id||'varsity',pantId=pants?.id||'jeans',shoeId=shoes?.id||'sneakers';
+ const jacketId=jacket?.style||jacket?.id||'varsity',pantId=pants?.style||pants?.id||'jeans',shoeId=shoes?.style||shoes?.id||'sneakers';
  if(jacketId==='varsity')svg.push(
  '<path d="M99 177 L80 200 L76 215 M178 178 L199 200 L202 213" stroke="#f6b74f" stroke-width="6" fill="none" stroke-linecap="round"/>'+
  '<path d="M99 237 L118 241 M162 241 L179 237" stroke="#ffe09c" stroke-width="2" opacity=".65"/>'+
@@ -249,7 +249,7 @@ function lc33Screen(){
  const cards=list.map(g=>{
   const owned=c.owned.includes(g.id),equipped=c.equipped[g.type]===g.id;
   const rarity=g.rarity==='Редкая'?'rare':g.rarity==='Эпическая'?'epic':g.rarity==='Легендарная'?'legend':'';
-  const action=equipped?'✓ Надето':owned?'Надеть':g.payment==='coin'?fmt(g.price)+' 🪙':g.payment==='premium'?'🔒 '+g.price+' гол.':'Пока недоступно';
+  const action=equipped?'✓ Надето':owned?'Надеть':g.payment==='coin'?fmt(g.price)+' 🪙':g.payment==='premium'?(typeof luckyPaymentsReady!=='undefined'&&luckyPaymentsReady?g.price+' гол. · Купить':'🔒 '+g.price+' гол.'):'Пока недоступно';
   return '<article class="lc33-item '+rarity+(equipped?' on':'')+'"><span class="rar">'+rankEsc(g.rarity)+'</span>'+lc34SvgItem(g)+'<strong>'+rankEsc(g.name)+'</strong>'+
    '<button data-lc33-item="'+g.id+'"'+(equipped?' disabled':'')+'>'+action+'</button></article>';
  }).join('');
@@ -273,7 +273,7 @@ document.addEventListener('click',function(e){
  lc33Selected=item.id;const c=lc33State();
  if(c.equipped[item.type]===item.id)return;
  if(!c.owned.includes(item.id)){
-  if(item.payment==='premium'){message('Премиальная одежда появится после подтверждённой оплаты VK');render();return}
+  if(item.payment==='premium'){if(typeof luckyPaymentsReady!=='undefined'&&luckyPaymentsReady&&typeof luckyBuy==='function'){luckyBuy('character_'+item.id);}else message('Оплата через голоса VK пока не подключена');render();return}
   if(item.payment==='locked'){message('Этот предмет пока недоступен');render();return}
   if(item.payment==='coin'){
    if(state.coins<item.price){message('Недостаточно монет');render();return}
