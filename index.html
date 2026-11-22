@@ -4324,7 +4324,7 @@ function plinkoPlay(){
  busy=true;roundBet=stake;casinoCurrentStake=total;state.chips-=total;state.plays++;recordCasinoQuestEvent('plays',1);xp(4);save();
  plinkoHits=[];plinkoLastSector=-1;
  const table=PLINKO_PAYTABLES[plinkoRisk],board=$('plinko-board'),bins=$('plinko-bins'),hits=$('plinko-hits');
- const width=board?.clientWidth||320,center=width/2,step=Math.min(width/15,25),duration=2700,launchGap=32;
+ const width=board?.clientWidth||320,center=width/2,step=Math.min(width/15,25),duration=2700,launchGap=32,pegs=board?Array.from(board.querySelectorAll('.plinko-peg')):[];
  const results=Array.from({length:count},()=>{
   let index=0;const path=[];
   for(let i=0;i<12;i++){index+=rand(2);path.push(index)}
@@ -4364,12 +4364,13 @@ function plinkoPlay(){
    }
    if(ball.animate){const animation=ball.animate(frames,{duration,delay:n*launchGap,easing:'linear',fill:'forwards'});ball.style.opacity='1';animation.onfinish=()=>{ball.style.left=positions[positions.length-1].left+'px';ball.style.top=landingY+'px'}}
    else{ball.style.left=positions[positions.length-1].left+'px';ball.style.top=landingY+'px'}
-   result.path.forEach((right,i)=>setTimeout(()=>{
+   let pegElapsed=0;
+   result.path.forEach((right,i)=>{pegElapsed+=duration*weights[i]/weightSum;setTimeout(()=>{
     if(!board.isConnected)return;
     const rowStart=i*(i+1)/2,pegIndex=rowStart+Math.max(0,Math.min(i,right));
-    const peg=board.querySelectorAll('.plinko-peg')[pegIndex];
+    const peg=pegs[pegIndex];
     if(peg){peg.classList.add('plinko-peg-hit');setTimeout(()=>peg.classList.remove('plinko-peg-hit'),140)}
-   },n*launchGap+duration*weights.slice(0,i+1).reduce((a,b)=>a+b,0)/weightSum));
+   },n*launchGap+pegElapsed)});
   }
   setTimeout(()=>{
    ball.remove();completed++;earned+=result.prize;plinkoLastSector=result.index;plinkoHits.push(result.index);
@@ -4392,7 +4393,7 @@ function crashStart(){
  if(busy)return;
  const raw=$('crash-auto')?.value?.trim()||'';
  const normalized=raw.replace(',','.');const target=/^\d+(\.\d{1,2})?$/.test(normalized)?Number(normalized):0;
- if(crashAutoEnabled&&(!target||target<1.1||target>8))return message('Укажи множитель автовывода от ×1.10 до ×80');
+ if(crashAutoEnabled&&(!target||target<1.1||target>8))return message('Укажи множитель автовывода от ×1.10 до ×8.00');
  if(!startCost())return;
  crashAutoTarget=target;busy=true;crashValue=1;crashLastStatus='';state.pendingMiniRound={kind:'crash'};save();
  // House edge 4%: P(reaching multiplier m) is approximately 0.96/m.
