@@ -3957,6 +3957,42 @@ body{background:radial-gradient(ellipse at 50% 0,#39205C 0,transparent 460px),#1
 .card,.panel,.game-card,.casino-card{border-color:#694C8570}
 button:focus-visible,[role="button"]:focus-visible{outline-color:#E5B85C}
 @media(prefers-reduced-motion:reduce){.card,.panel,.game-card,.casino-card{transition:none!important}}
+
+/* Lucky City: compact 5x4 slot cabinet on mobile.
+   Keep payline controls aligned with the four visible reel rows instead of
+   stretching them through the entire portrait game screen. */
+.slot-scene .slot-line-arena{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  align-items:start!important;
+  align-content:start!important;
+  grid-auto-rows:max-content!important;
+}
+.slot-scene .slot-line-arena>.slot-reel-holder-3x3{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  align-self:start!important;
+}
+.slot-scene .slot-line-arena>.slot-edge-lines{
+  height:100%!important;
+  min-height:0!important;
+  max-height:100%!important;
+  align-self:stretch!important;
+  overflow:hidden!important;
+  justify-content:space-between!important;
+}
+.slot-scene .slot-reel-holder-3x3 .slot-grid-3x4.slot-grid-5x4{
+  height:calc(4 * var(--slot-cell-height) + 3 * var(--slot-cell-gap) + 2 * var(--slot-column-pad))!important;
+  min-height:0!important;
+  max-height:calc(4 * var(--slot-cell-height) + 3 * var(--slot-cell-gap) + 2 * var(--slot-column-pad))!important;
+}
+@media(max-width:600px){
+  .slot-scene .slot-line-arena{margin:7px 0!important}
+  .slot-scene .slot-line-arena>.slot-edge-lines{padding:2px 0!important}
+  .slot-scene .slot-line-arena .slot-edge-number{height:13px!important;min-height:0!important}
+}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
