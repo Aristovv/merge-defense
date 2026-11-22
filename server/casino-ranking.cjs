@@ -43,6 +43,40 @@ function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
       return u.href;
     } catch (_) { return ''; }
   };
+  // Public identity cosmetics come from the authoritative cloud save.
+  // Never expose balances, inventory, purchases, or unrelated save fields.
+  async function withIdentity(rows) {
+    if (!rows.length) return rows;
+    const ids = rows.map(row => String(row.vk_id));
+    try {
+      const result = await pool.query(
+        'SELECT vk_id::text AS vk_id, save FROM public.casino_city_saves WHERE vk_id = ANY($1::bigint[])',
+        [ids]
+      );
+      const byId = new Map(result.rows.map(row => [row.vk_id, row.save || {}]));
+      const safe = value => typeof value === 'string' ? value.slice(0, 80) : '';
+      return rows.map(row => {
+        const save = byId.get(String(row.vk_id)) || {};
+        const eq = save.donationEquipped && typeof save.donationEquipped === 'object'
+          ? save.donationEquipped : {};
+        const inv = save.donationInventory && typeof save.donationInventory === 'object'
+          ? save.donationInventory : {};
+        const owned = (key, value) => !value || (Array.isArray(inv[key]) && inv[key].includes(value));
+        const pick = (key, invKey) => owned(invKey, eq[key]) ? safe(eq[key]) : '';
+        return {...row,
+          donationEquipped: {
+            nick: pick('nick', 'nicks'), frame: pick('frame', 'frames'),
+            title: pick('title', 'titles'), badge: pick('badge', 'badges')
+          },
+          vip: Number.isSafeInteger(save.vip) && save.vip > 0 ? save.vip : 0
+        };
+      });
+    } catch (error) {
+      // Ranking remains available if the optional cosmetics table is unavailable.
+      console.warn('Casino ranking cosmetics unavailable:', error.code || error.message);
+      return rows.map(row => ({...row, donationEquipped: {}, vip: 0}));
+    }
+  }
   app.get('/api/casino/top', async (_req, res) => {
     if (!pool) return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
     try {
@@ -56,7 +90,7 @@ function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
         LIMIT 100
       `);
       res.set('Cache-Control', 'no-store');
-      return res.json({ top: rows });
+      return res.json({ top: await withIdentity(rows) });
     } catch (error) {
       console.error('Casino ranking read failed:', error.code || error.message);
       return res.status(503).json({ error: 'RANKING_UNAVAILABLE' });
@@ -75,7 +109,7 @@ function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
         [vkId]
       );
       res.set('Cache-Control', 'no-store');
-      return res.json({ player: rows[0] || null });
+      return res.json({ player: (await withIdentity(rows))[0] || null });
     } catch (error) {
       console.error('Casino player read failed:', error.code || error.message);
       return res.status(503).json({ error: 'PLAYER_UNAVAILABLE' });
@@ -192,10 +226,12 @@ function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
         await onScoreAdvanced(client,vkId,row.display_name,Number(row.score)-Number(old.score));
       }
       await client.query('COMMIT');
+      const identity = (await withIdentity([row]))[0];
       res.set('Cache-Control', 'no-store');
       return res.json({ ok: true, limited, player: {
         vk_id: row.vk_id, display_name: row.display_name, score: String(row.score),
-        level: row.level, plays: String(row.plays), wins: String(row.wins), avatar_url: row.avatar_url || ''
+        level: row.level, plays: String(row.plays), wins: String(row.wins), avatar_url: row.avatar_url || '',
+        donationEquipped: identity.donationEquipped, vip: identity.vip
       } });
     } catch (error) {
       await client.query('ROLLBACK').catch(() => {});
