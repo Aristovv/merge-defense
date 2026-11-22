@@ -3758,6 +3758,19 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .slot-scene .slot-big-win-banner,.slot-scene .slot-jackpot-banner{text-shadow:0 2px 4px #000b,0 0 12px #fff7;box-shadow:inset 0 1px #fff7,0 5px 14px #0008}
 @media(max-width:390px){.slot-scene .slot-reel-holder{padding:5px}.slot-scene .slot-reel-holder:before{inset:5px}}
 @media(prefers-reduced-motion:reduce){.slot-scene .slot-reel-stopped{animation:none!important}}
+<style>
+/* NEW ERA 30.0 Stage 23 — physical reel movement and landing feedback */
+.slot-reel-holder-3x3 .slot-reel-moving{position:relative;overflow:hidden;box-shadow:inset 0 0 12px #0008,0 0 0 1px #ffffff38}
+.slot-reel-holder-3x3 .slot-reel-moving:after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(180deg,#1b12266b 0%,transparent 25%,transparent 68%,#1b12266b 100%);box-shadow:inset 0 0 11px #0008}
+.slot-reel-holder-3x3 .slot-reel-moving .casino-reel-physical{will-change:transform;transform:translateZ(0);backface-visibility:hidden}
+.slot-reel-holder-3x3 .casino-reel-landed{animation:era30-reel-land .42s cubic-bezier(.2,.85,.22,1) both!important}
+@keyframes era30-reel-land{0%{filter:brightness(1.22);transform:translateY(-5px)}42%{filter:brightness(1.09);transform:translateY(2px)}75%{transform:translateY(-1px)}100%{filter:brightness(1);transform:translateY(0)}}
+.slot-reel-holder-3x3 .casino-reel-landed .slot-cell{border-color:var(--slot-metal,#e7c186)}
+.slot-scene .slot-cabinet-won .slot-cell-winning{animation:era30-winning-glow 1.5s ease-in-out 2}
+@keyframes era30-winning-glow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.18);box-shadow:inset 0 0 0 2px #fff4b3,0 0 20px var(--slot-glow,#ffdc84)!important}}
+.slot-scene .slot-cabinet-jackpot .slot-jackpot-banner{animation:era30-jackpot-pulse 1.1s ease-in-out 3}
+@keyframes era30-jackpot-pulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.2)}}
+@media(prefers-reduced-motion:reduce){.slot-reel-holder-3x3 .casino-reel-landed,.slot-scene .slot-cabinet-won .slot-cell-winning,.slot-scene .slot-cabinet-jackpot .slot-jackpot-banner{animation:none!important}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
