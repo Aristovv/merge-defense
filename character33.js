@@ -608,7 +608,8 @@ function lc33Screen(){
   '<section class="lc33-section"><h2>'+(lc33Subtab==='collection'?'Моя коллекция':'Бонусы персонажа')+'</h2>'+
   (lc33Subtab==='collection'?'<div class="lc33-items">'+LC33_GOODS.filter(g=>c.owned.includes(g.id)).map(g=>'<article class="lc33-item">'+lc34SvgItem(g)+'<strong>'+rankEsc(g.name)+'</strong><button data-lc33-cat="'+g.type+'">Посмотреть</button></article>').join('')+'</div>':
    '<div class="lc33-empty">Персонаж пока косметический: одежда не влияет на выигрыш или доход. Дополнительные бонусы ещё не подключены.</div>')+'</section>';
- const previewStage=lc33Subtab==='sets'?'<div class="lc39-preview-stage lc40-stage-'+(lc39Preview?.id||'default')+'"><div class="lc39-preview-label">'+(lc39Preview?'ПРИМЕРКА · '+lc39Preview.name:'МОЙ ПЕРСОНАЖ')+'</div><div class="lc39-preview-avatar">'+lc33Avatar()+'</div></div>':'';
+ const currentSet=lc40FullSet(lc39CurrentEquipped());
+ const previewStage=lc33Subtab==='sets'?'<div class="lc39-preview-stage lc40-stage-'+(currentSet?.id||'default')+'"><div class="lc39-preview-label">'+(lc39Preview?'ПРИМЕРКА · '+lc39Preview.name:currentSet?'МОЙ ОБРАЗ · '+currentSet.name:'МОЙ ПЕРСОНАЖ')+'</div><div class="lc39-preview-avatar">'+lc33Avatar()+'</div></div>':'';
  return '<main class="lc33"><div class="lc33-hero"><h1>ПЕРСОНАЖ</h1></div>'+
  '<div class="lc33-tabs">'+[['wardrobe','♧ Гардероб'],['sets','✦ Образы'],['collection','♛ Коллекция'],['bonuses','✧ Бонусы']].map(([id,name])=>'<button class="'+(lc33Subtab===id?'active':'')+'" data-lc33-tab="'+id+'">'+name+'</button>').join('')+'</div>'+previewStage+view+'</main>';
 }
