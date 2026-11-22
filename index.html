@@ -4634,72 +4634,90 @@ const PLINKO_PAYTABLES=[
 [8,2.5,1.4,1.05,.8,.7,.55,.7,.8,1.05,1.4,2.5,8],
 [35,9,3,1.8,.8,.4,.15,.4,.8,1.8,3,9,35],
 [250,28,8,1.8,.4,.3,0,.3,.4,1.8,8,28,250]];
+// Physics simulation is resolved before charging the round's recovery record.
+// The exact same simulated coordinates drive the animation and the payout bin.
+function plinkoSimulate(width,height,pegs){
+ const radius=7,pegRadius=4,dt=1/120,gravity=1120;
+ const obstacles=pegs.map(el=>({x:el.offsetLeft+el.offsetWidth/2,y:el.offsetTop+el.offsetHeight/2,r:Math.max(3,el.offsetWidth/2)}));
+ let x=width/2+(Math.random()-.5)*3,y=7,vx=(Math.random()-.5)*28,vy=0;
+ const frames=[{x,y,t:0}],hits=[];let lastPeg=-1;
+ const maxSteps=120*9;
+ for(let n=1;n<=maxSteps;n++){
+  vy=Math.min(900,vy+gravity*dt);x+=vx*dt;y+=vy*dt;
+  if(x<radius){x=radius;vx=Math.abs(vx)*.72}
+  if(x>width-radius){x=width-radius;vx=-Math.abs(vx)*.72}
+  for(let j=0;j<obstacles.length;j++){
+   const p=obstacles[j],dx=x-p.x,dy=y-p.y,limit=radius+p.r,dist2=dx*dx+dy*dy;
+   if(dist2>=limit*limit)continue;
+   const dist=Math.sqrt(dist2)||.001,nx=dist>.001?dx/dist:(Math.random()<.5?-1:1),ny=dist>.001?dy/dist:0;
+   x+=nx*(limit-dist+.15);y+=ny*(limit-dist+.15);
+   const normal=vx*nx+vy*ny;
+   if(normal<0){vx-=1.72*normal*nx;vy-=1.72*normal*ny;vx+=(Math.random()-.5)*20}
+   vx=Math.max(-350,Math.min(350,vx));
+   if(lastPeg!==j){hits.push({peg:j,t:n*dt});lastPeg=j}
+  }
+  vx*=.999;
+  if(n%3===0)frames.push({x,y,t:n*dt});
+  if(y>=height-radius){y=height-radius;frames.push({x,y,t:n*dt});break}
+ }
+ const index=Math.max(0,Math.min(12,Math.floor(x/width*13)));
+ return {index,frames,hits,duration:frames[frames.length-1].t*1000};
+}
 function plinkoPlay(){
  if(busy||round)return;
  casinoNormalizeBet();
  const count=plinkoCount,stake=bet,total=stake*count;
  if(!Number.isSafeInteger(total)||state.chips<total)return message('Недостаточно фишек на '+count+' шариков');
- busy=true;roundBet=stake;casinoCurrentStake=total;state.chips-=total;state.plays++;recordCasinoQuestEvent('plays',1);xp(4);save();
- plinkoHits=[];plinkoLastSector=-1;
- const table=PLINKO_PAYTABLES[plinkoRisk],board=$('plinko-board'),bins=$('plinko-bins'),hits=$('plinko-hits');
- const width=board?.clientWidth||320,center=width/2,step=width/15,duration=3000,launchGap=180,pegs=board?Array.from(board.querySelectorAll('.plinko-peg')):[],binEls=bins?Array.from(bins.querySelectorAll('span')):[],boardHeight=board?.clientHeight||305,boardRect=board?.getBoundingClientRect();
+ const board=$('plinko-board'),bins=$('plinko-bins'),hitsLabel=$('plinko-hits');
+ if(!board||!bins)return message('Поле Plinko не готово');
+ const pegs=Array.from(board.querySelectorAll('.plinko-peg'));
+ const binEls=Array.from(bins.querySelectorAll('span'));
+ const width=board.clientWidth,height=board.clientHeight;
+ if(!width||!height||!pegs.length||binEls.length!==13)return message('Поле Plinko загружается');
+ const table=PLINKO_PAYTABLES[plinkoRisk],launchGap=180;
  const results=Array.from({length:count},()=>{
-  let index=0;const path=[];
-  for(let i=0;i<12;i++){index+=rand(2);path.push(index)}
-  return {index,path,prize:Math.floor(stake*table[index])};
+  const simulation=plinkoSimulate(width,height,pegs);
+  return {...simulation,prize:Math.floor(stake*table[simulation.index])};
  });
- state.pendingMiniRound={kind:'plinko',stake:total,prize:results.reduce((sum,item)=>sum+item.prize,0)};save();
+ const totalPrize=results.reduce((sum,item)=>sum+item.prize,0);
+ if(!Number.isSafeInteger(totalPrize))return message('Ошибка расчёта выигрыша');
+ busy=true;roundBet=stake;casinoCurrentStake=total;state.chips-=total;state.plays++;
+ recordCasinoQuestEvent('plays',1);xp(4);
+ state.pendingMiniRound={kind:'plinko',stake:total,prize:totalPrize};save();
+ plinkoHits=[];plinkoLastSector=-1;
  let completed=0,earned=0;
- if(hits)hits.textContent='Запущено: '+count+' · Приземлилось: 0/'+count;
+ if(hitsLabel)hitsLabel.textContent='Запущено: '+count+' · Приземлилось: 0/'+count;
  results.forEach((result,n)=>{
   const ball=document.createElement('div');
-  ball.className='plinko-moving-ball';ball.setAttribute('aria-label','Шарик '+(n+1)+' из '+count);ball.style.opacity='0';ball.style.zIndex=String(10+n);ball.style.filter='';ball.classList.add('plinko-ball-elite');ball.style.willChange='left,top';ball.style.setProperty('--plinko-ball-color',['#ffe4a2','#8de9ff','#ffa9e8','#c4ffab','#ffffff'][n%5]);
-  if(board){
-   board.appendChild(ball);
-   const launchSpread=Math.min(1.6,step*.12),launchOffset=(n-(count-1)/2)*launchSpread;
-   const positions=[{left:center-7+launchOffset,top:5}];
-   result.path.forEach((right,i)=>{
-    const pegX=center+(right-(i+1)/2)*step;
-    const side=right-(i?result.path[i-1]:0)?1:-1;
-    const separation=launchOffset*Math.max(0,1-(i+1)/3);
-    positions.push({left:Math.max(0,Math.min(width-14,pegX-7+side*step*.22+separation)),top:Math.min(boardHeight-34,27+i*21)});
-   });
-   const targetBin=binEls[result.index];
-   const binRect=targetBin?.getBoundingClientRect();
-   const landingX=binRect&&binRect.width?binRect.left+binRect.width/2-boardRect.left-7:center-7+(result.index-6)*(width/13);
-   const landingY=Math.max(25,boardHeight-18);
-   positions.push({left:Math.max(0,Math.min(width-14,landingX)),top:landingY});
-   const frames=[{left:positions[0].left+'px',top:positions[0].top+'px',offset:0}];
-   const segments=positions.length-1,weights=Array.from({length:segments},(_,i)=>.8+i*.065),weightSum=weights.reduce((a,b)=>a+b,0);
-   let progress=0;
-   for(let i=0;i<segments;i++){
-    const from=positions[i],to=positions[i+1],span=weights[i]/weightSum,dx=to.left-from.left,dy=to.top-from.top;
-    const side=i<result.path.length?(result.path[i]-(i?result.path[i-1]:0)?1:-1):0;
-    frames.push({left:(from.left+dx*.35-side*step*.08).toFixed(2)+'px',top:(from.top+dy*.35-2).toFixed(2)+'px',offset:progress+span*.35});
-    frames.push({left:(from.left+dx*.78+side*step*.06).toFixed(2)+'px',top:(from.top+dy*.78+1).toFixed(2)+'px',offset:progress+span*.78});
-    progress+=span;
-    frames.push({left:to.left+'px',top:to.top+'px',offset:i===segments-1?1:progress});
-   }
-   if(ball.animate){const animation=ball.animate(frames,{duration,delay:n*launchGap,easing:'linear',fill:'forwards'});ball.style.opacity='1';animation.onfinish=()=>{ball.style.left=positions[positions.length-1].left+'px';ball.style.top=landingY+'px';animation.cancel()}}
-   else{ball.style.left=positions[positions.length-1].left+'px';ball.style.top=landingY+'px'}
-   // Multiple balls animate simultaneously. Avoid 120+ overlapping peg timers on phones.
-   if(count===1){let pegElapsed=0;
-    result.path.forEach((right,i)=>{pegElapsed+=duration*weights[i]/weightSum;setTimeout(()=>{
-     if(!board.isConnected)return;
-     const rowStart=i*(i+1)/2,pegIndex=rowStart+Math.max(0,Math.min(i,right));
-     const peg=pegs[pegIndex];
-     if(peg){peg.classList.add('plinko-peg-hit');setTimeout(()=>peg.classList.remove('plinko-peg-hit'),140)}
-    },pegElapsed)});
-   }
-  }
-  setTimeout(()=>{
+  ball.className='plinko-moving-ball plinko-ball-elite';
+  ball.setAttribute('aria-label','Шарик '+(n+1)+' из '+count);
+  ball.style.cssText='opacity:0;z-index:'+(10+n)+';will-change:transform;left:0;top:0;pointer-events:none';
+  ball.style.setProperty('--plinko-ball-color',['#ffe4a2','#8de9ff','#ffa9e8','#c4ffab','#ffffff'][n%5]);
+  board.appendChild(ball);
+  const launchDelay=n*launchGap;
+  const frameList=result.frames.map(p=>({transform:'translate('+(p.x-7).toFixed(2)+'px,'+(p.y-7).toFixed(2)+'px)',offset:result.duration?p.t*1000/result.duration:0}));
+  const finishBall=()=>{
    ball.remove();completed++;earned+=result.prize;plinkoLastSector=result.index;plinkoHits.push(result.index);
-   if(binEls.length)binEls.forEach((el,i)=>{if(i===result.index){el.classList.remove('plinko-bin-won');void el.offsetWidth;el.classList.add('plinko-bin-won')}else el.classList.remove('plinko-bin-won')});
-   if(hits)hits.textContent='Приземлилось: '+completed+'/'+count+' · Выигрыш '+fmt(earned)+' фишек';
-   if(completed===count){busy=false;state.pendingMiniRound=null;finish(earned,'Плинко · '+count+' шар. · '+plinkoHits.map(i=>'×'+table[i]).join(' / '),results.some(ball=>ball.prize>=stake))}
-  },duration+100+n*launchGap);
+   binEls.forEach((el,i)=>{el.classList.toggle('plinko-bin-won',i===result.index)});
+   if(hitsLabel)hitsLabel.textContent='Приземлилось: '+completed+'/'+count+' · Выигрыш '+fmt(earned)+' фишек';
+   if(completed===count){busy=false;state.pendingMiniRound=null;finish(earned,'Плинко · '+count+' шар. · '+plinkoHits.map(i=>'×'+table[i]).join(' / '),results.some(item=>item.prize>=stake))}
+  };
+  setTimeout(()=>{
+   if(!board.isConnected){finishBall();return}
+   ball.style.opacity='1';
+   if(ball.animate){
+    const animation=ball.animate(frameList,{duration:Math.max(1,result.duration),easing:'linear',fill:'forwards'});
+    animation.onfinish=()=>{animation.cancel();finishBall()};
+    animation.oncancel=()=>{if(ball.isConnected)finishBall()};
+   }else{ball.style.transform=frameList[frameList.length-1].transform;setTimeout(finishBall,result.duration)}
+   result.hits.forEach(hit=>setTimeout(()=>{
+    const peg=pegs[hit.peg];if(!peg||!peg.isConnected)return;
+    peg.classList.add('plinko-peg-hit');setTimeout(()=>peg.classList.remove('plinko-peg-hit'),110);
+   },hit.t*1000));
+  },launchDelay);
  });
 }
+
 let crashAutoTarget=0,crashHistory=[],crashAutoEnabled=false,crashLastStatus='',crashStartedAt=0;
 function updateCrashGraph(){
  const graph=$('crashgraph');if(!graph)return;
