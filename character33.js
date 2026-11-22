@@ -60,7 +60,7 @@ function lc33SvgItem(g){
  if(id==='chain')shape='<path d="M16 15 Q15 60 40 65 Q65 60 64 15" fill="none" stroke="#f7ce68" stroke-width="8"/><path d="M16 15 Q15 60 40 65 Q65 60 64 15" fill="none" stroke="#fff1a6" stroke-width="2" stroke-dasharray="4 6"/><path d="M34 48 L40 40 46 48 40 60Z" fill="#f4bb45" stroke="#fff0ac" stroke-width="2"/>';
  return '<svg viewBox="0 0 80 80" aria-hidden="true"><defs><linearGradient id="lc33fabric" x2="1" y2="1"><stop stop-color="'+color+'"/><stop offset=".5" stop-color="#524184"/><stop offset="1" stop-color="'+color+'"/></linearGradient><linearGradient id="lc33gold" x2="1" y2="1"><stop stop-color="#fff0a5"/><stop offset=".45" stop-color="#f6b72d"/><stop offset="1" stop-color="#ae601a"/></linearGradient><linearGradient id="lc33purple" x2="1" y2="1"><stop stop-color="#e69cff"/><stop offset="1" stop-color="#6a23d5"/></linearGradient></defs>'+shape+'</svg>';
 }
-function lc33Avatar(){
+function lc33AvatarFallback(){
  const c=lc33State(),get=type=>LC33_GOODS.find(x=>x.id===c.equipped[type]);
  const hat=get('hat'),jacket=get('jacket'),pants=get('pants'),shoes=get('shoes'),acc=get('accessory');
  const h=hat?.color||'#191934',j=jacket?.color||'#181a39',p=pants?.color||'#25223c',s=shoes?.color||'#fff3e9',a=acc?.color||'#ffc045';
@@ -159,6 +159,41 @@ function lc33Avatar(){
 
  svg.push('</svg>');return svg.join('');
 }
+/* Lucky City 34: real independent external illustration layers.
+   Existing SVG remains as an offline fallback. No change to item IDs or saves. */
+const LC34_ASSET='./assets/character/layers-v34.svg';
+let lc34LayersReady=false,lc34LayerLoadStarted=false;
+function lc34Load(){
+ if(lc34LayerLoadStarted)return;
+ lc34LayerLoadStarted=true;
+ fetch(LC34_ASSET,{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Layer asset unavailable');return r.text()}).then(body=>{
+  if(!body.includes('id="hat-cap"')||!body.includes('id="body"'))throw Error('Layer asset incomplete');
+  lc34LayersReady=true;
+  if(typeof tab!=='undefined'&&tab==='character')render();
+ }).catch(e=>console.warn('Lucky City illustrated layers fallback:',e.message));
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',lc34Load,{once:true});else lc34Load();
+function lc34Graphic(id,role='decorative'){
+ const clean=String(id).replace(/[^a-z0-9-]/g,'');
+ const url=LC34_ASSET+'#'+clean;
+ return '<svg class="lc34-layer" viewBox="0 0 280 405" preserveAspectRatio="xMidYMid meet" role="presentation" aria-hidden="true"><use href="'+url+'" xlink:href="'+url+'"></use></svg>';
+}
+function lc33Avatar(){
+ if(!lc34LayersReady)return lc33AvatarFallback();
+ const c=lc33State();
+ const layers=['body','pants-'+c.equipped.pants,'shoes-'+c.equipped.shoes,
+  'jacket-'+c.equipped.jacket,'hat-'+c.equipped.hat,'accessory-'+c.equipped.accessory];
+ return '<div class="lc34-stack" role="img" aria-label="Персонаж с выбранной одеждой">'+layers.map(id=>lc34Graphic(id)).join('')+'</div>';
+}
+function lc34SvgItem(g){
+ if(!lc34LayersReady)return lc33SvgItem(g);
+ const safe=String(g.type+'-'+g.id).replace(/[^a-z0-9-]/g,'');
+ const box=g.type==='hat'?'70 0 150 130':g.type==='jacket'?'35 135 215 160':
+  g.type==='pants'?'55 235 180 150':g.type==='shoes'?'45 335 195 65':
+  g.id==='chain'?'95 140 100 80':'75 45 145 115';
+ const url=LC34_ASSET+'#'+safe;
+ return '<svg class="lc34-thumb" viewBox="'+box+'" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><use href="'+url+'" xlink:href="'+url+'"></use></svg>';
+}
 function lc33Screen(){
  const c=lc33State(),active=LC33_GROUPS.find(g=>g[0]===lc33Category)||LC33_GROUPS[0];
  const list=LC33_GOODS.filter(g=>g.type===lc33Category&&g.payment!=='locked');
@@ -167,7 +202,7 @@ function lc33Screen(){
   const owned=c.owned.includes(g.id),equipped=c.equipped[g.type]===g.id;
   const rarity=g.rarity==='Редкая'?'rare':g.rarity==='Эпическая'?'epic':g.rarity==='Легендарная'?'legend':'';
   const action=equipped?'✓ Надето':owned?'Надеть':g.payment==='coin'?fmt(g.price)+' 🪙':g.payment==='premium'?'🔒 '+g.price+' гол.':'Пока недоступно';
-  return '<article class="lc33-item '+rarity+(equipped?' on':'')+'"><span class="rar">'+rankEsc(g.rarity)+'</span>'+lc33SvgItem(g)+'<strong>'+rankEsc(g.name)+'</strong>'+
+  return '<article class="lc33-item '+rarity+(equipped?' on':'')+'"><span class="rar">'+rankEsc(g.rarity)+'</span>'+lc34SvgItem(g)+'<strong>'+rankEsc(g.name)+'</strong>'+
    '<button data-lc33-item="'+g.id+'"'+(equipped?' disabled':'')+'>'+action+'</button></article>';
  }).join('');
  const view=lc33Subtab==='wardrobe'?
@@ -175,9 +210,9 @@ function lc33Screen(){
   '<div class="lc33-figure"><div class="lc33-city">✧ ✦ ✧</div><div class="lc33-halo"></div><div class="lc33-person">'+lc33Avatar()+'</div></div>'+
   '<div class="lc33-side"><div>🪙 Бонус дохода<b>0% · только стиль</b></div><div>👕 Вещей в коллекции<b>'+c.owned.length+' предметов</b></div><div>👑 Активный образ<b>LUCKY CITY</b></div></div></div>'+
   '<section class="lc33-section"><h2>'+rankEsc(active[2])+' '+rankEsc(active[1])+'</h2><div class="lc33-items">'+cards+'</div>'+
-  (selected?'<div class="lc33-detail">'+lc33SvgItem(selected)+'<div><strong>'+rankEsc(selected.name)+'</strong><p>'+rankEsc(selected.rarity)+' · '+(selected.payment==='premium'?'Премиальный внешний вид':selected.payment==='coin'?'Покупается за игровые монеты':'Стиль персонажа')+'</p><small>Одежда не влияет на шанс выигрыша</small></div></div>':'')+'</section>':
+  (selected?'<div class="lc33-detail">'+lc34SvgItem(selected)+'<div><strong>'+rankEsc(selected.name)+'</strong><p>'+rankEsc(selected.rarity)+' · '+(selected.payment==='premium'?'Премиальный внешний вид':selected.payment==='coin'?'Покупается за игровые монеты':'Стиль персонажа')+'</p><small>Одежда не влияет на шанс выигрыша</small></div></div>':'')+'</section>':
   '<section class="lc33-section"><h2>'+(lc33Subtab==='collection'?'Моя коллекция':'Бонусы персонажа')+'</h2>'+
-  (lc33Subtab==='collection'?'<div class="lc33-items">'+LC33_GOODS.filter(g=>c.owned.includes(g.id)).map(g=>'<article class="lc33-item">'+lc33SvgItem(g)+'<strong>'+rankEsc(g.name)+'</strong><button data-lc33-cat="'+g.type+'">Посмотреть</button></article>').join('')+'</div>':
+  (lc33Subtab==='collection'?'<div class="lc33-items">'+LC33_GOODS.filter(g=>c.owned.includes(g.id)).map(g=>'<article class="lc33-item">'+lc34SvgItem(g)+'<strong>'+rankEsc(g.name)+'</strong><button data-lc33-cat="'+g.type+'">Посмотреть</button></article>').join('')+'</div>':
    '<div class="lc33-empty">Персонаж пока косметический: одежда не влияет на выигрыш или доход. Дополнительные бонусы ещё не подключены.</div>')+'</section>';
  return '<main class="lc33"><div class="lc33-hero"><h1>ПЕРСОНАЖ</h1></div>'+
  '<div class="lc33-tabs">'+[['wardrobe','♧ Гардероб'],['collection','♛ Коллекция'],['bonuses','✧ Бонусы']].map(([id,name])=>'<button class="'+(lc33Subtab===id?'active':'')+'" data-lc33-tab="'+id+'">'+name+'</button>').join('')+'</div>'+view+'</main>';
