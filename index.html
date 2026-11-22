@@ -4582,13 +4582,15 @@ function plinkoPlay(){
    }
    if(ball.animate){const animation=ball.animate(frames,{duration,delay:n*launchGap,easing:'linear',fill:'forwards'});ball.style.opacity='1';animation.onfinish=()=>{ball.style.left=positions[positions.length-1].left+'px';ball.style.top=landingY+'px'}}
    else{ball.style.left=positions[positions.length-1].left+'px';ball.style.top=landingY+'px'}
-   let pegElapsed=0;
-   result.path.forEach((right,i)=>{pegElapsed+=duration*weights[i]/weightSum;setTimeout(()=>{
-    if(!board.isConnected)return;
-    const rowStart=i*(i+1)/2,pegIndex=rowStart+Math.max(0,Math.min(i,right));
-    const peg=pegs[pegIndex];
-    if(peg){peg.classList.add('plinko-peg-hit');setTimeout(()=>peg.classList.remove('plinko-peg-hit'),140)}
-   },n*launchGap+pegElapsed)});
+   // Multiple balls animate simultaneously. Avoid 120+ overlapping peg timers on phones.
+   if(count===1){let pegElapsed=0;
+    result.path.forEach((right,i)=>{pegElapsed+=duration*weights[i]/weightSum;setTimeout(()=>{
+     if(!board.isConnected)return;
+     const rowStart=i*(i+1)/2,pegIndex=rowStart+Math.max(0,Math.min(i,right));
+     const peg=pegs[pegIndex];
+     if(peg){peg.classList.add('plinko-peg-hit');setTimeout(()=>peg.classList.remove('plinko-peg-hit'),140)}
+    },pegElapsed)});
+   }
   }
   setTimeout(()=>{
    ball.remove();completed++;earned+=result.prize;plinkoLastSector=result.index;plinkoHits.push(result.index);
