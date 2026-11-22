@@ -3460,7 +3460,7 @@ return wrap(p('M12 50L50 10 88 50 50 90Z'));
 
 /* Game journal (13.2). Only newly completed rounds appear; older data is untouched. */
 let casinoCurrentStake=0;
-function casinoRecordRound(prize,description){
+function casinoRecordRound(prize,description,winOverride=null){
  const index=selected;
  if(!Number.isInteger(index)||index<0||index>=GAMES.length)return;
  if(!state.casinoGameStats||typeof state.casinoGameStats!=='object')state.casinoGameStats={};
@@ -3470,7 +3470,7 @@ function casinoRecordRound(prize,description){
  const payout=Math.max(0,Math.floor(Number(prize)||0));
  const stats={
   rounds:Math.max(0,Number(previous.rounds)||0)+1,
-  wins:Math.max(0,Number(previous.wins)||0)+(payout>stake?1:0),
+  wins:Math.max(0,Number(previous.wins)||0)+(winOverride===null?payout>stake:winOverride?1:0),
   spent:Math.max(0,Number(previous.spent)||0)+stake,
   received:Math.max(0,Number(previous.received)||0)+payout,
   best:Math.max(Math.max(0,Number(previous.best)||0),payout)
@@ -3499,11 +3499,11 @@ function casinoGameJournal(index){
  '<p class="casino-journal-note">История ведётся на этом устройстве с версии 13.2. В расчёте учитываются только завершённые раунды; бесплатные вращения имеют ставку 0.</p></section>';
 }
 function startCost(){if(busy||round)return false;casinoNormalizeBet();if(state.chips<bet){message('Мало фишек. Забери подарок или обменяй городские монеты.');return false}roundBet=bet;casinoCurrentStake=bet;state.chips-=bet;state.plays++;recordCasinoQuestEvent('plays',1);xp(4);save();return true}
-function finish(prize,info){
+function finish(prize,info,winOverride=null){
  prize=Number(prize);prize=Number.isSafeInteger(prize)&&prize>=0?prize:0;
  const wager=Math.max(0,Math.floor(Number(casinoCurrentStake)||0));
  const net=prize-wager;
- casinoRecordRound(prize,info);if(prize)grant(prize,0,true,prize>wager);rewardCollection();save();render();let output=$('game-result');if(output)output.textContent=info+' · Выплата: '+fmt(prize)+' фишек · Итог раунда: '+(net>=0?'+':'−')+fmt(Math.abs(net))+' фишек';if(tab==='game'&&selected>=0&&selected<6&&prize>=roundBet*5)showSlotBigWin(prize,roundBet);if(tab==='game'&&selected>=0&&GAMES[selected]?.[1]==='crash'){const box=document.querySelector('.crash-deluxe');if(box){const cls=crashLastStatus.startsWith('КРАШ')?'casino-crash-busted':crashLastStatus.startsWith('ЗАБРАНО')?'casino-crash-cashed':'';if(cls){box.classList.add(cls);setTimeout(()=>{if(box.isConnected)box.classList.remove(cls)},1250)}}}}
+ casinoRecordRound(prize,info,winOverride);if(prize)grant(prize,0,true,winOverride===null?prize>wager:!!winOverride);rewardCollection();save();render();let output=$('game-result');if(output)output.textContent=info+' · Выплата: '+fmt(prize)+' фишек · Итог раунда: '+(net>=0?'+':'−')+fmt(Math.abs(net))+' фишек';if(tab==='game'&&selected>=0&&selected<6&&prize>=roundBet*5)showSlotBigWin(prize,roundBet);if(tab==='game'&&selected>=0&&GAMES[selected]?.[1]==='crash'){const box=document.querySelector('.crash-deluxe');if(box){const cls=crashLastStatus.startsWith('КРАШ')?'casino-crash-busted':crashLastStatus.startsWith('ЗАБРАНО')?'casino-crash-cashed':'';if(cls){box.classList.add(cls);setTimeout(()=>{if(box.isConnected)box.classList.remove(cls)},1250)}}}}
 // Transient celebration (visual only). Never credits any balance or alters a round.
 function showSlotBigWin(payout,wager){
  const cabinet=document.querySelector('.slot-scene .slot-cabinet');
@@ -3776,7 +3776,7 @@ function plinkoPlay(){
    ball.remove();completed++;earned+=result.prize;plinkoLastSector=result.index;plinkoHits.push(result.index);
    if(bins)bins.querySelectorAll('span').forEach((el,i)=>{if(i===result.index){el.classList.remove('plinko-bin-won');void el.offsetWidth;el.classList.add('plinko-bin-won')}else el.classList.remove('plinko-bin-won')});
    if(hits)hits.textContent='Шарики '+completed+'/'+count+' · Выигрыш '+fmt(earned)+' фишек';
-   if(completed===count){busy=false;state.pendingMiniRound=null;finish(earned,'Плинко · '+count+' шар. · '+plinkoHits.map(i=>'×'+table[i]).join(' / '))}
+   if(completed===count){busy=false;state.pendingMiniRound=null;finish(earned,'Плинко · '+count+' шар. · '+plinkoHits.map(i=>'×'+table[i]).join(' / '),results.some(ball=>ball.prize>=stake))}
   },duration+80+n*12);
  });
 }
