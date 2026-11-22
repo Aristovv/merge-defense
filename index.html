@@ -3001,6 +3001,13 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
  .game-layout .controls>.btn{min-height:46px}
  .game-layout .note{font-size:12px}
 }
+
+/* PLINKO: keep board, pegs and ball trajectories visually aligned on mobile */
+.plinko-board{height:305px;isolation:isolate;contain:layout paint}
+.plinko-peg{z-index:1;transform:translate(-50%,-50%)}
+.plinko-moving-ball{z-index:4;pointer-events:none;transform:translateZ(0);border:1px solid #fff9;box-shadow:0 0 11px var(--plinko-ball-color,#8dbbff),0 0 3px #fff}
+.plinko-bins-13 span{min-width:0;overflow:hidden;letter-spacing:-.2px}
+@media(max-width:480px){.plinko-new{padding:11px 6px}.plinko-board{height:305px}.plinko-bins-13{gap:1px}.plinko-bins-13 span{font-size:clamp(7px,2vw,10px);padding:9px 0}}
 </style><style>
 .casino-admin-search{display:flex;gap:8px;margin:12px 0;align-items:center}
 .casino-admin-search select{background:#181323;color:white;border:1px solid #8b719c;border-radius:10px;padding:10px;max-width:120px}.casino-admin-search input{flex:1;min-width:0;background:#181323;border:1px solid #8b719c;border-radius:10px;color:white;padding:11px}
@@ -4635,7 +4642,7 @@ function plinkoPlay(){
  busy=true;roundBet=stake;casinoCurrentStake=total;state.chips-=total;state.plays++;recordCasinoQuestEvent('plays',1);xp(4);save();
  plinkoHits=[];plinkoLastSector=-1;
  const table=PLINKO_PAYTABLES[plinkoRisk],board=$('plinko-board'),bins=$('plinko-bins'),hits=$('plinko-hits');
- const width=board?.clientWidth||320,center=width/2,step=Math.min(width/15,25),duration=2700,launchGap=0,pegs=board?Array.from(board.querySelectorAll('.plinko-peg')):[],binEls=bins?Array.from(bins.querySelectorAll('span')):[],boardHeight=board?.clientHeight||275,boardRect=board?.getBoundingClientRect();
+ const width=board?.clientWidth||320,center=width/2,step=width/15,duration=3200,launchGap=0,pegs=board?Array.from(board.querySelectorAll('.plinko-peg')):[],binEls=bins?Array.from(bins.querySelectorAll('span')):[],boardHeight=board?.clientHeight||305,boardRect=board?.getBoundingClientRect();
  const results=Array.from({length:count},()=>{
   let index=0;const path=[];
   for(let i=0;i<12;i++){index+=rand(2);path.push(index)}
@@ -4643,24 +4650,24 @@ function plinkoPlay(){
  });
  state.pendingMiniRound={kind:'plinko',stake:total,prize:results.reduce((sum,item)=>sum+item.prize,0)};save();
  let completed=0,earned=0;
- if(hits)hits.textContent='В полёте: '+count+' шар. · Приземлилось: 0/'+count;
+ if(hits)hits.textContent='Одновременно летят: '+count+' · Приземлилось: 0/'+count;
  results.forEach((result,n)=>{
   const ball=document.createElement('div');
   ball.className='plinko-moving-ball';ball.setAttribute('aria-label','Шарик '+(n+1)+' из '+count);ball.style.opacity='0';ball.style.zIndex=String(10+n);ball.style.filter='';ball.classList.add('plinko-ball-elite');ball.style.willChange='left,top';ball.style.setProperty('--plinko-ball-color',['#ffe4a2','#8de9ff','#ffa9e8','#c4ffab','#ffffff'][n%5]);
   if(board){
    board.appendChild(ball);
    const launchSpread=Math.min(1.6,step*.12),launchOffset=(n-(count-1)/2)*launchSpread;
-   const positions=[{left:center-5+launchOffset,top:6}];
+   const positions=[{left:center-7+launchOffset,top:5}];
    result.path.forEach((right,i)=>{
     const pegX=center+(right-(i+1)/2)*step;
     const side=right-(i?result.path[i-1]:0)?1:-1;
     const separation=launchOffset*Math.max(0,1-(i+1)/3);
-    positions.push({left:Math.max(0,Math.min(width-14,pegX-7+side*step*.22+separation)),top:Math.min(boardHeight-34,27+i*19)});
+    positions.push({left:Math.max(0,Math.min(width-14,pegX-7+side*step*.22+separation)),top:Math.min(boardHeight-34,27+i*21)});
    });
    const targetBin=binEls[result.index];
    const binRect=targetBin?.getBoundingClientRect();
    const landingX=binRect&&binRect.width?binRect.left+binRect.width/2-boardRect.left-7:center-7+(result.index-6)*(width/13);
-   const landingY=Math.max(25,boardHeight-17);
+   const landingY=Math.max(25,boardHeight-18);
    positions.push({left:Math.max(0,Math.min(width-14,landingX)),top:landingY});
    const frames=[{left:positions[0].left+'px',top:positions[0].top+'px',offset:0}];
    const segments=positions.length-1,weights=Array.from({length:segments},(_,i)=>.8+i*.065),weightSum=weights.reduce((a,b)=>a+b,0);
@@ -4673,7 +4680,7 @@ function plinkoPlay(){
     progress+=span;
     frames.push({left:to.left+'px',top:to.top+'px',offset:i===segments-1?1:progress});
    }
-   if(ball.animate){const animation=ball.animate(frames,{duration,delay:n*launchGap,easing:'linear',fill:'forwards'});ball.style.opacity='1';animation.onfinish=()=>{ball.style.left=positions[positions.length-1].left+'px';ball.style.top=landingY+'px'}}
+   if(ball.animate){const animation=ball.animate(frames,{duration,delay:n*launchGap,easing:'linear',fill:'forwards'});ball.style.opacity='1';animation.onfinish=()=>{ball.style.left=positions[positions.length-1].left+'px';ball.style.top=landingY+'px';animation.cancel()}}
    else{ball.style.left=positions[positions.length-1].left+'px';ball.style.top=landingY+'px'}
    // Multiple balls animate simultaneously. Avoid 120+ overlapping peg timers on phones.
    if(count===1){let pegElapsed=0;
@@ -4688,7 +4695,7 @@ function plinkoPlay(){
   setTimeout(()=>{
    ball.remove();completed++;earned+=result.prize;plinkoLastSector=result.index;plinkoHits.push(result.index);
    if(binEls.length)binEls.forEach((el,i)=>{if(i===result.index){el.classList.remove('plinko-bin-won');void el.offsetWidth;el.classList.add('plinko-bin-won')}else el.classList.remove('plinko-bin-won')});
-   if(hits)hits.textContent='Шарики '+completed+'/'+count+' · Выигрыш '+fmt(earned)+' фишек';
+   if(hits)hits.textContent='Приземлилось: '+completed+'/'+count+' · Выигрыш '+fmt(earned)+' фишек';
    if(completed===count){busy=false;state.pendingMiniRound=null;finish(earned,'Плинко · '+count+' шар. · '+plinkoHits.map(i=>'×'+table[i]).join(' / '),results.some(ball=>ball.prize>=stake))}
   },duration+100+n*launchGap);
  });
