@@ -193,6 +193,18 @@ function lc33AvatarFallback(override){
  '<path d="M101 94 Q104 80 111 75" stroke="#fff3d5" stroke-width="2" fill="none" opacity=".22"/>'+
  '<path d="M180 94 Q181 106 178 117" stroke="#8b4c65" stroke-width="2" fill="none" opacity=".23"/>'+
  '<path d="M134 127 Q138 130 142 128" fill="none" stroke="#ffd2b8" opacity=".56" stroke-width="1.4"/>');
+ // 41.0 facial drawing: cheek planes, sculpted jaw, brows and iris glints.
+// Draw before the fringe and worn headgear so face remains readable on iOS.
+ svg.push(
+ '<path d="M98 110 Q89 97 87 111 Q87 122 100 129 M181 109 Q191 99 192 113 Q192 124 179 129" fill="url(#lc33skin)" stroke="#9d6874" stroke-width="2.4"/>'+
+ '<path d="M103 124 Q113 139 128 143 M173 122 Q165 139 151 143" fill="none" stroke="#f4a18c" stroke-width="2.3" opacity=".48"/>'+
+ '<path d="M108 102 Q117 97 125 103 M146 103 Q155 97 165 102" fill="none" stroke="#2b1f36" stroke-width="2" opacity=".7"/>'+
+ '<path d="M108 118 Q115 124 124 119 M149 120 Q159 125 168 118" fill="none" stroke="#aa7275" stroke-width="1.6" opacity=".43"/>'+
+ '<path d="M131 133 Q137 137 145 133" fill="none" stroke="#d18a7f" stroke-width="1.5" opacity=".62"/>'+
+ '<path d="M126 146 Q138 149 150 143" fill="none" stroke="#fff1d9" stroke-width="1.4" opacity=".46"/>'+
+ '<circle cx="116" cy="107" r="2" fill="#ffffff" opacity=".86"/><circle cx="155" cy="106" r="2" fill="#ffffff" opacity=".86"/>'+
+ '<path d="M100 96 Q102 85 111 81" fill="none" stroke="#fff0d8" stroke-width="2.4" opacity=".26"/>'+
+ '<path d="M177 98 Q177 111 172 120" fill="none" stroke="#8b4e67" stroke-width="2" opacity=".30"/>');
  // Hair fringe after face, no silly helmet
  svg.push('<path d="M96 91 Q81 74 93 57 Q107 36 142 40 Q168 39 185 57 Q196 79 185 96 L171 83 Q160 64 150 66 Q134 88 110 94 L110 82Z" fill="#211632" stroke="#0f0b23" stroke-width="3"/>'+
  '<path d="M109 67 Q125 49 144 55 M149 52 Q173 53 178 70" stroke="#554164" stroke-width="4" fill="none" stroke-linecap="round"/>');
@@ -574,6 +586,29 @@ function lc40Emblem(set){
  return '<svg class="lc40-emblem" viewBox="0 0 80 80" aria-hidden="true">'+(symbols[set.id]||'')+'</svg>';
 }
 
+/* Lucky City 41: art-directed finish for high-value garments.
+   No new items or economy logic. These inline paths remain compatible with VK iPhone WebView. */
+function lc41CoutureDetail(item){
+ if(!item)return '';
+ const id=item.id,c=item.color;
+ const high=['Мифическая','Легендарная'].includes(item.rarity);
+ const isSpecial=/diamond|emperor|obsidian|cosmos|phoenix|galaxy|royal/.test(id);
+ if(!high&&!isSpecial)return '';
+ const theme=lc36Theme(item);
+ const shine=({crystal:'#ecffff',flame:'#ffe1a4',space:'#dbbaff',royal:'#fff2c5',nature:'#ffe1ee',shadow:'#b3b1db',neon:'#befffb',street:'#edd8ff'})[theme];
+ if(item.type==='jacket'){
+  if(/coat-emperor|coat-royal-vip/.test(id))return '<g class="lc41-couture"><path d="M76 187 L93 170 110 190 93 211 68 204Z M169 190 L188 170 208 187 212 204 190 211Z" fill="url(#lc33metal)" stroke="'+shine+'" stroke-width="3"/><path d="M93 226 L117 242 138 256 160 242 184 226" fill="none" stroke="'+shine+'" stroke-width="4"/><path d="M83 290 L70 328 109 314 M196 292 L214 328 177 314" stroke="'+shine+'" stroke-width="3" fill="none"/><circle cx="139" cy="249" r="6" fill="#9a49f5" stroke="'+shine+'" stroke-width="2"/></g>';
+  if(/cosmos|galaxy/.test(id))return '<g class="lc41-couture"><path d="M112 185 Q140 197 167 182" fill="none" stroke="'+shine+'" stroke-width="3"/><path d="M137 205 L141 216 153 218 144 226 148 239 137 231 125 239 130 226 120 218 133 216Z" fill="#c5aaff" stroke="#fff" stroke-width="1.8"/><circle cx="116" cy="238" r="3" fill="#9cefff"/><circle cx="164" cy="242" r="2.5" fill="#f5d8ff"/><path d="M107 260 Q139 266 172 259" stroke="'+shine+'" stroke-width="2" fill="none" opacity=".7"/></g>';
+  if(/diamond/.test(id))return '<g class="lc41-couture"><path d="M114 183 L139 201 164 183" stroke="'+shine+'" stroke-width="5" fill="none"/><path d="M129 211 L139 201 150 211 145 226 133 226Z" fill="#7bcfe0" stroke="#fff" stroke-width="2"/><path d="M103 254 L117 245 M165 245 L181 254" stroke="'+shine+'" stroke-width="3"/></g>';
+  if(/phoenix/.test(id))return '<g class="lc41-couture"><path d="M126 229 Q114 211 129 198 Q129 211 140 215 Q148 203 149 194 Q167 215 151 236 L141 247Z" fill="#ffbf6c" stroke="#ffe9ad" stroke-width="2"/><path d="M139 220 Q148 227 141 237 Q135 234 139 220Z" fill="#fff4ba"/></g>';
+  return '<g class="lc41-couture"><path d="M103 197 L117 210 111 223 M177 197 L164 210 170 223" fill="none" stroke="'+shine+'" stroke-width="4"/><path d="M112 255 Q141 263 169 255" fill="none" stroke="'+shine+'" stroke-width="2"/></g>';
+ }
+ if(item.type==='pants')return '<g class="lc41-couture"><path d="M102 278 L95 305 M173 278 L184 307" stroke="'+shine+'" stroke-width="3" fill="none"/><path d="M92 334 L112 337 M169 337 L191 334" stroke="'+shine+'" stroke-width="3"/><circle cx="104" cy="300" r="3" fill="'+shine+'"/><circle cx="177" cy="300" r="3" fill="'+shine+'"/></g>';
+ if(item.type==='shoes')return '<g class="lc41-couture"><path d="M63 379 Q94 393 121 377 M163 379 Q191 393 221 379" stroke="'+shine+'" stroke-width="4" fill="none"/><path d="M78 356 L107 353 M173 354 L204 358" stroke="'+shine+'" stroke-width="3"/></g>';
+ if(item.type==='hat'&&/crown|diamond|obsidian/.test(id))return '<g class="lc41-couture"><path d="M116 65 L139 48 161 65" stroke="'+shine+'" stroke-width="2.5" fill="none"/><circle cx="139" cy="63" r="4" fill="'+shine+'"/><circle cx="105" cy="74" r="2" fill="#fff"/></g>';
+ if(item.type==='accessory'&&/chain|glasses/.test(id))return '<g class="lc41-couture"><path d="M134 184 L141 176 148 184 141 194Z" fill="'+shine+'" stroke="#fff" stroke-width="1.5"/></g>';
+ return '';
+}
 function lc33Avatar(){
  const c=lc33State();
  const equipped=lc39CurrentEquipped();
@@ -581,7 +616,7 @@ function lc33Avatar(){
  const layerOrder=['pants','shoes','jacket','hat','accessory'];
  const details=layerOrder.map(type=>{
   const item=LC35_BY_ID.get(equipped[type]);
-  return lc37Shape(item)+lc36AvatarMark(item);
+  return lc37Shape(item)+lc36AvatarMark(item)+lc41CoutureDetail(item);
  }).join('');
  const special=lc38Aura(layerOrder.map(type=>LC35_BY_ID.get(equipped[type])));
  const outfit=lc40SetMark(lc40FullSet(equipped));
