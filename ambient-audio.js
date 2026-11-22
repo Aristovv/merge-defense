@@ -104,33 +104,56 @@ function tone(midi,when,dur,amp,wave='sine',attack=.035){
 }
 function playBeat(at){
  const kind=scene.split(':')[0],t=tracks[kind]||tracks.city;
+ const slotId=kind==='slot'?(Number(scene.split(':')[1])||0):0;
  const b=beat%32,bar=Math.floor(b/8)%4,root=t.roots[bar],chord=t.chords[bar];
  const step=60/t.bpm/2;
- if(b%8===0){
-  chord.slice(0,3).forEach((n,i)=>instrument(root+n+12,at+i*.045,step*7.6,.025,'pad'));
-  instrument(root-12,at,step*7.5,.14,'bass');
+ // Each scene has a deliberately different arrangement, not just different notes.
+ if(kind==='city'||kind==='calm'){
+  if(b%8===0){
+   chord.slice(0,3).forEach((n,i)=>instrument(root+n+12,at+i*.12,step*7.6,.034,'pad'));
+   instrument(root-12,at,step*7.5,.10,'bass');
+  }
+  if(kind==='city'&&b%4===2)instrument(root+chord[2]+24,at,step*1.4,.025,'bell');
+  const n=t.melody[b];
+  if(n!==null&&b%2===0)instrument(root+n+12,at,step*3,.065,'piano');
+ }else if(kind==='plinko'){
+  if(b%8===0)instrument(root-12,at,step*6,.065,'bass');
+  const ar=[0,1,2,3,2,1,3,1];
+  instrument(root+chord[ar[b%8]]+24,at,step*.8,.085,'bell');
+  if(b%4===0)instrument(root+24,at,step*.35,.05,'piano');
+  if(b%8===7)instrument(root+chord[2]+36,at,step*.8,.05,'bell');
+ }else if(kind==='crash'){
+  if(b%8===0)chord.slice(0,3).forEach((n,i)=>instrument(root+n+12,at+i*.025,step*7.6,.022,'pad'));
+  if(b%4===0)instrument(root-24,at,step*3,.22,'bass');
+  if(b%8===6)tone(root+12,at,step*.65,.028,'sawtooth',.025);
+  if(b%8===7)tone(root+19,at,step*.45,.018,'triangle',.01);
+ }else if(kind==='roulette'){
+  if(b%8===0){
+   chord.slice(0,3).forEach((n,i)=>instrument(root+n+12,at+i*.08,step*7.5,.027,'pad'));
+   instrument(root-12,at,step*7.5,.10,'bass');
+  }
+  if(b%4===0)instrument(root+chord[(b/4)%4]+24,at,step*3,.11,'bell');
+  if(b%8===6)instrument(root+chord[3]+36,at,step*2,.055,'bell');
+ }else if(kind==='slot'){
+  if(b%8===0)instrument(root-12,at,step*6,.12,'bass');
+  const sequences=[
+   [0,2,1,3,2,0,1,3],
+   [3,1,2,0,1,3,2,0],
+   [0,1,3,2,0,3,1,2],
+   [2,0,3,1,2,3,0,1],
+   [1,3,0,2,3,1,2,0],
+   [3,2,1,0,2,1,3,0]
+  ];
+  const seq=sequences[slotId%sequences.length];
+  if(b%2===0||slotId%2===1)instrument(root+chord[seq[b%8]]+24,at,step*.85,.082,slotId%2?'bell':'piano');
+  if(b%8===4)instrument(root+chord[2]+36,at,step*.65,.035,'bell');
+ }else{
+  if(b%8===0){
+   chord.slice(0,3).forEach((n,i)=>instrument(root+n+12,at+i*.06,step*7,.02,'pad'));
+   instrument(root-12,at,step*7,.10,'bass');
+  }
+  if(b%2===0)instrument(root+chord[(b/2)%4]+24,at,step*1.3,.06,'piano');
  }
- const patterns={
-  city:[0,null,2,null,1,null,3,null],
-  games:[0,2,1,3,0,2,3,1],
-  slot:[0,2,1,3,2,0,3,1],
-  plinko:[0,1,2,3,2,1,3,2],
-  crash:[0,null,null,2,1,null,null,3],
-  roulette:[0,null,2,1,null,3,2,null],
-  calm:[0,null,null,2,null,1,null,3]
- };
- const idx=(patterns[kind]||patterns.city)[b%8];
- if(idx!==null){
-  const inst=kind==='plinko'||kind==='slot'?'bell':'piano';
-  instrument(root+chord[idx]+12,at,step*1.65,.055,inst);
- }
- const note=t.melody[b];
- if(note!==null){
-  const inst=kind==='slot'||kind==='plinko'?'bell':'piano';
-  instrument(root+note+12,at,step*(b%4===0?2.7:1.8),kind==='calm'?.07:.12,inst);
- }
- if(kind==='crash'&&b%4===0)instrument(root-24,at,step*1.5,.07,'bass');
- if(kind==='roulette'&&b%8===6)instrument(root+28,at,step*2.5,.04,'bell');
  beat++;
 }
 function tick(){
