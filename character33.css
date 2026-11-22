@@ -187,3 +187,35 @@
 .lc39-reset{width:100%;background:linear-gradient(135deg,#512f7a,#281a4a);margin-top:5px}
 @media(min-width:620px){.lc39-set-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:375px){.lc39-set-card{padding:9px 6px}.lc39-set-top strong{font-size:11px}.lc39-mini-items svg{height:38px}.lc39-set-actions button{font-size:11px}}
+
+/* Lucky City 40: individually art-directed wardrobe collections.
+   No external SVG references: dependable in iOS VK webview. */
+.lc40-set-visual{position:relative;min-height:92px;display:grid;grid-template-columns:68px minmax(0,1fr);align-items:center;gap:4px;padding:7px 5px;border:1px solid #ffffff20;border-radius:12px;background:linear-gradient(120deg,#201336dd,#3b1b5488 65%,#1b112e);overflow:hidden}
+.lc40-set-visual:before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 25% 55%,var(--set-glow),transparent 46%);opacity:.18;pointer-events:none}
+.lc40-emblem{width:65px;height:65px;max-width:100%;position:relative;z-index:1;filter:drop-shadow(0 0 8px var(--set-glow))}
+.lc40-set-visual .lc39-mini-items{position:relative;z-index:2;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;justify-items:center;min-height:69px}
+.lc40-set-visual .lc39-mini-items svg{height:36px;max-width:100%;min-height:0}
+.lc40-set-visual .lc39-mini-items span:nth-child(4),.lc40-set-visual .lc39-mini-items span:nth-child(5){transform:translateX(30%)}
+.lc40-stage-street{background:radial-gradient(ellipse at 50% 34%,#1a78c677,transparent 58%),linear-gradient(165deg,#112c52,#101428)}
+.lc40-stage-sakura{background:radial-gradient(ellipse at 50% 31%,#ef75ba80,transparent 58%),linear-gradient(165deg,#512044,#1e0f2b)}
+.lc40-stage-phantom{background:radial-gradient(ellipse at 52% 29%,#6d5cc266,transparent 62%),linear-gradient(165deg,#1e1a37,#090917)}
+.lc40-stage-emperor{background:radial-gradient(ellipse at 50% 29%,#c9933999,transparent 59%),linear-gradient(165deg,#4a3029,#191126)}
+.lc40-stage-galaxy{background:radial-gradient(ellipse at 52% 29%,#7a59c58a,transparent 65%),linear-gradient(165deg,#252051,#0e1027)}
+.lc40-stage-street:after{border-color:#6af7ff;box-shadow:0 0 18px #31cceb,0 0 17px #3e9deb inset}
+.lc40-stage-sakura:after{border-color:#ffc6e4;box-shadow:0 0 18px #f986d2,0 0 20px #e368b5 inset}
+.lc40-stage-phantom:after{border-color:#9787ed;box-shadow:0 0 19px #6156d5,0 0 19px #463c90 inset}
+.lc40-stage-emperor:after{border-color:#ffdf87;box-shadow:0 0 22px #f4b857,0 0 19px #bd8e35 inset}
+.lc40-stage-galaxy:after{border-color:#a5d9ff;box-shadow:0 0 22px #b090ff,0 0 19px #6c8be3 inset}
+.lc39-preview-stage[class*="lc40-stage-"]:before{opacity:.24}
+.lc40-stage-street .lc39-preview-avatar{filter:drop-shadow(0 0 12px #3cccf780)}
+.lc40-stage-sakura .lc39-preview-avatar{filter:drop-shadow(0 0 12px #ff89d380)}
+.lc40-stage-phantom .lc39-preview-avatar{filter:drop-shadow(0 0 12px #8174eb80)}
+.lc40-stage-emperor .lc39-preview-avatar{filter:drop-shadow(0 0 12px #ffd0798f)}
+.lc40-stage-galaxy .lc39-preview-avatar{filter:drop-shadow(0 0 13px #a99cff9c)}
+.lc40-street,.lc40-sakura,.lc40-phantom,.lc40-emperor,.lc40-galaxy{pointer-events:none}
+.lc40-sakura{animation:lc40-gentle 4s ease-in-out infinite}
+.lc40-galaxy{animation:lc40-gentle 5s ease-in-out infinite}
+.lc40-emperor{animation:lc40-gentle 4.8s ease-in-out infinite}
+@keyframes lc40-gentle{0%,100%{opacity:.79}50%{opacity:1}}
+@media(max-width:385px){.lc40-set-visual{grid-template-columns:55px minmax(0,1fr);padding:5px 3px;gap:2px}.lc40-emblem{width:52px;height:52px}.lc40-set-visual .lc39-mini-items svg{height:31px}}
+@media(prefers-reduced-motion:reduce){.lc40-sakura,.lc40-galaxy,.lc40-emperor{animation:none}}
