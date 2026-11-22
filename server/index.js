@@ -15,6 +15,7 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1);
 app.use(express.json({limit:'12kb'}));
 app.use('/api/vk/payments/callback',express.urlencoded({extended:false,limit:'12kb'}));
+app.use('/api/casino/payments/callback',express.urlencoded({extended:false,limit:'12kb'}));
 const origin=process.env.CLIENT_ORIGIN||'https://merge-defense.onrender.com';
 const casinoOrigins=new Set([origin,'https://merge-defense.onrender.com','https://merge.89-23-115-251.sslip.io']);
 app.use(cors({origin:(requestOrigin,callback)=>callback(null,!requestOrigin||casinoOrigins.has(requestOrigin)),methods:['GET','POST','PUT'],allowedHeaders:['Content-Type','X-VK-Launch-Params']}));
