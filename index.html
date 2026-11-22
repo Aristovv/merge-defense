@@ -4342,7 +4342,15 @@ function alignSlotWinningLines(){
  });
 }
 let casinoSlotResizeFrame=0;
-window.addEventListener('resize',()=>{if(tab==='game'&&selected>=0&&selected<6){cancelAnimationFrame(casinoSlotResizeFrame);casinoSlotResizeFrame=requestAnimationFrame(alignSlotWinningLines)}},{passive:true});
+window.addEventListener('resize',()=>{
+ if(tab!=='game'||selected<0||selected>=6||document.visibilityState==='hidden')return;
+ cancelAnimationFrame(casinoSlotResizeFrame);
+ casinoSlotResizeFrame=requestAnimationFrame(()=>{casinoSlotResizeFrame=0;if(tab==='game'&&document.visibilityState!=='hidden')alignSlotWinningLines()});
+},{passive:true});
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='hidden'&&casinoSlotResizeFrame){cancelAnimationFrame(casinoSlotResizeFrame);casinoSlotResizeFrame=0}
+ if(document.visibilityState==='visible'&&tab==='game'&&selected>=0&&selected<6)requestAnimationFrame(alignSlotWinningLines);
+});
 function selectSlotPayline(index){
  if(busy||tab!=='game'||selected<0||selected>=6)return;
  if(index===-1)slotSelectedPayline=null;
