@@ -61,6 +61,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
     }
     for(const key of ['nick','frame','title','background','effect','theme'])if(pack[key])add(key+'s',pack[key]);
     if(pack.vipBadge)add('badges','vip');
+    save.donationEquipped={...(save.donationEquipped||{}),...Object.fromEntries(['nick','frame','title','background','effect','theme'].filter(key=>pack[key]).map(key=>[key,pack[key]])),...(pack.vipBadge?{badge:'vip'}:{})};
     if(pack.boost){
      const now=Date.now(),expires=now+7*86400000;
      const old=save.donationIncomeBoost||{};
@@ -95,6 +96,11 @@ function registerCasinoAdmin(app,pool,requireAuth){
    if(!q.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'CLOUD_SAVE_NOT_FOUND'})}
    const save=q.rows[0].save;
    if(!save.donationInventory||typeof save.donationInventory!=='object'){await client.query('ROLLBACK');return res.status(409).json({error:'NO_DONATION_TO_REFRESH'})}
+   if(!save.donationEquipped?.title){
+    const inv=save.donationInventory||{};
+    const pick=key=>Array.isArray(inv[key])&&inv[key].length?inv[key][inv[key].length-1]:null;
+    save.donationEquipped={...(save.donationEquipped||{}),...Object.fromEntries([['nick','nicks'],['frame','frames'],['title','titles'],['background','backgrounds'],['effect','effects'],['theme','themes'],['badge','badges']].map(([type,key])=>[type,pick(key)]).filter(([,value])=>value))};
+   }
    save.resetEpoch=Math.max(0,Number(save.resetEpoch)||0)+1;
    save.stamp=Date.now();
    await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(save)]);
