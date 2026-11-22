@@ -13,7 +13,7 @@ const tracks={
  games:{bpm:106,roots:[50,46,43,45],chords:[[0,3,7,10],[0,4,7,11],[0,3,7,10],[0,4,7,10]],melody:[12,10,7,null,10,12,15,12,10,null,7,5,7,10,12,null,12,15,17,15,12,10,7,null,10,12,10,7,5,null,7,null],wave:'triangle'},
  slot:{bpm:112,roots:[45,41,43,40],chords:[[0,3,7,10],[0,4,7,11],[0,3,7,10],[0,4,7,10]],melody:[12,null,15,19,17,15,12,null,10,12,15,null,12,10,7,null,12,15,19,null,22,19,17,15,12,null,10,12,15,12,10,null],wave:'triangle'},
  plinko:{bpm:124,roots:[50,46,43,45],chords:[[0,3,7,10],[0,4,7,10],[0,3,7,10],[0,4,7,10]],melody:[12,15,19,15,12,null,10,12,15,19,22,19,15,null,12,10,12,15,17,15,12,10,7,null,10,12,15,12,10,null,7,null],wave:'sine'},
- crash:{bpm:122,roots:[45,41,38,40],chords:[[0,3,7,10],[0,4,7,11],[0,3,7,10],[0,4,7,10]],melody:[12,null,12,15,19,null,15,12,10,null,12,15,17,15,12,null,12,null,15,19,22,19,17,15,12,null,10,12,15,null,12,null],wave:'triangle'},
+ crash:{bpm:120,roots:[45,41,38,40],chords:[[0,3,7,10],[0,4,7,11],[0,3,7,10],[0,4,7,10]],melody:[12,null,12,15,19,null,15,12,10,null,12,15,17,15,12,null,12,null,15,19,22,19,17,15,12,null,10,12,15,null,12,null],wave:'sawtooth'},
  roulette:{bpm:98,roots:[48,43,44,41],chords:[[0,4,7,11],[0,4,7,10],[0,3,7,10],[0,4,7,11]],melody:[7,null,11,14,12,null,11,7,9,12,16,null,14,12,9,null,7,11,14,16,14,null,11,9,7,null,9,12,11,7,null,null],wave:'sine'},
  calm:{bpm:78,roots:[48,44,41,43],chords:[[0,4,7,11],[0,3,7,10],[0,4,7,11],[0,4,7,10]],melody:[7,null,null,11,12,null,11,null,7,null,4,null,7,null,null,null,11,null,12,null,14,null,12,null,11,null,7,null,4,null,null,null],wave:'sine'}
 };
@@ -40,22 +40,22 @@ function setup(){
  if(ctx)return;
  ctx=new AC();
  master=ctx.createGain();master.gain.value=0;
- filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=2700;filter.Q.value=.35;
- delay=ctx.createDelay(.8);delay.delayTime.value=.32;
- feedback=ctx.createGain();feedback.gain.value=.18;
- wet=ctx.createGain();wet.gain.value=.14;
+ filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=3400;filter.Q.value=.35;
+ delay=ctx.createDelay(.8);delay.delayTime.value=.29;
+ feedback=ctx.createGain();feedback.gain.value=.11;
+ wet=ctx.createGain();wet.gain.value=.10;
  filter.connect(master);filter.connect(delay);delay.connect(feedback);feedback.connect(delay);delay.connect(wet);wet.connect(master);
  master.connect(ctx.destination);
 }
 function tone(midi,when,dur,amp,wave='sine',attack=.035){
  if(!ctx||when<ctx.currentTime-.1)return;
- const o=ctx.createOscillator(),g=ctx.createGain();
+ const o=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();
  o.type=wave;o.frequency.setValueAtTime(440*Math.pow(2,(midi-69)/12),when);
  const a=Math.min(attack,dur*.4);
  g.gain.setValueAtTime(.00001,when);
  g.gain.linearRampToValueAtTime(amp,when+a);
  g.gain.exponentialRampToValueAtTime(.00001,when+dur);
- o.connect(g);g.connect(filter);
+ f.type='lowpass';f.frequency.value=wave==='sawtooth'?1200:3600;o.connect(f);f.connect(g);g.connect(filter);
  o.start(when);o.stop(when+dur+.02);
 }
 function playBeat(at){
@@ -64,16 +64,18 @@ function playBeat(at){
  const beatSec=60/t.bpm/2;
  // Soft sustained chord every four beats, giving the melody clear harmony.
  if(b%8===0){
-  chord.forEach((interval,i)=>tone(root+interval+12,at,beatSec*7.5,.013,i%2?'sine':'triangle',.5));
-  tone(root-12,at,beatSec*7.2,.08,'sine',.08);
+  chord.forEach((interval,i)=>tone(root+interval+12,at,beatSec*7.5,.010,i%2?'sine':'triangle',.5));
+  tone(root-12,at,beatSec*7.2,.065,scene==='crash'?'triangle':'sine',.08);
  }
  // A consistent, recognizable arpeggio, varied per musical scene.
- if(b%2===0){
-  const order=[0,2,1,3],n=chord[order[(b/2)%4]];
-  tone(root+n+12,at,beatSec*1.65,.025,t.wave,.025);
+ if(b%(scene==='slot'||scene==='plinko'?1:scene==='crash'?4:2)===0){
+  const order=[0,2,1,3,2,1,3,1],n=chord[order[b%8]];
+  tone(root+n+12,at,beatSec*(scene==='slot'||scene==='plinko'?.85:1.65),scene==='crash'?.013:.022,t.wave,.025);
  }
  const n=t.melody[b];
- if(n!==null)tone(root+n+12,at,beatSec*(b%4===0?2.8:1.7),.052,t.wave,.035);
+ if(n!==null)tone(root+n+12,at,beatSec*(b%4===0?2.4:1.6),scene==='crash'?.022:.042,t.wave,.035);
+ if(scene==='slot'&&b%8===4)tone(root+24,at,beatSec*.7,.012,'triangle',.009);
+ if(scene==='plinko'&&b%4===2)tone(root+31,at,beatSec*.55,.012,'sine',.008);
  beat++;
 }
 function tick(){
