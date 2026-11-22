@@ -238,10 +238,107 @@ function lc33AvatarFallback(){
 
  svg.push('</svg>');return svg.join('');
 }
+/* Lucky City 36: distinct collectible art — fully inline, Safari-friendly.
+   Each piece gets its own drawn motif; special collections have different silhouettes. */
+function lc36Theme(g){
+ const id=g?.id||'';
+ if(/diamond|ice|frost|holo|cyber/.test(id))return 'crystal';
+ if(/flame|fire|phoenix|sunset|toxic/.test(id))return 'flame';
+ if(/cosmos|galaxy|star|lunar|night|midnight|abyss/.test(id))return 'space';
+ if(/royal|king|crown|emperor|gold|legend/.test(id))return 'royal';
+ if(/sakura|rose|pink|forest|emerald/.test(id))return 'nature';
+ if(/noir|black|shadow/.test(id))return 'shadow';
+ if(/neon|vip/.test(id))return 'neon';
+ return 'street';
+}
+function lc36Accent(g){
+ const theme=lc36Theme(g),id=g?.id||'';
+ const ink=({crystal:'#b8f9ff',flame:'#ffbd62',space:'#d5bbff',royal:'#ffe394',
+  nature:'#ffd7e8',shadow:'#a29cbd',neon:'#a9faff',street:'#f0d2ff'})[theme];
+ let motif='';
+ if(theme==='crystal')motif='<path d="M40 19 L50 30 45 48 35 48 30 30Z" fill="'+ink+'" stroke="#fff" stroke-width="1.5"/><path d="M40 19 V47 M30 30 H50" fill="none" stroke="#68bce5" stroke-width="1"/><circle cx="57" cy="21" r="3" fill="#fff"/><path d="M56 11 V16 M56 26 V31 M46 21 H51 M61 21 H66" stroke="'+ink+'" stroke-width="2"/>';
+ if(theme==='flame')motif='<path d="M40 12 Q53 26 48 38 Q62 26 57 45 Q52 59 40 60 Q23 54 26 39 Q30 31 31 25 Q37 33 40 12Z" fill="'+ink+'" stroke="#ff5e56" stroke-width="1.5"/><path d="M42 34 Q49 48 40 55 Q32 51 37 43Z" fill="#fff4bd"/>';
+ if(theme==='space')motif='<path d="M40 21 L44 32 56 33 47 41 50 53 40 47 30 53 33 41 24 33 36 32Z" fill="'+ink+'" stroke="#fff" stroke-width="1.2"/><circle cx="55" cy="19" r="3" fill="#b5e5ff"/><circle cx="25" cy="22" r="2" fill="#fff"/><path d="M18 49 L23 44 M57 54 L64 47" stroke="#e7c8ff" stroke-width="2"/>';
+ if(theme==='royal')motif='<path d="M25 48 L23 27 32 36 40 21 49 36 58 27 56 48Z" fill="'+ink+'" stroke="#e4a950" stroke-width="1.8"/><rect x="24" y="46" width="33" height="7" rx="2" fill="#d6a350"/><circle cx="40" cy="39" r="3.5" fill="#9a62e8"/>';
+ if(theme==='nature')motif='<path d="M39 49 Q22 39 25 27 Q38 27 40 41 Q41 27 56 25 Q59 42 39 49Z" fill="'+ink+'" stroke="#9c5494" stroke-width="1.4"/><circle cx="41" cy="33" r="5" fill="#fff1ad"/><path d="M40 49 V58" stroke="#ffe6c0" stroke-width="2"/>';
+ if(theme==='shadow')motif='<path d="M40 17 L56 25 L52 49 L40 59 L27 49 L24 25Z" fill="#332840" stroke="'+ink+'" stroke-width="2"/><path d="M30 38 L38 43 49 32" fill="none" stroke="'+ink+'" stroke-width="3"/>';
+ if(theme==='neon')motif='<path d="M28 23 L47 23 39 38 53 38 30 60 35 44 24 44Z" fill="'+ink+'" stroke="#fff" stroke-width="1.5"/>';
+ if(theme==='street')motif='<path d="M25 33 L40 24 55 33 40 42Z" fill="'+ink+'" stroke="#fff" stroke-width="1.2"/><path d="M28 46 H52 M32 52 H48" stroke="'+ink+'" stroke-width="3"/>';
+ // Important: vary silhouette as well as pattern in the shop, not just tint the same icon.
+ let body='';
+ if(g.type==='hat'){
+  const fam=g.style||g.id;
+  if(fam==='cap'&&/diamond|vip|flame/.test(id))body='<path d="M10 41 Q13 10 41 9 Q71 11 70 45 Q40 54 10 45Z" fill="'+g.color+'" stroke="#fcddff" stroke-width="3"/><path d="M18 43 Q44 34 78 47 Q55 60 10 50Z" fill="#24123c" stroke="'+ink+'" stroke-width="3"/>';
+  else if(fam==='beanie'&&/star|night/.test(id))body='<path d="M17 51 Q12 13 40 12 Q66 13 65 49Z" fill="'+g.color+'" stroke="'+ink+'" stroke-width="3"/><path d="M13 45 H70 L67 60 H14Z" fill="#241a42" stroke="#e9ceff" stroke-width="3"/>';
+  else if(fam==='crown'&&/obsidian/.test(id))body='<path d="M12 54 L10 13 27 36 40 6 54 36 70 13 68 54Z" fill="#201636" stroke="#9f88ff" stroke-width="3"/>';
+  if(body)motif='<g transform="translate(0 0)">'+body+'</g><g transform="translate(21 6) scale(.46)">'+motif+'</g>';
+  else motif='<g transform="translate(24 22) scale(.40)">'+motif+'</g>';
+ }else if(g.type==='jacket'){
+  if(/coat-|goldcoat|phoenix/.test(id))body='<path d="M21 18 L32 9 40 21 48 9 60 18 73 30 64 72 56 61 62 79 18 79 24 60 15 71 7 31Z" fill="'+g.color+'" stroke="'+ink+'" stroke-width="3"/><path d="M33 18 L40 40 47 18 M40 40 V75" fill="none" stroke="#ffdd8a" stroke-width="3"/>';
+  else if(/hoodie/.test(id))body='<path d="M25 17 Q40 3 55 17 L65 26 74 69 60 73 56 59 56 77 H24 V59 L20 73 6 69 15 26Z" fill="'+g.color+'" stroke="'+ink+'" stroke-width="2.5"/><path d="M26 18 Q40 42 54 18" fill="none" stroke="#cdb6ff" stroke-width="4"/>';
+  else if(/jacket-/.test(id))body='<path d="M20 15 L33 6 40 20 49 6 61 15 72 27 69 65 55 60 55 75 H25 V60 L11 65 8 27Z" fill="'+g.color+'" stroke="#d7a6ff" stroke-width="3"/><path d="M40 19 V75" stroke="'+ink+'" stroke-width="4"/>';
+  motif=body+'<g transform="translate(25 25) scale(.38)">'+motif+'</g>';
+ }else if(g.type==='pants'){
+  if(/cargo/.test(id))body='<path d="M20 8 H60 L68 73 H45 L41 42 36 73 H13Z" fill="'+g.color+'" stroke="'+ink+'" stroke-width="2.5"/><rect x="13" y="42" width="20" height="17" rx="2" fill="#302648" stroke="#edc5ff"/><rect x="47" y="42" width="20" height="17" rx="2" fill="#302648" stroke="#edc5ff"/>';
+  else if(/royal|emperor|goldline/.test(id))body='<path d="M20 8 H60 L67 74 H45 L40 42 35 74 H13Z" fill="'+g.color+'" stroke="#ffdc87" stroke-width="3"/><path d="M28 17 L25 68 M52 17 L56 68" stroke="#fff0b6" stroke-width="3"/>';
+  motif=body+'<g transform="translate(25 16) scale(.37)">'+motif+'</g>';
+ }else if(g.type==='shoes'){
+  if(/boots|emperor|royal/.test(id))body='<path d="M20 10 H52 L53 42 68 49 Q76 60 67 68 H12 L10 54 21 47Z" fill="'+g.color+'" stroke="'+ink+'" stroke-width="3"/><path d="M15 62 H69" stroke="#fff1b3" stroke-width="4"/>';
+  if(/sneakers|shoes-rose|shoes-black/.test(id))body='<path d="M10 42 L25 29 37 43 67 47 Q75 52 72 64 H7Z" fill="'+g.color+'" stroke="'+ink+'" stroke-width="2.8"/><path d="M26 41 L42 48 M23 47 L39 52" stroke="#fff" stroke-width="2.5"/>';
+  motif=body+'<g transform="translate(34 34) scale(.27)">'+motif+'</g>';
+ }else if(g.type==='accessory'){
+  if(/chain/.test(id))body='<path d="M17 13 Q16 62 40 65 Q67 62 63 13" fill="none" stroke="'+ink+'" stroke-width="8"/>';
+  else if(/glasses/.test(id))body='<rect x="7" y="25" width="29" height="27" rx="6" fill="'+g.color+'" stroke="'+ink+'" stroke-width="3"/><rect x="45" y="25" width="29" height="27" rx="6" fill="'+g.color+'" stroke="'+ink+'" stroke-width="3"/><path d="M36 31 Q40 26 45 31" fill="none" stroke="'+ink+'" stroke-width="3"/>';
+  else if(/phones/.test(id))body='<path d="M18 25 Q40 -2 63 25" fill="none" stroke="'+ink+'" stroke-width="8"/><rect x="7" y="24" width="22" height="34" rx="9" fill="'+g.color+'" stroke="'+ink+'" stroke-width="3"/><rect x="52" y="24" width="21" height="34" rx="9" fill="'+g.color+'" stroke="'+ink+'" stroke-width="3"/>';
+  motif=body+'<g transform="translate(28 31) scale(.31)">'+motif+'</g>';
+ }
+ return '<g class="lc36-details">'+motif+'</g>';
+}
+function lc36ItemIcon(g){
+ const base=lc33SvgItem(g);
+ return base.replace('</svg>',lc36Accent(g)+'</svg>');
+}
+function lc36AvatarMark(g){
+ if(!g)return '';
+ const theme=lc36Theme(g),col=({crystal:'#d5ffff',flame:'#ffbc61',space:'#bca4ff',royal:'#ffdf7c',nature:'#ffd1e4',shadow:'#a09ab3',neon:'#7df8ff',street:'#e7bfff'})[theme];
+ if(g.type==='hat')return '<g opacity=".95"><path d="M128 66 L139 58 150 66 139 76Z" fill="'+col+'" stroke="#fff" stroke-width="1.5"/></g>';
+ if(g.type==='jacket'){
+  let pieces='<path d="M103 203 L112 215 L106 228 M174 203 L166 216 L175 227" fill="none" stroke="'+col+'" stroke-width="3.5"/>';
+  if(/coat-|phoenix/.test(g.id))pieces+='<path d="M96 245 L75 321 110 300 139 255 166 300 201 322 184 244" fill="'+g.color+'" stroke="'+col+'" stroke-width="4"/><path d="M101 252 L84 306 M178 252 L195 309" stroke="#fff1c0" stroke-width="2"/>';
+  if(/hoodie/.test(g.id))pieces+='<path d="M108 150 Q139 178 173 150 L164 177 148 192 129 192 113 176Z" fill="'+g.color+'" stroke="'+col+'" stroke-width="3"/><path d="M129 189 L126 219 M151 190 L153 218" stroke="'+col+'" stroke-width="2.5"/>';
+  if(/diamond|cosmos|emperor/.test(g.id))pieces+='<path d="M140 206 L152 220 140 235 129 220Z" fill="'+col+'" stroke="#fff" stroke-width="2"/>';
+  return '<g>'+pieces+'</g>';
+ }
+ if(g.type==='pants'){
+  let mark='<path d="M97 277 L108 291 M171 280 L180 294" stroke="'+col+'" stroke-width="3" fill="none"/>';
+  if(/cargo/.test(g.id))mark+='<path d="M86 293 L115 301 112 328 H86Z M165 300 L190 292 192 327 165 328Z" fill="'+g.color+'" stroke="'+col+'" stroke-width="2.5"/><path d="M90 312 H110 M169 312 H187" stroke="#fff" stroke-width="2"/>';
+  if(/royal|emperor|goldline/.test(g.id))mark+='<path d="M105 267 L96 342 M164 268 L184 341" stroke="'+col+'" stroke-width="4"/>';
+  return mark;
+ }
+ if(g.type==='shoes'){
+  let mark='<path d="M66 380 Q92 390 122 380 M162 380 Q190 390 221 380" fill="none" stroke="'+col+'" stroke-width="4"/>';
+  if(/gold|emperor|royal|diamond/.test(g.id))mark+='<path d="M73 351 L102 348 M171 349 L202 351" stroke="'+col+'" stroke-width="6"/>';
+  if(/flame|neon|ice|toxic/.test(g.id))mark+='<path d="M60 375 H121 M162 375 H221" stroke="'+col+'" stroke-width="3"/>';
+  return mark;
+ }
+ if(g.type==='accessory'){
+  if(/glasses/.test(g.id))return '<path d="M104 110 H129 M147 110 H174" stroke="'+col+'" stroke-width="4"/>';
+  if(/chain/.test(g.id))return '<path d="M120 163 Q139 196 161 164" fill="none" stroke="'+col+'" stroke-width="5"/><circle cx="140" cy="185" r="6" fill="'+col+'"/>';
+  return '<path d="M93 103 L95 119 M186 103 L184 119" stroke="'+col+'" stroke-width="3"/>';
+ }
+ return '';
+}
+
 // Restore reliable inline art for Safari / VK WebView: external SVG <use>
 // rendered tiny thumbnails and unresolved gradients on iPhone.
-function lc33Avatar(){return lc33AvatarFallback();}
-function lc34SvgItem(g){return lc33SvgItem(g);}
+function lc33Avatar(){
+ const c=lc33State();
+ let svg=lc33AvatarFallback();
+ const layerOrder=['pants','shoes','jacket','hat','accessory'];
+ const details=layerOrder.map(type=>lc36AvatarMark(LC35_BY_ID.get(c.equipped[type]))).join('');
+ return svg.replace('</svg>',details+'</svg>');
+}
+function lc34SvgItem(g){return lc36ItemIcon(g);}
 function lc33Screen(){
  const c=lc33State(),active=LC33_GROUPS.find(g=>g[0]===lc33Category)||LC33_GROUPS[0];
  const list=LC33_GOODS.filter(g=>g.type===lc33Category&&g.payment!=='locked'&&(lc35Filter==='all'||(lc35Filter==='coin'&&['coin','default'].includes(g.payment))||(lc35Filter==='premium'&&g.payment==='premium')));
