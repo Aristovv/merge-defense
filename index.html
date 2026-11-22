@@ -3548,7 +3548,7 @@ const SLOT_FREE_SPINS=[2,3,2,2,3,2];
 const SLOT_BONUS_MULTIPLIERS=[2,2,3,2,2,3];
 const SLOT_SCATTER_INDEX=[7,7,7,7,7,7];
 const SLOT_WILD_INDEX=6;
-const SLOT_SCATTER_CHANCE=[.15,.15,.15,.15,.15,.15];
+const SLOT_SCATTER_CHANCE=[.08,.08,.08,.08,.08,.08];
 const SLOT_SPECIAL_NAMES=['Семёрки удачи','Вишнёвый фестиваль','Алмазная лихорадка','Золото фараона','Вегас-джекпот','Золотой звон'];
 
 function slotShownPaylines(){
@@ -3714,15 +3714,15 @@ function hiloOdds(high){if(!round||round.kind!=='hilo'||!round.deck.length)retur
 function hiloPlay(high){if(!round||round.kind!=='hilo'||busy)return;const odds=hiloOdds(high);if(!odds.chance)return message('Для этой карты такой исход невозможен');const prev=cardRank(round.num),nextCard=round.deck.pop(),next=cardRank(nextCard),win=high?next>prev:next<prev;round=null;finish(win?Math.floor(roundBet*odds.multiplier):0,'Карты: '+CARD_FACES[prev]+' → '+CARD_FACES[next]+(next===prev?' · одинаковый ранг':win?' · угадал!':' · не угадал')+' · ×'+odds.multiplier.toFixed(2))}
 let plinkoLastSector=-1,plinkoRisk=1,plinkoCount=1,plinkoHits=[];
 const PLINKO_PAYTABLES=[
-[10,2.9,1.6,1.2,1,.9,.7,.9,1,1.2,1.6,2.9,10],
-[50,12.4,3.9,2.3,1,.5,.2,.5,1,2.3,3.9,12.4,50],
+[8,2.5,1.4,1.05,.8,.7,.55,.7,.8,1.05,1.4,2.5,8],
+[35,9,3,1.8,.8,.4,.15,.4,.8,1.8,3,9,35],
 [250,28,8,1.8,.4,.3,0,.3,.4,1.8,8,28,250]];
 function plinkoPlay(){
  if(busy||round)return;
  casinoNormalizeBet();
  const count=plinkoCount,stake=bet,total=stake*count;
  if(!Number.isSafeInteger(total)||state.chips<total)return message('Недостаточно фишек на '+count+' шариков');
- busy=true;roundBet=stake;casinoCurrentStake=total;state.chips-=total;state.plays+=count;recordCasinoQuestEvent('plays',count);xp(4*count);save();
+ busy=true;roundBet=stake;casinoCurrentStake=total;state.chips-=total;state.plays++;recordCasinoQuestEvent('plays',1);xp(4);save();
  plinkoHits=[];plinkoLastSector=-1;
  const table=PLINKO_PAYTABLES[plinkoRisk],board=$('plinko-board'),bins=$('plinko-bins'),hits=$('plinko-hits');
  const width=board?.clientWidth||320,center=width/2,step=Math.min(width/15,25),duration=2400;
@@ -3798,7 +3798,7 @@ function crashStart(){
  crashAutoTarget=target;busy=true;crashValue=1;crashLastStatus='';state.pendingMiniRound={kind:'crash'};save();
  // House edge 4%: P(reaching multiplier m) is approximately 0.96/m.
  // Instant-bust rounds are possible; the old minimum ×1.10 was risk-free profit.
- crashStop=Math.max(1,Math.min(11.1,Math.floor(0.96/Math.max(0.000001,Math.random())*100)/100));
+ crashStop=Math.max(1,Math.min(8,Math.floor(0.90/Math.max(0.000001,Math.random())*100)/100));
  render();updateCrashGraph();
  const started=performance.now(),speed=.29;crashStartedAt=started;
  crashTimer=setInterval(()=>{
