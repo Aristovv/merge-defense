@@ -81,6 +81,7 @@ app.post('/api/purchases/verify',requireAuth,(_req,res)=>res.status(501).json({e
 const casinoTournaments=(await import('./casino-tournaments.cjs')).registerCasinoTournaments(app,pool,requireAuth,optionalVkAuth);
 (await import('./casino-ranking.cjs')).registerCasinoRanking(app,pool,requireAuth,casinoTournaments.recordAcceptedAdvance);
 (await import('./casino-admin.cjs')).registerCasinoAdmin(app,pool,requireAuth);
+(await import('./casino-payments.cjs')).registerCasinoPayments(app,pool);
 (await import('./casino-saves.cjs')).registerCasinoSaves(app,pool,requireAuth);
 app.use((_req,res)=>res.status(404).json({error:'NOT_FOUND'}));
 const port=Number(process.env.PORT||3000);
