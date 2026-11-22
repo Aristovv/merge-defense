@@ -2904,6 +2904,11 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 .keno-ball.matched{position:relative;z-index:1;outline:2px solid #ffe9a1;outline-offset:1px;box-shadow:0 0 12px #ffd77cb3,inset 0 0 6px #fff1ba88;filter:brightness(1.15)}
 [data-keno].drawn.matched{outline:2px solid #ffe7a4;outline-offset:1px;box-shadow:0 0 11px #ffe28c88}
 @media(prefers-reduced-motion:reduce){.keno-ball,[data-keno]{animation:none!important;transition:none!important}}
+
+/* CASINO CITY 31.9: clearer dice roll and mobile-friendly result rendering */
+.dice-cube{backface-visibility:hidden;transform-style:preserve-3d;transition:box-shadow .22s ease,filter .22s ease}
+.dice-cube.dice-rolling{filter:brightness(1.15);box-shadow:0 0 16px #ffd8969c,6px 7px 0 #78617d,8px 11px 16px #0008}
+@media(prefers-reduced-motion:reduce){.dice-cube,.dice-cube.dice-rolling{animation:none!important;transition:none!important}}
 </style><style>
 .casino-admin-search{display:flex;gap:8px;margin:12px 0;align-items:center}
 .casino-admin-search select{background:#181323;color:white;border:1px solid #8b719c;border-radius:10px;padding:10px;max-width:120px}.casino-admin-search input{flex:1;min-width:0;background:#181323;border:1px solid #8b719c;border-radius:10px;color:white;padding:11px}
@@ -4638,7 +4643,7 @@ function crashCash(automatic=false){
 }
 let lastDice=[1,1];
 function diceFace(n){const layouts={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};return '<div class="dice-pips">'+Array.from({length:9},(_,i)=>'<span class="dice-pip '+(layouts[n].includes(i)?'visible':'')+'"></span>').join('')+'</div>'}
-function dicePlay(guess){if(busy||!startCost())return;busy=true;const a=1+rand(6),b=1+rand(6),sum=a+b,win=guess==='over'?sum>=8:sum<=6,push=sum===7;document.querySelectorAll('.dice-cube').forEach(c=>c.classList.add('dice-rolling'));setTimeout(()=>{busy=false;lastDice=[a,b];finish(push?roundBet:win?Math.floor(roundBet*1.9):0,'Кубики: '+a+' + '+b+' = '+sum+(push?' · семёрка: ставка возвращена':win?' · победа!':' · не угадал'))},950)}
+function dicePlay(guess){if(busy||!startCost())return;busy=true;const a=1+rand(6),b=1+rand(6),sum=a+b,win=guess==='over'?sum>=8:sum<=6,push=sum===7;const diceDuration=(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)?80:950;document.querySelectorAll('.dice-cube').forEach(c=>{c.classList.remove('dice-rolling');void c.offsetWidth;if(diceDuration>80)c.classList.add('dice-rolling')});setTimeout(()=>{busy=false;lastDice=[a,b];document.querySelectorAll('.dice-cube').forEach(c=>c.classList.remove('dice-rolling'));finish(push?roundBet:win?Math.floor(roundBet*1.9):0,'Кубики: '+a+' + '+b+' = '+sum+(push?' · семёрка: ставка возвращена':win?' · победа!':' · не угадал'))},diceDuration)}
 
 // A new scratch ticket is generated with explicit, visible odds:
 // 75% no match, 15% three-of-a-kind, 7% four, 3% five.
