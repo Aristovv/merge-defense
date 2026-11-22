@@ -535,8 +535,9 @@ function lc33Screen(){
   '<section class="lc33-section"><h2>'+(lc33Subtab==='collection'?'Моя коллекция':'Бонусы персонажа')+'</h2>'+
   (lc33Subtab==='collection'?'<div class="lc33-items">'+LC33_GOODS.filter(g=>c.owned.includes(g.id)).map(g=>'<article class="lc33-item">'+lc34SvgItem(g)+'<strong>'+rankEsc(g.name)+'</strong><button data-lc33-cat="'+g.type+'">Посмотреть</button></article>').join('')+'</div>':
    '<div class="lc33-empty">Персонаж пока косметический: одежда не влияет на выигрыш или доход. Дополнительные бонусы ещё не подключены.</div>')+'</section>';
+ const previewStage=lc33Subtab==='sets'?'<div class="lc39-preview-stage"><div class="lc39-preview-label">'+(lc39Preview?'ПРИМЕРКА · '+lc39Preview.name:'МОЙ ПЕРСОНАЖ')+'</div><div class="lc39-preview-avatar">'+lc33Avatar()+'</div></div>':'';
  return '<main class="lc33"><div class="lc33-hero"><h1>ПЕРСОНАЖ</h1></div>'+
- '<div class="lc33-tabs">'+[['wardrobe','♧ Гардероб'],['sets','✦ Образы'],['collection','♛ Коллекция'],['bonuses','✧ Бонусы']].map(([id,name])=>'<button class="'+(lc33Subtab===id?'active':'')+'" data-lc33-tab="'+id+'">'+name+'</button>').join('')+'</div>'+view+'</main>';
+ '<div class="lc33-tabs">'+[['wardrobe','♧ Гардероб'],['sets','✦ Образы'],['collection','♛ Коллекция'],['bonuses','✧ Бонусы']].map(([id,name])=>'<button class="'+(lc33Subtab===id?'active':'')+'" data-lc33-tab="'+id+'">'+name+'</button>').join('')+'</div>'+previewStage+view+'</main>';
 }
 document.addEventListener('click',function(e){
  const preview=e.target.closest('[data-lc39-preview]');
@@ -552,9 +553,10 @@ document.addEventListener('click',function(e){
   save();render();message('Комплект надет: '+set.name);return}
 
  const filter=e.target.closest('[data-lc35-filter]');if(filter){lc35Filter=filter.dataset.lc35Filter;render();return}
- const t=e.target.closest('[data-lc33-tab]');if(t){lc33Subtab=t.dataset.lc33Tab;render();return}
+ const t=e.target.closest('[data-lc33-tab]');if(t){lc33Subtab=t.dataset.lc33Tab;if(lc33Subtab!=='sets')lc39Preview=null;render();return}
  const g=e.target.closest('[data-lc33-cat]');if(g){lc33Category=g.dataset.lc33Cat;lc35Filter='all';lc33Selected=lc33State().equipped[lc33Category]||LC33_GOODS.find(x=>x.type===lc33Category&&x.payment!=='locked')?.id||'cap';lc33Subtab='wardrobe';render();return}
  const b=e.target.closest('[data-lc33-item]');if(!b)return;
+ lc39Preview=null;
  const item=LC33_GOODS.find(x=>x.id===b.dataset.lc33Item);if(!item)return;
  lc33Selected=item.id;const c=lc33State();
  if(c.equipped[item.type]===item.id)return;
