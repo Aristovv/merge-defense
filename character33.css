@@ -146,3 +146,13 @@
 .lc33-figure:has(.lc37-coat){overflow:hidden}
 .lc33-item strong{font-weight:850;letter-spacing:.1px}
 @media(prefers-reduced-motion:reduce){.lc33-person{animation:none}}
+
+/* Lucky City 38: collectible aura and polished character presentation */
+.lc38-aura{transform-origin:50% 53%;animation:lc38-aura-pulse 3.6s ease-in-out infinite;pointer-events:none}
+@keyframes lc38-aura-pulse{0%,100%{opacity:.42;transform:scale(.985)}50%{opacity:.93;transform:scale(1.01)}}
+.lc33-figure{background:radial-gradient(ellipse at 55% 25%,#694db155 0%,transparent 60%),linear-gradient(180deg,#322057,#15102c)}
+.lc33-person{filter:drop-shadow(0 0 10px #6e2bb85e)}
+.lc33-person svg{shape-rendering:geometricPrecision}
+.lc33-item.mythic .rar{box-shadow:0 0 12px #ffcb84aa}
+.lc33-item.legend .rar{box-shadow:0 0 9px #ffba5b55}
+@media(prefers-reduced-motion:reduce){.lc38-aura{animation:none}}
