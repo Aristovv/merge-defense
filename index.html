@@ -3189,13 +3189,9 @@ function renderCasinoLeaderboard(){
     if(!p){casinoSelectedPlayerId='';}
     else{
       const plays=Math.max(0,Number(p.plays)||0),wins=Math.max(0,Number(p.wins)||0);
-      const detailed=p.casinoGameStats&&typeof p.casinoGameStats==='object'?Object.values(p.casinoGameStats):[];
-      const auditedRounds=detailed.reduce((n,g)=>n+Math.max(0,Math.floor(Number(g?.rounds)||0)),0);
-      const auditedWins=detailed.reduce((n,g)=>n+Math.min(Math.max(0,Math.floor(Number(g?.wins)||0)),Math.max(0,Math.floor(Number(g?.rounds)||0))),0);
-      const verified=auditedRounds>=plays&&plays>0;
-      const rate=verified?Math.min(100,Math.round(auditedWins/plays*100)):null;
+      const rate=plays?Math.min(100,Math.round(wins/plays*100)):0;
       const avatar=p.avatar_url||(String(p.vk_id)===String(me)?casinoVKAvatar:'');
-      const rows=[['Место в рейтинге','#'+(idx+1)],['Рейтинговые очки',rankFmt(p.score)],['Уровень',rankFmt(p.level)],['Звание',rankEsc(rankAt(p.level))],['Сыграно партий',rankFmt(plays)],['Побед',rankFmt(wins)],['Процент побед',rate===null?'Нет подтверждённых данных':rate+'%']];
+      const rows=[['Место в рейтинге','#'+(idx+1)],['Рейтинговые очки',rankFmt(p.score)],['Уровень',rankFmt(p.level)],['Звание',rankEsc(rankAt(p.level))],['Сыграно партий',rankFmt(plays)],['Побед',rankFmt(wins)],['Процент побед',rate+'%']];
       host.innerHTML='<div class="casino-player-card"><button type="button" class="casino-player-back" data-player-back="1">← Вернуться к рейтингу</button><div class="casino-player-hero">'+casinoAvatarHTML(avatar,'casino-player-avatar')+'<div><span class="eyebrow">ПРОФИЛЬ ИГРОКА</span><h2>'+rankEsc(p.display_name||('Игрок '+p.vk_id))+'</h2><span class="subline">Casino City · '+(String(p.vk_id)===String(me)?'Это ты':'Участник рейтинга')+'</span></div></div><div class="casino-player-stats">'+rows.map(([k,v])=>'<div><small>'+k+'</small><strong>'+v+'</strong></div>').join('')+'</div><a class="btn purple casino-player-vk" href="https://vk.ru/id'+encodeURIComponent(p.vk_id)+'" target="_blank" rel="noopener noreferrer">Перейти в профиль</a></div>';
       return;
     }
