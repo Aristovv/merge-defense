@@ -59,23 +59,49 @@ function tone(midi,when,dur,amp,wave='sine',attack=.035){
  o.start(when);o.stop(when+dur+.02);
 }
 function playBeat(at){
- const t=tracks[scene.split(':')[0]]||tracks.city;
+ const kind=scene.split(':')[0];
+ const t=tracks[kind]||tracks.city;
  const b=beat%32,bar=Math.floor(b/8)%4,root=t.roots[bar],chord=t.chords[bar];
  const beatSec=60/t.bpm/2;
- // Soft sustained chord every four beats, giving the melody clear harmony.
+ // Original arrangements: soft electric piano, plucked bells, warm pads and restrained bass.
  if(b%8===0){
-  chord.forEach((interval,i)=>tone(root+interval+12,at,beatSec*7.5,.010,i%2?'sine':'triangle',.5));
-  tone(root-12,at,beatSec*7.2,.065,scene==='crash'?'triangle':'sine',.08);
+  chord.forEach((interval,i)=>{
+   const note=root+interval+12;
+   tone(note,at,beatSec*7.7,kind==='city'?.008:.006,'sine',.55);
+   if(i<3)tone(note+12,at+.035,beatSec*6.8,.0035,'triangle',.7);
+  });
+  tone(root-12,at,beatSec*7.4,kind==='crash'?.045:.06,'sine',.10);
  }
- // A consistent, recognizable arpeggio, varied per musical scene.
- if(b%(scene==='slot'||scene==='plinko'?1:scene==='crash'?4:2)===0){
-  const order=[0,2,1,3,2,1,3,1],n=chord[order[b%8]];
-  tone(root+n+12,at,beatSec*(scene==='slot'||scene==='plinko'?.85:1.65),scene==='crash'?.013:.022,t.wave,.025);
+ const patterns={
+  city:[0,null,2,null,1,null,3,null],
+  games:[0,2,1,3,0,2,3,1],
+  slot:[0,2,1,3,2,0,3,1],
+  plinko:[0,1,2,3,2,1,3,2],
+  crash:[0,null,null,2,1,null,null,3],
+  roulette:[0,null,2,1,null,3,2,null],
+  calm:[0,null,null,2,null,1,null,3]
+ };
+ const order=(patterns[kind]||patterns.city)[b%8];
+ if(order!==null){
+  const n=root+chord[order]+12;
+  const pluck=kind==='plinko'||kind==='slot';
+  tone(n,at,beatSec*(pluck?.82:1.55),pluck?.021:.016,kind==='crash'?'triangle':'sine',.012);
+  if(pluck)tone(n+12,at+.012,beatSec*.55,.005,'triangle',.006);
  }
+ // Melodic lead: different timbres and phrasing for each game.
  const n=t.melody[b];
- if(n!==null)tone(root+n+12,at,beatSec*(b%4===0?2.4:1.6),scene==='crash'?.022:.042,t.wave,.035);
- if(scene==='slot'&&b%8===4)tone(root+24,at,beatSec*.7,.012,'triangle',.009);
- if(scene==='plinko'&&b%4===2)tone(root+31,at,beatSec*.55,.012,'sine',.008);
+ if(n!==null){
+  const note=root+n+12;
+  const lead=kind==='crash'?'triangle':kind==='slot'?'triangle':'sine';
+  const strength=kind==='calm'?.022:kind==='crash'?.028:.035;
+  tone(note,at,beatSec*(b%4===0?2.8:1.6),strength,lead,.035);
+  if(kind==='city'||kind==='roulette')tone(note+12,at+.045,beatSec*1.3,.005,'sine',.045);
+ }
+ // Musical accents without harsh noise or disruptive effects.
+ if(kind==='slot'&&b%8===4)tone(root+31,at,beatSec*.65,.012,'triangle',.009);
+ if(kind==='plinko'&&b%4===2)tone(root+36,at,beatSec*.52,.012,'sine',.009);
+ if(kind==='crash'&&b%4===0)tone(root-24,at,beatSec*1.3,.034,'sine',.015);
+ if(kind==='roulette'&&b%8===6)tone(root+28,at,beatSec*2.3,.009,'sine',.08);
  beat++;
 }
 function tick(){
