@@ -86,3 +86,14 @@
 .lc33-item:focus-within{outline:2px solid #deb1ff;outline-offset:2px}
 @media(min-width:600px){.lc33-stage{grid-template-columns:170px minmax(0,1fr) 185px}.lc33-figure{min-height:435px}.lc33-person{height:405px}}
 @media(max-width:365px){.lc33-stage{grid-template-columns:105px minmax(0,1fr)}.lc33-person{height:340px}.lc33-cats button{font-size:10px}}
+
+/* 33.3 — sculpted collectibles and spotlight, no additional gameplay features */
+.lc33-figure{background:radial-gradient(ellipse at 51% 30%,#8858d044,transparent 62%),linear-gradient(180deg,#31205d,#110b27)}
+.lc33-figure:before{background:repeating-linear-gradient(90deg,#a24efe11 0 3px,transparent 3px 30px),linear-gradient(#40206b44,#130c29aa);clip-path:polygon(0 44%,10% 44%,10% 29%,19% 29%,19% 53%,30% 53%,30% 24%,38% 24%,38% 37%,46% 37%,46% 17%,56% 17%,56% 45%,66% 45%,66% 25%,76% 25%,76% 43%,87% 43%,87% 31%,100% 31%,100% 100%,0 100%)}
+.lc33-figure .lc33-person{z-index:2}
+.lc33-item{isolation:isolate;overflow:hidden}
+.lc33-item:before{content:'';position:absolute;inset:1px;border-radius:inherit;pointer-events:none;background:linear-gradient(135deg,#ffffff16,transparent 42%,#ffffff08 72%,transparent);z-index:-1}
+.lc33-item.legend:after,.lc33-item.epic:after{content:'✦';position:absolute;top:49px;right:15px;font-size:19px;color:#ffe6acbb;text-shadow:0 0 12px #e6aeff;pointer-events:none}
+.lc33-item.epic:after{color:#ecb7ff}
+.lc33-detail{box-shadow:0 0 18px #9847ce55,inset 0 1px #ffffff22}
+.lc33-item button:active{transform:scale(.98)}
