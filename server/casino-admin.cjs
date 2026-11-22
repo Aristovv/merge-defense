@@ -108,6 +108,32 @@ function registerCasinoAdmin(app,pool,requireAuth){
    if(!q.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'CLOUD_SAVE_NOT_FOUND'})}
    const save=q.rows[0].save;
    if(!save.donationInventory||typeof save.donationInventory!=='object'){await client.query('ROLLBACK');return res.status(409).json({error:'NO_DONATION_TO_REFRESH'})}
+   // Recover verified cosmetic ownership from successful historical admin actions.
+   // This operation NEVER repeats the currency, VIP, or income-boost rewards.
+   const actionTable=await client.query("SELECT to_regclass('public.casino_city_donation_actions') AS name");
+   if(actionTable.rows[0]?.name){
+    const history=await client.query(
+     'SELECT payload FROM public.casino_city_donation_actions WHERE target_vk_id=$1 ORDER BY created_at ASC,request_id ASC',
+     [vkId]
+    );
+    const inv=save.donationInventory;
+    const addItem=(key,value)=>{if(!value)return;if(!Array.isArray(inv[key]))inv[key]=[];if(!inv[key].includes(value))inv[key].push(value)};
+    const removeItem=(key,value)=>{if(Array.isArray(inv[key]))inv[key]=inv[key].filter(x=>x!==value)};
+    for(const row of history.rows){
+     const action=row.payload||{};
+     if(action.kind==='pack'&&action.mode==='grant'&&DONATION_PACKS[action.id]){
+      const pack=DONATION_PACKS[action.id];
+      for(const type of ['nick','frame','title','background','effect','theme'])addItem(type+'s',pack[type]);
+      if(pack.vipBadge)addItem('badges','vip');
+     }else if(action.kind==='item'&&typeof action.id==='string'){
+      const colon=action.id.indexOf(':'),type=action.id.slice(0,colon),value=action.id.slice(colon+1);
+      if(colon<1||!DONATION_ITEMS[type]?.includes(value))continue;
+      const key=type==='badge'?'badges':type+'s';
+      if(action.mode==='grant')addItem(key,value);
+      if(action.mode==='revoke')removeItem(key,value);
+     }
+    }
+   }
    const inv=save.donationInventory||{};
    const existing=save.donationEquipped&&typeof save.donationEquipped==='object'?save.donationEquipped:{};
    const equipped={...existing};
