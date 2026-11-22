@@ -2867,6 +2867,15 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 @media(prefers-reduced-motion:reduce){
  .plinko-bin-won,.crashbox.crash-win,.crashbox.crash-lose{animation:none!important}
 }
+
+/* CASINO CITY 31.1 — clearer slot paylines, no payout changes */
+.slot-edge-number.hit{background:linear-gradient(145deg,#ffe4a1,#f6a84d)!important;color:#211020!important;border-color:#fff1bd!important;box-shadow:0 0 10px #ffc966aa, inset 0 1px 2px #fff8!important;font-weight:900}
+.slot-edge-number.inspected{outline:2px solid #bcefff!important;outline-offset:1px}
+.slot-lines-svg .casino-winning-payline{filter:drop-shadow(0 0 3px currentColor);stroke-width:5;stroke-dasharray:9 5;animation:casino31LineReveal .55s ease-out both}
+@keyframes casino31LineReveal{from{stroke-dashoffset:36;opacity:0}to{stroke-dashoffset:0;opacity:.96}}
+.slot-cell-winning{isolation:isolate;box-shadow:inset 0 0 0 2px #ffe6a6,0 0 14px #ffcf6a80!important}
+.slot-cell-winning::after{content:'';position:absolute;inset:1px;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 13px #ffecb166}
+@media(prefers-reduced-motion:reduce){.slot-lines-svg .casino-winning-payline{animation:none!important}}
 </style><style>
 .casino-admin-search{display:flex;gap:8px;margin:12px 0;align-items:center}
 .casino-admin-search select{background:#181323;color:white;border:1px solid #8b719c;border-radius:10px;padding:10px;max-width:120px}.casino-admin-search input{flex:1;min-width:0;background:#181323;border:1px solid #8b719c;border-radius:10px;color:white;padding:11px}
