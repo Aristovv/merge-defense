@@ -2909,6 +2909,14 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 .dice-cube{backface-visibility:hidden;transform-style:preserve-3d;transition:box-shadow .22s ease,filter .22s ease}
 .dice-cube.dice-rolling{filter:brightness(1.15);box-shadow:0 0 16px #ffd8969c,6px 7px 0 #78617d,8px 11px 16px #0008}
 @media(prefers-reduced-motion:reduce){.dice-cube,.dice-cube.dice-rolling{animation:none!important;transition:none!important}}
+
+/* CASINO CITY 32.0: clearer physical card surfaces, accessible suit/rank */
+.playing{position:relative;isolation:isolate;backface-visibility:hidden;box-shadow:0 5px 0 #a98b76,0 10px 18px #0008,inset 0 1px 0 #fff9;transition:transform .2s ease,box-shadow .2s ease}
+.playing::after{content:'';position:absolute;inset:3px;border:1px solid #c7a88760;border-radius:inherit;pointer-events:none}
+.playing .playing-rank{position:relative;z-index:1}
+.playing .card-suit{position:relative;z-index:1;filter:drop-shadow(0 1px 1px #0002)}
+@media(hover:hover){.playing:hover{transform:translateY(-3px);box-shadow:0 7px 0 #a98b76,0 15px 20px #0008,inset 0 1px 0 #fff9}}
+@media(prefers-reduced-motion:reduce){.playing{transition:none!important}}
 </style><style>
 .casino-admin-search{display:flex;gap:8px;margin:12px 0;align-items:center}
 .casino-admin-search select{background:#181323;color:white;border:1px solid #8b719c;border-radius:10px;padding:10px;max-width:120px}.casino-admin-search input{flex:1;min-width:0;background:#181323;border:1px solid #8b719c;border-radius:10px;color:white;padding:11px}
@@ -4505,7 +4513,7 @@ function cardRank(c){return (c-1)%13+1}
 function cardSuit(c){return Math.floor((c-1)/13)}
 function drawCard(){return 1+rand(52)}
 function points(arr){let total=0,aces=0;for(const c of arr){const rank=cardRank(c);total+=Math.min(10,rank);if(rank===1)aces++}while(aces&&total+10<=21){total+=10;aces--}return total}
-function card(c){const suit=cardSuit(c),rank=cardRank(c);return '<div class="playing '+(suit===1||suit===2?'red':'')+'">'+CARD_FACES[rank]+'<small class="card-suit">'+CARD_SUITS[suit]+'</small></div>'}
+function card(c){const suit=cardSuit(c),rank=cardRank(c),face=CARD_FACES[rank],symbol=CARD_SUITS[suit];return '<div class="playing '+(suit===1||suit===2?'red':'')+'" role="img" aria-label="'+face+' '+symbol+'"><span class="playing-rank">'+face+'</span><small class="card-suit">'+symbol+'</small></div>'}
 function startBlackjack(){if(busy||round)return message('Заверши текущую раздачу');if(!startCost())return;round={kind:'blackjack',deck:freshDeck(),you:[],dealer:[]};round.you.push(round.deck.pop(),round.deck.pop());round.dealer.push(round.deck.pop(),round.deck.pop());if(points(round.you)===21){let d=points(round.dealer),prize=d===21?roundBet:Math.floor(roundBet*2.5);round=null;finish(prize,d===21?'Оба собрали Blackjack · возврат ставки':'Натуральный Blackjack · выплата ×2.5');return}render()}
 function endBlackjack(){let y=points(round.you),d=points(round.dealer);while(d<17)round.dealer.push(round.deck.pop()),d=points(round.dealer);let prize=y<=21&&(d>21||y>d)?Math.floor(roundBet*2):y===d&&y<=21?roundBet:0;round=null;finish(prize,'Ты: '+y+' · Дилер: '+d)}
 function hit(){if(!round||round.kind!=='blackjack')return;round.you.push(round.deck.pop());if(points(round.you)>21){round=null;finish(0,'Перебор!')}else render()}
