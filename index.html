@@ -5096,7 +5096,7 @@ async function casinoAdminPlayer(){
   if(!response.ok)throw Error('HTTP '+response.status);
   const data=await response.json();if(!document.getElementById('casino-admin-player-detail'))return;
   const c=data.cloud,p=data.ranking;
-  host.innerHTML='<div class="casino-admin-player"><b>VK '+rankEsc(vkId)+'</b><span>'+(c?'Фишки: '+fmt(c.chips)+' · Монеты: '+fmt(c.coins)+' · VIP: '+fmt(c.vip)+' · XP: '+fmt(c.xp)+' · Уровень: '+fmt(c.level)+' · Партий: '+fmt(c.plays)+' · Побед: '+fmt(c.wins)+' · Ревизия: '+fmt(c.revision):'Облачное сохранение отсутствует')+'</span><span>'+(p?'Рейтинг: '+fmt(Number(p.score||0))+' очков':'В рейтинге не найден')+'</span><span>Сброс прогресса отключён до завершения защиты сохранений.</span></div>';
+  host.innerHTML='<div class="casino-admin-player"><b>VK '+rankEsc(vkId)+'</b><span>'+(c?'Фишки: '+fmt(c.chips)+' · Монеты: '+fmt(c.coins)+' · VIP: '+fmt(c.vip)+' · XP: '+fmt(c.xp)+' · Уровень: '+fmt(c.level)+' · Партий: '+fmt(c.plays)+' · Побед: '+fmt(c.wins)+' · Ревизия: '+fmt(c.revision):'Облачное сохранение отсутствует')+'</span><span>'+(p?'Рейтинг: '+fmt(Number(p.score||0))+' очков':'В рейтинге не найден')+'</span><span>'+(c?'Донат в облаке: '+Object.entries(c.donationInventory||{}).map(([k,v])=>rankEsc(k)+': '+(Array.isArray(v)?v.map(rankEsc).join(', '):'')).join(' · ')+(c.donationIncomeBoost?.until>Date.now()?' · Доход +'+Number(c.donationIncomeBoost.percent||0)+'%':''):'Донат не найден')+'</span><span>Сброс прогресса отключён до завершения защиты сохранений.</span></div>';
  }catch(error){host.textContent='Ошибка: '+error.message}
 }
 async function casinoAdminAudit(){
