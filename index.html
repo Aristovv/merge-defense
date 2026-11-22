@@ -3640,6 +3640,28 @@ body{background:radial-gradient(ellipse 85% 45% at 50% -7%,var(--cc-theme-glow,r
 .era30-shop .shop-item strong{color:#ffebc8}
 .era30-shop .shop-disabled{border:1px solid #ad8bba4a;border-radius:8px;background:#130e2280;color:#d4bedb}
 @media(max-width:380px){.era30-rewards-hero{padding:18px 13px}.era30-rewards-hero>strong{font-size:22px}.era30-shop .shop-grid{gap:8px}}
+<style>
+/* NEW ERA 30.0 Stage 12 — final mobile consistency and accessibility */
+html{scroll-padding-top:12px;-webkit-text-size-adjust:100%}
+body{overflow-x:hidden}
+#app{min-width:0;max-width:100%;overflow-x:clip}
+.page{min-width:0;max-width:100%;padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+.page .panel,.page .section-intro,.page .casino-quest-group,.page .shop-item{min-width:0}
+.page h1,.page h2,.page h3,.page p{overflow-wrap:break-word}
+button,input,select{font:inherit}
+button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #f5d29c;outline-offset:2px}
+.era30-global-nav{padding-bottom:max(7px,env(safe-area-inset-bottom,0px));max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
+.era30-global-nav::-webkit-scrollbar{display:none}
+.era30-global-nav button{flex-shrink:0}
+.era30-global-header .balances{min-width:0}
+.era30-global-header .balance{overflow:hidden}
+.era30-global-header .balance svg{flex-shrink:0}
+.era30-profile .bank-exchange-grid,.era30-shop .shop-grid{min-width:0}
+.era30-profile input,.era30-shop input{max-width:100%}
+@media(max-width:420px){.page{padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}.era30-global-header .brand{min-width:0}.era30-global-header .brand-name{font-size:clamp(16px,4.5vw,21px)}.era30-global-header .status{max-width:46%;text-align:right}.era30-social-hero,.era30-rewards-hero{margin-bottom:13px}}
+@media(prefers-reduced-motion:no-preference){.era30-global-nav button.on{transition:background-color .18s,box-shadow .18s}.era30-rewards-hero,.era30-social-hero{animation:era30-panel-enter .28s ease-out both}@keyframes era30-panel-enter{from{opacity:.7;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}}
+@media(prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto!important}.era30-rewards-hero,.era30-social-hero{animation:none!important}.era30-global-nav button{transition:none!important}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
