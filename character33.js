@@ -540,7 +540,8 @@ function lc54CloudRequired(){
 }
 function lc54CloudStatus(){
  if(!lc54CloudRequired())return 'Локальное сохранение. Для облака открой игру из ВКонтакте.';
- if(typeof casinoCloudRevision==='undefined'||casinoCloudRevision===null)return 'Облако не синхронизировано — покупки временно недоступны.';
+ if(typeof casinoCloudRevision==='undefined'||casinoCloudRevision===null)return 'Облако не синхронизировано — действия временно недоступны.';
+ if(casinoCloudRevision===0)return 'Создаём облачное сохранение — действия временно недоступны.';
  if(typeof casinoCloudBusy!=='undefined'&&casinoCloudBusy)return 'Облачное сохранение выполняется.';
  if(typeof casinoCloudDirty!=='undefined'&&casinoCloudDirty)return 'Изменения ожидают отправки в облако.';
  return 'Облачная синхронизация готова.';
