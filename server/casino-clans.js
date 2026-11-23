@@ -96,6 +96,48 @@ async function communityGroupLookup(token,params){
  if(data?.error)fail('VK не подтвердил ключ сообщества (код '+Number(data.error.error_code||0)+')',403);
  return data.response;
 }
+// Millionaire-compatible primary path: check the chosen community in
+// groups.get(filter=admin) using the same VK user token that listed groups.
+// User tokens can be IP-bound; VK code 5 explicitly enables a second, securely
+// verified group-token path, never an unverified client "claim".
+export async function verifyUserAdminGroup(playerId,groupId,userToken){
+ const requested=Number(groupId);
+ if(!validId(requested))fail('Выберите сообщество VK',400);
+ if(typeof userToken!=='string'||userToken.length<20||userToken.length>4096)
+  fail('Требуется разрешение VK на список сообществ',403);
+ const call=async(method,params)=>{
+  let response,body;
+  try{
+   response=await fetch('https://api.vk.com/method/'+method,{
+    method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams({...params,access_token:userToken,v:'5.199'}),
+    signal:AbortSignal.timeout(7000)
+   });
+   body=await response.json();
+  }catch(error){fail('VK_USER_TOKEN_NEEDS_COMMUNITY',409)}
+  if(!response.ok)fail('VK_USER_TOKEN_NEEDS_COMMUNITY',409);
+  if(body?.error){
+   const code=Number(body.error.error_code||0);
+   // Most frequently VK binds this user token to the phone's IP.
+   if(code===5||/ip address/i.test(String(body.error.error_msg||'')))
+    fail('VK_USER_TOKEN_NEEDS_COMMUNITY',409);
+   fail('VK не подтвердил администрирование группы (код '+code+')',403);
+  }
+  return body?.response;
+ };
+ const vkId=String(playerId||'').replace(/^vk:/,'');
+ const users=await call('users.get',{});
+ if(!Array.isArray(users)||String(users[0]?.id)!==vkId)
+  fail('VK-токен выдан другому пользователю',403);
+ for(let offset=0;offset<1000;offset+=200){
+  const result=await call('groups.get',{filter:'admin',extended:'1',fields:'photo_200',count:'200',offset:String(offset)});
+  const groups=Array.isArray(result?.items)?result.items:[];
+  const found=groups.find(group=>Number(group.id)===requested);
+  if(found)return cleanVKGroup([found],requested);
+  if(groups.length<200)break;
+ }
+ fail('Вы не администратор выбранного сообщества VK',403);
+}
 export async function verifiedAdminGroup(playerId,groupId,communityToken,verifiedLaunch){
  const requested=Number(groupId);
  if(!validId(requested))fail('Выберите группу из списка');
@@ -274,7 +316,9 @@ export function registerLuckyClans(app,pool,requireAuth){
   }));
   await start(pool);
   req.clanCreateStage='vk-group-verification';
-  const group=await verifiedAdminGroup(req.playerId,req.body?.groupId,req.body?.communityToken,verifiedCommunityLaunch(req,req.body?.groupId));
+  const group=typeof req.body?.userVKToken==='string'?
+   await verifyUserAdminGroup(req.playerId,req.body?.groupId,req.body.userVKToken):
+   await verifiedAdminGroup(req.playerId,req.body?.groupId,req.body?.communityToken,verifiedCommunityLaunch(req,req.body?.groupId));
   req.clanCreateStage='database-create';
   const result=await tx(pool,async c=>{
    const existing=await c.query('SELECT 1 FROM lucky_clan_members WHERE player_id=$1',[req.playerId]);
