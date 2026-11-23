@@ -17,11 +17,17 @@ function clean(s){
 function regression(previous,next){
  const epoch=Number(previous.resetEpoch)||0;
  if((Number(next.resetEpoch)||0)!==epoch)return 'RESET_EPOCH_MISMATCH';
- for(const key of ['plays','wins','earned','best','giftBestStreak']){
+ for(const key of ['level','plays','wins','earned','best','giftBestStreak']){
   const a=Number(previous[key])||0,b=Number(next[key])||0;
   if(!Number.isFinite(b)||b<a)return 'PROGRESS_REGRESSION_'+key.toUpperCase();
  }
- if(typeof previous.lastGift==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(previous.lastGift)){
+ if(Array.isArray(previous.buildings)&&Array.isArray(next.buildings)){
+  if(previous.buildings.some((v,i)=>Number(next.buildings[i])<Number(v)))return 'BUILDING_REGRESSION';
+ }
+ const oldOutfits=previous.character33?.ownedOutfits;
+ const newOutfits=next.character33?.ownedOutfits;
+ if(Array.isArray(oldOutfits)&&oldOutfits.some(id=>!Array.isArray(newOutfits)||!newOutfits.includes(id)))return 'OUTFIT_OWNERSHIP_REGRESSION';
+ if(typeof previous.lastGift==='string'&&/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(previous.lastGift)){
   if(typeof next.lastGift!=='string'||next.lastGift<previous.lastGift)return 'DAILY_GIFT_REGRESSION';
  }
  return null;
