@@ -236,3 +236,23 @@
 .lc33-figure .lc42-avatar{filter:drop-shadow(0 6px 4px #09051891)}
 @media(max-width:380px){.lc33-figure .lc42-avatar{max-width:100%}}
 @media(prefers-reduced-motion:reduce){.lc42-avatar{animation:none}}
+
+/* 43.0 mobile review pass: maintain large item art without oversized empty cards */
+.lc33-item{justify-content:space-between}
+.lc33-item svg{flex:0 0 auto;max-width:100%;height:110px;min-height:110px;object-fit:contain}
+.lc33-item strong{min-height:36px;display:flex;align-items:center;justify-content:center}
+.lc33-item .lc43-stitches{filter:drop-shadow(0 0 2px #ffffff55)}
+.lc33-item button{margin-top:auto;min-height:39px}
+.lc39-mini-items svg{height:44px;min-height:0}
+.lc39-preview-stage{max-width:520px}
+.lc33-stage{align-items:stretch}
+.lc33-figure .lc42-avatar{max-height:405px}
+#toast.toast{max-width:min(88vw,340px);width:max-content;padding:8px 12px;font-size:12px;pointer-events:none;border-radius:16px;bottom:calc(83px + env(safe-area-inset-bottom,0px))}
+@media(max-width:390px){
+ .lc33-items{gap:8px}
+ .lc33-item{padding:8px 6px;min-height:212px}
+ .lc33-item svg{height:103px;min-height:103px}
+ .lc39-set-grid{gap:8px}
+ .lc39-preview-stage{min-height:330px}
+ .lc39-preview-avatar{height:333px}
+}
