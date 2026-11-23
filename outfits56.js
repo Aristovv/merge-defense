@@ -90,10 +90,39 @@ function lc56Screen(){
  '<div class="lc56-big-avatar">'+lc56Img(id,featured?.name||'Базовый персонаж')+'</div>'+
  (lc56Preview?'<button data-lc56-reset>Снять примерку</button>':'')+
  (c.activeOutfit!=='base'?'<button data-lc56-base>Надеть базовый</button>':'')+'</section>'+
- '<p class="lc56-sync">'+rankEsc(lc54CloudStatus())+'</p>'+gallery+'</main>';
+ '<p class="lc56-sync">'+rankEsc(lc54CloudStatus())+'</p>'+
+ ((typeof casinoCloudRevision!=='undefined'&&casinoCloudRevision===null&&typeof CASINO_LAUNCH_PARAMS!=='undefined'&&CASINO_LAUNCH_PARAMS)?'<div class="lc56-recovery"><strong>Прогресс в облаке может отличаться</strong><p>Можно безопасно проверить облачную копию и восстановить её вручную. Перед восстановлением текущая копия сохранится отдельно.</p><button type="button" data-lc56-recover>Проверить и восстановить из облака</button></div>':'')+gallery+'</main>';
 }
 lc33Screen=lc56Screen;
-document.addEventListener('click',function(e){
+document.addEventListener('click',async function(e){
+ const recover=e.target.closest('[data-lc56-recover]');
+ if(recover){
+  if(typeof CASINO_LAUNCH_PARAMS==='undefined'||!CASINO_LAUNCH_PARAMS)return message('Открой игру из VK');
+  if((typeof casinoCloudBusy!=='undefined'&&casinoCloudBusy)||(typeof casinoCloudStarting!=='undefined'&&casinoCloudStarting)||busy||round||state.pendingMiniRound)return message('Закончи текущую игру и дождись окончания сохранения');
+  if(typeof casinoCloudFetch!=='function'||typeof casinoCloudBackup!=='function')return message('Облачный модуль недоступен');
+  recover.disabled=true;
+  const startingStamp=Number(state.stamp)||0;
+  try{
+   const result=await casinoCloudFetch('GET');
+   if(!result?.save||!Number.isSafeInteger(Number(result.revision)))return message('Облачный прогресс не найден. Локальные данные сохранены');
+   const remote=result.save;
+   if(!Number.isSafeInteger(Number(remote.coins))||!Number.isSafeInteger(Number(remote.chips))||!Number.isSafeInteger(Number(remote.level)))return message('Данные облака неполные, восстановление отменено');
+   if((Number(remote.resetEpoch)||0)<(Number(state.resetEpoch)||0))return message('Облако старее подтверждённого изменения профиля, восстановление остановлено');
+   const compare='Облако: '+Math.floor(remote.coins)+' монет, '+Math.floor(remote.chips)+' фишек, уровень '+Math.floor(remote.level)+'.\\nНа устройстве: '+Math.floor(state.coins)+' монет, '+Math.floor(state.chips)+' фишек, уровень '+Math.floor(state.level)+'.\\n\\nТекущая локальная копия будет сохранена как резервная. Восстановить именно облачную копию?';
+   if(!window.confirm(compare))return;
+   if((Number(state.stamp)||0)!==startingStamp||busy||round||state.pendingMiniRound)return message('Пока шла проверка, прогресс изменился. Повтори восстановление.');
+   const backupKey='casino_city_recovery_backup_'+Date.now();
+   try{localStorage.setItem(backupKey,JSON.stringify(state))}catch(error){return message('Не удалось сделать резервную копию. Восстановление остановлено.')}
+   let newState={...fresh(),...remote};
+   try{localStorage.setItem(STORAGE,JSON.stringify(newState))}catch(error){return message('Не удалось записать облачное сохранение на устройство')}
+   clearTimeout(casinoCloudTimer);
+   state=newState;casinoCloudRevision=Number(result.revision);casinoCloudDirty=false;
+   lc56Preview=null;
+   render();message('Облачный прогресс восстановлен. Локальная копия сохранена отдельно.');
+  }catch(error){console.warn('Manual cloud recovery failed',error.message);message('Облако недоступно: восстановление не выполнено')}
+  finally{recover.disabled=false}
+  return;
+ }
  const tab=e.target.closest('[data-lc56-tab]');
  if(tab){lc56Tab=tab.dataset.lc56Tab;lc56Page=0;render();return}
  const filter=e.target.closest('[data-lc56-filter]');
@@ -147,5 +176,6 @@ document.addEventListener('click',function(e){
  '.lc56-upcoming-list{display:grid;gap:7px}.lc56-upcoming{border:1px solid #6c4a8888;border-radius:12px;background:#28183e;padding:10px;display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:center}.lc56-upcoming strong{font-size:11px}.lc56-upcoming small{display:block;font-size:10px;color:#bda6cf}.lc56-upcoming-price{color:#e4c7f0;font-size:11px;font-weight:800;text-align:right}.lc56-upcoming-price small{font-weight:400}.lc56-root button:disabled{opacity:.65}'+
  '@media(min-width:650px){.lc56-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.lc56-big-avatar{height:410px}}';
  el.textContent+="\n/* Compact mobile outfit gallery v56.2 */\n.lc56-root{padding:8px 6px}.lc56-root h1{font-size:21px;margin:5px 0 9px}.lc56-stage{margin:9px 0;padding:8px}.lc56-big-avatar{height:250px}.lc56-section{padding:9px 6px}.lc56-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.lc56-tile{padding:7px;border-radius:11px}.lc56-tile>strong{font-size:11px;line-height:1.2;min-height:27px;display:block}.lc56-tile>small{font-size:9px;margin:1px 0}.lc56-tile-photo{height:160px}.lc56-price{font-size:11px;margin:4px 0}.lc56-actions{gap:4px}.lc56-actions button{padding:9px 2px;font-size:10px;line-height:1.15;min-height:34px}.lc56-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:8px 0 12px}.lc56-filters button,.lc56-pages button{background:#35204c;color:#eee;border:1px solid #7d54a0;border-radius:9px;padding:9px 2px;font-size:10px;font-weight:800}.lc56-filters button.active{background:#753cb0;color:#fff}.lc56-pages{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px 0 4px}.lc56-pages span{font-size:12px;color:#e2c3ff}@media(min-width:650px){.lc56-gallery{grid-template-columns:repeat(3,minmax(0,1fr))}.lc56-big-avatar{height:310px}}";
+ el.textContent+=' .lc56-recovery{border:1px solid #a57ec6;border-radius:12px;padding:11px;margin:9px 0;background:#241335}.lc56-recovery strong{font-size:12px}.lc56-recovery p{font-size:11px;line-height:1.5}.lc56-recovery button{border-radius:10px;border:1px solid #b68ee2;background:#6836a3;color:#fff;padding:11px;font-weight:800;width:100%}';
  document.head.appendChild(el);
 })();
