@@ -48,6 +48,29 @@
   if(!result?.access_token)throw Error('Не получено разрешение на просмотр сообществ');
   return result.access_token;
  }
+ async function getCommunityProof(groupId){
+  if(!window.vkBridge?.send)throw Error('Подтвердите группу внутри приложения VK');
+  const appId=Number(new URLSearchParams(launch).get('vk_app_id'));
+  if(!Number.isSafeInteger(appId)||appId<=0)throw Error('VK не предоставил ID приложения');
+  const bridge=window.vkBridge;
+  const names=['VKWebAppCommunityAccessToken','VKWebAppCommunityToken','VKWebAppGetCommunityAuthToken','VKWebAppGetCommunityToken'];
+  const supported=names.filter(name=>typeof bridge.supports!=='function'||bridge.supports(name));
+  if(!supported.length)throw Error('Текущая версия VK не поддерживает подтверждение управления группой');
+  let lastError;
+  for(const method of supported){
+   try{
+    const result=await bridge.send(method,{app_id:appId,group_id:Number(groupId),scope:'manage'});
+    const token=result?.access_token;
+    if(typeof token==='string'&&token.length>=15)return token;
+    lastError=Error('VK не выдал разрешение на управление группой');
+   }catch(e){
+    lastError=e;
+    // If VK explicitly refuses access, never skip to another authorization surface.
+    if(/denied|cancel|access|permission|отказ|отмен/i.test(String(e?.message||'')))break;
+   }
+  }
+  throw Error('VK не подтвердил управление выбранной группой: '+String(lastError?.message||'отказано'));
+ }
  async function bridgeApi(method,params){
   if(!userToken)throw Error('Разрешение VK на группы не получено');
   const result=await window.vkBridge.send('VKWebAppCallAPIMethod',{
@@ -126,12 +149,15 @@
   if(action==='create'&&!preview){notice='Сначала выберите группу VK';paint();return}
   btn.disabled=true;
   if(action==='create'){
-   btn.textContent='Проверяем права VK…';notice='';
+   btn.textContent='Подтверждаем управление группой…';notice='';
    const result=document.getElementById('lc-clan-create-result');
-   if(result)result.textContent='Запрос отправлен на сервер. Проверяем права администратора…';
+   if(result)result.textContent='VK запросит разрешение на управление выбранным сообществом.';
   }
   try{
-   const body=action==='create'?{groupId:preview?.groupId}:action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:{};
+   // The native VK client issues a group-scoped token only to an authorized admin.
+   // This short-lived proof is submitted once via HTTPS and never stored locally.
+   const proof=action==='create'?await getCommunityProof(preview.groupId):null;
+   const body=action==='create'?{groupId:preview?.groupId,communityToken:proof}:action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:{};
    await api('/'+action,body);preview=null;userToken=null;creating=false;adminGroups=[];data=await api();notice='Успешно';rankings=data.leaders;paintTop();
   }catch(err){notice=err.message||'Ошибка сервера'}finally{
    paint();
