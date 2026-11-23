@@ -18,7 +18,7 @@ test('Millionaire path verifies selected group in token-authorized admin list',a
   assert.equal(group.groupId,243635589);
   assert.deepEqual(called.map(c=>c.method),['groups.get']);
   assert.equal(called[0].args.get('filter'),'admin');
-  assert.equal(called[1].args.get('access_token'),'vk1.test_token_0123456789');
+  assert.equal(called[0].args.get('access_token'),'vk1.test_token_0123456789');
  }finally{global.fetch=old}
 });
 
