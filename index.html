@@ -4420,7 +4420,9 @@ function casinoCloudPreserveRemote(result,reason){
  if(!result||!result.save)return;
  try{localStorage.setItem('casino_city_cloud_remote_conflict',JSON.stringify({reason,revision:result.revision,savedAt:Date.now(),save:result.save}))}catch(_){}
 }
+let casinoCloudLastIssue='';
 function casinoCloudNotice(text){
+ casinoCloudLastIssue=String(text||'');
  console.warn(text);
  try{message(text)}catch(_){}
 }
@@ -4455,6 +4457,36 @@ async function casinoCloudStart(){
      casinoCloudIsStarterProfile(state)&&result.save&&!casinoCloudIsStarterProfile(result.save)){
    if(!casinoCloudQuarantinePending('stale starter profile vs established cloud')){
     casinoCloudNotice('Не удалось архивировать старую локальную копию; восстановление остановлено.');
+    return;
+   }
+  }
+  // Recover a known empty browser profile from an established server record.
+  // Archive both local and pending versions before replacing anything.
+  const localStarter=casinoCloudIsStarterProfile(state);
+  const remoteEstablished=result.save&&!casinoCloudIsStarterProfile(result.save);
+  const pendingBeforeRecovery=casinoCloudPendingRead();
+  if(localStarter&&remoteEstablished&&
+     (!pendingBeforeRecovery||casinoCloudIsStarterProfile(pendingBeforeRecovery.save))){
+   try{
+    const localRaw=localStorage.getItem(STORAGE);
+    if(localRaw){
+     const key='casino_city_bootstrap_backup_'+Date.now();
+     localStorage.setItem(key,localRaw);
+     if(localStorage.getItem(key)!==localRaw)throw Error('LOCAL_BACKUP_FAILED');
+    }
+    if(pendingBeforeRecovery&&!casinoCloudQuarantinePending('bootstrap profile replaced by existing cloud'))
+     throw Error('PENDING_BACKUP_FAILED');
+    const restored={...fresh(),...result.save};
+    const raw=JSON.stringify(restored);
+    localStorage.setItem(STORAGE,raw);
+    if(localStorage.getItem(STORAGE)!==raw)throw Error('LOCAL_WRITE_FAILED');
+    state=restored;casinoCloudRevision=Number(result.revision);casinoCloudDirty=false;
+    casinoCloudLastIssue='';
+    casinoCloudStartRetryMs=3000;clearTimeout(casinoCloudStartRetryTimer);
+    render();
+    return;
+   }catch(error){
+    casinoCloudNotice('Не удалось автоматически восстановить облако: '+String(error.message||error));
     return;
    }
   }
@@ -4546,6 +4578,7 @@ async function casinoCloudStart(){
     return;
    }
    state=next;
+   casinoCloudLastIssue='';
    casinoCloudRevision=Number(result.revision);
    casinoCloudDirty=false;
    casinoCloudStartRetryMs=3000;clearTimeout(casinoCloudStartRetryTimer);
