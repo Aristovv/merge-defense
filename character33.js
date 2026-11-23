@@ -1,7 +1,7 @@
 /* Lucky City 33.0 — Character wardrobe. No clan mechanics, no real-money charges. */
 const LC33_GROUPS=[['hat','Головной убор','♛'],['jacket','Куртка','♧'],['pants','Штаны','▥'],['shoes','Обувь','♢'],['accessory','Аксессуар','✦']];
 const LC33_GOODS=[
- ['cap','hat','Базовая кепка','Обычная',0,'default','#181b3f'],
+ ['cap','hat','Кепка STREET','Обычная',0,'default','#181b3f'],
  ['beanie','hat','Вязаная шапка','Обычная',5000,'coin','#72617a'],
  ['bucket','hat','Панама Lucky','Редкая',15000,'coin','#2157ae'],
  ['kitty','hat','Наушники Kitty','Эпическая',490,'premium','#a953ff'],
@@ -27,7 +27,7 @@ const LC33_GOODS=[
    All real-money prices are in VK Votes and are only charged via the confirmed VK callback. */
 const LC35_NEW_ITEMS=[
  // Hats: premium city streetwear and expensive collectables
- ['cap-noir','hat','Кепка STREET (чёрная)','Редкая',35000,'coin','#16172d','cap'],
+ ['cap-noir','hat','Кепка Noir','Редкая',35000,'coin','#16172d','cap'],
  ['cap-ice','hat','Кепка Ice','Редкая',65000,'coin','#47bffa','cap'],
  ['cap-flame','hat','Кепка Flame','Эпическая',125000,'coin','#e94a42','cap'],
  ['cap-diamond','hat','Кепка Diamond','Легендарная',750000,'coin','#a4f2ff','cap'],
@@ -479,8 +479,8 @@ function lc38Aura(items){
 /* LUCKY CITY 39: complete themed outfits using existing wardrobe items.
    No new payments, no auto-spend, and no mutation of existing item IDs. */
 const LC39_SETS=[
- {id:'street',name:'NEON STREET',description:'Уличный образ как на фото: простая чёрная кепка, тёмный бомбер, карго с фиолетовыми деталями, чёрные кроссовки и серебристая цепь. Все пять предметов — платные коллекционные модели за монеты.',tier:'Редкий',accent:'#ab76ff',
-  equipped:{hat:'cap-noir',jacket:'jacket-black',pants:'cargo-violet',shoes:'shoes-black',accessory:'chain-silver'},
+ {id:'street',name:'NEON STREET',description:'Уличный образ как на фото: простая чёрная кепка, тёмный бомбер, карго с фиолетовыми деталями, чёрные кроссовки и серебристая цепь. Кепка STREET — базовая модель из образа; остальные вещи приобретаются за монеты.',tier:'Редкий',accent:'#ab76ff',
+  equipped:{hat:'cap',jacket:'jacket-black',pants:'cargo-violet',shoes:'shoes-black',accessory:'chain-silver'},
   legacyEquipped:{hat:'cap-ice',jacket:'jacket-blue',pants:'cargo-navy',shoes:'shoes-ice',accessory:'glasses-cyan'}},
  {id:'sakura',name:'SAKURA NIGHT',description:'Розовая худи, мягкие оттенки и яркие аксессуары.',tier:'Эпический',accent:'#ff91d5',
   equipped:{hat:'beanie-rose',jacket:'hoodie-rose',pants:'pants-white',shoes:'shoes-rose',accessory:'chain-silver'}},
@@ -535,7 +535,7 @@ function lc39SetCards(){
   return '<article class="lc39-set-card lc50-set-card'+(preview?' preview':'')+(on?' worn':'')+'" style="--set-glow:'+set.accent+'">'+
    '<div class="lc39-set-top"><strong>'+set.name+'</strong><small>'+set.tier+'</small></div>'+
    '<img class="lc50-set-image" src="./assets/character44/'+files[set.id]+'" alt="'+set.name+'" loading="lazy">'+
-   '<p>'+set.description+'</p>'+(set.id==='street'?'<p class="lc50-premium-note">🪙 Стоимость полного комплекта: 460 000 монет. Бесплатные стартовые вещи в него не входят.</p>':'')+
+   '<p>'+set.description+'</p>'+(set.id==='street'?'<p class="lc50-premium-note">🪙 Стоимость пяти предметов рассчитывается по их ценам в гардеробе. Уже принадлежащие вещи повторно не оплачиваются.</p>':'')+
    '<p class="lc39-set-status">'+(on?'✓ Надето':lc503LegacyComplete(set,c)?'✓ Доступ по оригинальному STREET':offer.missing.length?'Собрано '+(5-offer.missing.length)+' из 5':'✓ Полный комплект в коллекции')+'</p>'+
    '<ul class="lc50-piece-list">'+pieces+'</ul>'+(lc503LegacyComplete(set,c)?'<p class="lc50-premium-note">Ранее собранный STREET остаётся доступен. Новые вещи можно приобретать отдельно; старые предметы остаются в коллекции.</p>':'')+premiumNote
    '<div class="lc39-set-actions"><button type="button" data-lc39-preview="'+set.id+'">Примерить</button>'+
