@@ -159,30 +159,37 @@ export function registerLuckyClans(app,pool,requireAuth){
    await c.query('DELETE FROM lucky_clan_members WHERE player_id=$1',[req.playerId]);
   });res.json({ok:true});
  }));
+
  app.post('/api/casino/clans/daily',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   const result=await tx(pool,async c=>{
-   const member=await c.query('SELECT clan_id,last_claim FROM lucky_clan_members WHERE player_id=$1 FOR UPDATE',[req.playerId]);
-   if(!member.rowCount)fail('Сначала вступите в клан');
-   const today=(await c.query("SELECT (NOW() AT TIME ZONE 'UTC')::date::text AS day")).rows[0].day;
-   if(member.rows[0].last_claim&&new Date(member.rows[0].last_claim).toISOString().slice(0,10)===today)fail('Сегодня материалы уже получены');
-   const added=await c.query('UPDATE lucky_clans SET materials=LEAST(materials+100,5000+headquarters*2000) WHERE id=$1 AND materials<(5000+headquarters*2000) RETURNING materials',[member.rows[0].clan_id]);
-   if(!added.rowCount)fail('Казна заполнена. Улучшите штаб или потратьте материалы');
-   await c.query('UPDATE lucky_clan_members SET last_claim=$1::date WHERE player_id=$2',[today,req.playerId]);
-   return {reward:100};
+   const m=await c.query('SELECT clan_id,last_claim FROM lucky_clan_members WHERE player_id=$1 FOR UPDATE',[req.playerId]);
+   if(!m.rowCount)fail('Сначала вступите в клан');
+   const date=(await c.query("SELECT to_char(now() AT TIME ZONE 'UTC','YYYY-MM-DD') AS day")).rows[0].day;
+   if(m.rows[0].last_claim&&new Date(m.rows[0].last_claim).toISOString().slice(0,10)===date)fail('Ежедневный взнос уже получен');
+   const clan=await c.query('SELECT coins,headquarters FROM lucky_clans WHERE id=$1 FOR UPDATE',[m.rows[0].clan_id]);
+   const cap=50000+clan.rows[0].headquarters**2*20000;
+   const reward=Math.min(500,cap-Number(clan.rows[0].coins));
+   if(reward<=0)fail('Казна заполнена');
+   await c.query('UPDATE lucky_clans SET coins=coins+$1 WHERE id=$2',[reward,m.rows[0].clan_id]);
+   await c.query('UPDATE lucky_clan_members SET last_claim=$1::date WHERE player_id=$2',[date,req.playerId]);
+   await c.query("INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins) VALUES($1,$2,'daily',$3)",[m.rows[0].clan_id,req.playerId,reward]);
+   return {reward};
   });res.json({ok:true,...result});
  }));
  app.post('/api/casino/clans/upgrade',requireAuth,wrap(async(req,res)=>{
-  await start(pool);const kind=req.body?.kind;if(!['headquarters','wall'].includes(kind))fail('Неизвестное улучшение');
+  await start(pool);const kind=req.body?.kind;
+  if(!['headquarters','wall'].includes(kind))fail('Неизвестное улучшение');
   const result=await tx(pool,async c=>{
-   const member=await c.query('SELECT clan_id,role FROM lucky_clan_members WHERE player_id=$1',[req.playerId]);
-   if(!member.rowCount||!['owner','officer'].includes(member.rows[0].role))fail('Недостаточно прав',403);
-   const found=await c.query('SELECT * FROM lucky_clans WHERE id=$1 FOR UPDATE',[member.rows[0].clan_id]);
-   const clan=found.rows[0];if(!clan)fail('Клан не найден',404);
-   const level=clan[kind];if(level>=50)fail('Достигнут максимальный уровень');
-   const cost=upgradeCost(level);
-   if(Number(clan.materials)<cost)fail('Недостаточно материалов');
-   await c.query(`UPDATE lucky_clans SET ${kind}=${kind}+1,materials=materials-$1 WHERE id=$2`,[cost,clan.id]);
+   const m=await c.query('SELECT clan_id,role FROM lucky_clan_members WHERE player_id=$1',[req.playerId]);
+   if(!m.rowCount||!['owner','officer'].includes(m.rows[0].role))fail('Недостаточно прав',403);
+   const row=await c.query('SELECT * FROM lucky_clans WHERE id=$1 FOR UPDATE',[m.rows[0].clan_id]);
+   const clan=row.rows[0];if(!clan)fail('Клан не найден',404);
+   const level=clan[kind];if(level>=50)fail('Максимальный уровень');
+   const cost=upgradeCost(kind,level);
+   if(Number(clan.coins)<cost)fail('В казне недостаточно монет');
+   await c.query('UPDATE lucky_clans SET '+kind+'='+kind+'+1,coins=coins-$1 WHERE id=$2',[cost,clan.id]);
+   await c.query('INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins) VALUES($1,$2,$3,$4)',[clan.id,req.playerId,kind,-cost]);
    return {level:level+1,cost};
   });res.json({ok:true,...result});
  }));
