@@ -528,10 +528,28 @@ function lc50SetOffer(set,c=lc33State()){
 }
 /* 53.0: the outfit gallery itself is the fitting room and complete-bundle store.
    Costs and included items always come from the existing catalogue. */
+/* 54.0 — secure-ish local purchase flow (cloud service still revision-based, not atomic commerce).
+   Never charge twice for an item that is already owned. Keep a small audit receipt. */
+let lc54PurchaseInFlight=false;
+function lc54StorageReady(){
+ try{const k='lucky_city_storage_check';localStorage.setItem(k,'1');localStorage.removeItem(k);return true}
+ catch(_){return false}
+}
+function lc54CloudRequired(){
+ return typeof CASINO_LAUNCH_PARAMS!=='undefined'&&!!CASINO_LAUNCH_PARAMS;
+}
+function lc54CloudStatus(){
+ if(!lc54CloudRequired())return 'Локальное сохранение. Для облака открой игру из ВКонтакте.';
+ if(typeof casinoCloudRevision==='undefined'||casinoCloudRevision===null)return 'Облако не синхронизировано — покупки временно недоступны.';
+ if(typeof casinoCloudBusy!=='undefined'&&casinoCloudBusy)return 'Облачное сохранение выполняется.';
+ if(typeof casinoCloudDirty!=='undefined'&&casinoCloudDirty)return 'Изменения ожидают отправки в облако.';
+ return 'Облачная синхронизация готова.';
+}
 function lc39SetCards(){
  const c=lc33State();
  const files={street:'outfit-street.png',sakura:'outfit-sakura.png',phantom:'outfit-phantom.png',emperor:'outfit-emperor.png',galaxy:'outfit-galaxy.png'};
  return '<section class="lc39-sets lc53-sets"><h2>✦ Образы и комплекты</h2>'+
+ '<div class="lc54-sync-status">'+lc54CloudStatus()+' <button type="button" data-lc54-verify>Проверить сохранение</button></div>'+
  '<p class="subline">Выбери костюм, примерь его бесплатно и купи все недостающие вещи за монеты. Купленные вещи повторно не оплачиваются.</p>'+
  '<div class="lc39-set-grid">'+LC39_SETS.map(set=>{
   const offer=lc50SetOffer(set,c);
@@ -840,27 +858,77 @@ document.addEventListener('click',function(e){
 document.addEventListener('click',function(e){
  const button=e.target.closest('[data-lc50-buy]');
  if(!button)return;
+ if(lc54PurchaseInFlight){message('Покупка уже обрабатывается');return}
  const set=lc39GetSet(button.dataset.lc50Buy);
  if(!set)return;
- const c=lc33State(),offer=lc50SetOffer(set,c);
- if(offer.unavailable.length||!offer.coinItems.length)return;
- if(!Number.isSafeInteger(offer.total)||offer.total<0||!Number.isFinite(state.coins)||state.coins<offer.total){
-  message('Недостаточно монет для покупки комплекта');return;
+ if(lc54CloudRequired()&&(typeof casinoCloudRevision==='undefined'||casinoCloudRevision===null)){
+  message('Сначала требуется облачная синхронизация — покупка не выполнена');return;
  }
- const amount=offer.total;
- // The amount and item IDs are recalculated on click, not accepted from the DOM.
- state.coins-=amount;
- for(const g of offer.coinItems){
-  if(!c.owned.includes(g.id))c.owned.push(g.id);
- }
- const remaining=lc39Missing(set,c);
- if(!remaining.length){
-  c.equipped={...c.equipped,...set.equipped};
-  lc39Preview=null;lc49SelectedOutfit=set.id;
- }
- save();render();
- message(!remaining.length?'Комплект куплен и надет: '+set.name:
-  'Куплены вещи за '+fmt(amount)+' монет. Для полного '+set.name+' приобрети донатный предмет через VK.');
+ if(!lc54StorageReady()){message('Нет доступа к сохранению — покупка отменена');return}
+ lc54PurchaseInFlight=true;button.disabled=true;
+ try{
+  const c=lc33State(),offer=lc50SetOffer(set,c);
+  if(offer.unavailable.length||!offer.coinItems.length){message('Покупать нечего или предмет недоступен');return}
+  const ids=offer.coinItems.map(g=>g.id);
+  if(new Set(ids).size!==ids.length||offer.coinItems.some(g=>!g||g.payment!=='coin'||!Number.isSafeInteger(g.price)||g.price<0)){
+   message('Ошибка состава комплекта — покупка отменена');return;
+  }
+  const amount=offer.coinItems.reduce((sum,g)=>sum+g.price,0);
+  if(!Number.isSafeInteger(amount)||amount<=0||amount!==offer.total){
+   message('Стоимость комплекта не совпадает с каталогом — покупка отменена');return;
+  }
+  if(!Number.isSafeInteger(state.coins)||state.coins<amount){
+   message('Недостаточно монет для комплекта');return;
+  }
+  // Do not accept item IDs, quantities or amounts supplied by the UI.
+  const oldCoins=state.coins,oldOwned=[...c.owned],oldEquipped={...c.equipped},oldReceipt=c.lastBundlePurchase;
+  try{
+   state.coins-=amount;
+   for(const id of ids)if(!c.owned.includes(id))c.owned.push(id);
+   const stillMissing=lc39Missing(set,c);
+   if(!stillMissing.length){
+    c.equipped={...c.equipped,...set.equipped};
+    lc39Preview=null;lc49SelectedOutfit=set.id;
+   }
+   c.lastBundlePurchase={setId:set.id,itemIds:ids,coins:amount,at:Date.now()};
+   // Verify serialization before invoking the game's existing local/cloud save.
+   JSON.stringify(state);
+   save();
+   render();
+   message(stillMissing.length?'Куплены недостающие вещи. Донатную часть нужно приобрести отдельно.':
+    'Комплект куплен и надет. Проверить облако можно вверху вкладки «Образы».');
+  }catch(error){
+   state.coins=oldCoins;c.owned=oldOwned;c.equipped=oldEquipped;c.lastBundlePurchase=oldReceipt;
+   message('Не удалось сохранить покупку — изменения отменены');
+   console.error('Outfit purchase failure',error);
+   render();
+  }
+ }finally{lc54PurchaseInFlight=false;button.disabled=false}
+});
+document.addEventListener('click',async function(e){
+ const btn=e.target.closest('[data-lc54-verify]');
+ if(!btn)return;
+ if(!lc54CloudRequired()){message('Сохранено на устройстве. Облако доступно при запуске из ВКонтакте.');return}
+ if(typeof casinoCloudRevision==='undefined'||casinoCloudRevision===null){message('Облачная синхронизация приостановлена — проверь подключение.');return}
+ if(typeof casinoCloudBusy!=='undefined'&&casinoCloudBusy){message('Сохранение ещё выполняется, проверь повторно.');return}
+ btn.disabled=true;
+ try{
+  if(typeof casinoCloudDirty!=='undefined'&&casinoCloudDirty)await casinoCloudUpload();
+  if(casinoCloudDirty||casinoCloudRevision===null){message('Облачное сохранение не подтверждено. Локальные данные сохранены.');return}
+  const remote=await casinoCloudFetch('GET');
+  const localReceipt=lc33State().lastBundlePurchase;
+  if(!remote.save||!remote.save.character33){message('Данные гардероба пока отсутствуют в облаке.');return}
+  const remoteOwned=remote.save.character33.owned||[];
+  const receiptValid=!localReceipt||(
+   remote.save.character33.lastBundlePurchase?.at===localReceipt.at&&
+   localReceipt.itemIds.every(id=>remoteOwned.includes(id))
+  );
+  if(!receiptValid){message('Последняя покупка пока не подтверждена облаком. Не покупай повторно.');return}
+  message('Облачное сохранение проверено. Последняя покупка присутствует.');
+ }catch(err){
+  message('Проверка облака не удалась. Локальное сохранение сохранено.');
+  console.warn('Outfit cloud verification',err.message);
+ }finally{btn.disabled=false}
 });
 document.addEventListener('click',function(e){
  const button=e.target.closest('[data-lc53-premium]');
@@ -1070,6 +1138,13 @@ lc53Style.textContent=
 '.lc53-details .lc50-piece-list{margin-top:8px}'+
 '.lc39-preview-stage{margin-bottom:12px}';
 document.head.appendChild(lc53Style);
+const lc54Style=document.createElement('style');lc54Style.id='lc54-save-status';
+lc54Style.textContent=
+'.lc54-sync-status{border:1px solid #9061ba66;border-radius:12px;padding:9px 10px;margin:9px 0 12px;color:#d9c8ec;font-size:11px;line-height:1.5;display:flex;align-items:center;justify-content:space-between;gap:9px}'+
+'.lc54-sync-status button{border-radius:10px;border:1px solid #ab80d8;background:#4e2b76;color:#fff;padding:7px 8px;font-size:11px;font-weight:800;flex:0 0 auto}'+
+'.lc54-sync-status button:disabled{opacity:.5}';
+document.head.appendChild(lc54Style);
+
 
 const lc52PriceStyle=document.createElement('style');lc52PriceStyle.textContent='.lc50-set-price-breakdown{color:#ffe1ad!important;font-size:12px!important;line-height:1.5!important;padding:9px 11px;border-radius:10px;background:#2d2045aa;border:1px solid #a475cf66}';document.head.appendChild(lc52PriceStyle);
 
