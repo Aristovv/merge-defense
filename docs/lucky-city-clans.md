@@ -7,15 +7,15 @@ The client and server code is in this repository. Merging into GitHub does **not
 1. Deploy the latest repository revision for the static client (`index.html`, `clans.js`, `clan-scenes.js`).
 2. Deploy the latest `server/` revision to the API serving `https://merge.89-23-115-251.sslip.io`.
 3. Verify the server environment has the existing `DATABASE_URL` and `VK_APP_SECRET`. Do not change either.
-4. Configure `VK_GROUP_SERVICE_TOKEN` as an **environment variable on the server**, never in GitHub, browser JavaScript or logs. The token needs VK API permission sufficient to call `groups.getById` on public groups.
+4. The player grants VK `groups` permission through VK Bridge when opening **Создать клан**. The game requests an individual VK user token and the server verifies that it belongs to the signed-in player. A static VK group service token is **not needed** for this admin-group selector.
 5. Restart the backend, check `/health`, then open Lucky City in the VK app and choose **Клан**.
 
 ## APIs
 All endpoints are protected by existing signed VK launch authentication.
 
 - GET `/api/casino/clans` — current clan and public leaderboard
-- GET `/api/casino/clans/group?url=...` — server-verified community name and avatar
-- POST `/api/casino/clans/create` — free creation with `{groupUrl}`
+- POST `/api/casino/clans/admin-groups` — list only communities administered by the signed-in VK player (temporary per-session user OAuth token)
+- POST `/api/casino/clans/create` — free creation with `{groupId, userToken}`; server re-checks membership in the administrator list, so direct requests cannot create a clan for someone else's group
 - POST `/api/casino/clans/join` — `{id}`
 - POST `/api/casino/clans/leave`
 - POST `/api/casino/clans/daily` — one server-side 100-material contribution per UTC day
@@ -27,7 +27,7 @@ Only clan tables `lucky_clans` and `lucky_clan_members` are initialized; this co
 ## Acceptance checks
 - In the UI, the bottom bar displays **Клан**; Games, Collection and Quests remain accessible in Profile.
 - Top supports switching **Игроки / Кланы**.
-- Creation with a public VK community URL populates name/avatar and cannot be repeated for that community.
+- Opening Create Clan prompts for VK groups permission and shows the player's administered groups; choosing one fills the real name/avatar, and each community may only be linked once.
 - Another VK user can join; only the clan owner can promote or demote officers.
 - Double-clicking or reopening cannot claim daily materials more than once on the same UTC date.
 - Headquarters and wall each display 50 distinct progressive vector scenes.
@@ -36,7 +36,7 @@ Only clan tables `lucky_clans` and `lucky_clan_members` are initialized; this co
 
 ## Not yet implemented or verified
 - Production installation on Timeweb has not been verified.
-- VK community token availability has not been verified.
+- Live user VK consent and administrative list retrieval have not yet been verified on the deployed build.
 - Clan raids, NPC attacks, clan chat, cross-user invites, and user-funded deposits are **not active**.
 - Upgrade-stage vector scenes are procedural previews, not individually illustrated photorealistic assets.
 - Full production end-to-end tests with real VK accounts and PostgreSQL still need to be run.
