@@ -4489,8 +4489,13 @@ async function casinoCloudStart(){
    render();
    syncCasinoRanking();
   }else{
-   // For a VK player without a cloud row, create the first revision using
-   // the existing local state. Revision=0 INSERT is conflict-safe.
+   // Never silently register an existing local profile as a different VK account,
+   // or recreate the cloud after a missing database row. Pause for review.
+   if(casinoHadLocalSaveOnBoot){
+    casinoCloudBackup('Cloud row absent while local save exists');
+    casinoCloudNotice('Облачное сохранение не найдено, но на устройстве есть прогресс. Автоматическое создание нового профиля заблокировано.');
+    return;
+   }
    casinoCloudRevision=0;
    casinoCloudDirty=true;
    casinoCloudSchedule();
