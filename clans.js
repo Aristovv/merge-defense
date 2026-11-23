@@ -395,8 +395,16 @@
      let proof=null;
      try{proof=await getCommunityProof(groupId)}
      catch(error){
-      if(!signedCommunityRole(groupId))
-       throw Error('VK ограничил проверку группы. Откройте игру из меню своей группы или разрешите доступ к сообществу: '+(error.message||'ошибка VK'));
+      if(!signedCommunityRole(groupId)){
+       // Millionaire's second path: connect the mini app to the selected
+       // VK community, then request its group-scoped token again.
+       try{
+        await installIntoCommunity();
+        proof=await getCommunityProof(groupId);
+       }catch(installError){
+        throw Error('VK не подтвердил управление сообществом. Добавьте Lucky City в выбранную группу или откройте игру из её меню. '+(installError.message||error.message||''));
+       }
+      }
      }
      await api('/create',{groupId,communityToken:proof});
     }
