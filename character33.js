@@ -804,24 +804,22 @@ let lc45TryOn=null;
 const LC45_IMAGES=new Set(['cap','beanie','bucket','kitty','crown','cylinder','cowboy','cap-vip','varsity','hoodie','goldcoat','jeans','cargo','sneakers','neonboots','chain']);
 function lc45Figure(){
  const equipped={...lc33State().equipped,...(lc39Preview?.equipped||{}),...(lc45TryOn||{})};
- const photo=(type,cls)=>{
-  const id=equipped[type];
-  return LC45_IMAGES.has(id)?'<img class="lc45-layer '+cls+'" alt="" src="./assets/character44/'+id+'.png" onerror="this.hidden=true">':'';
- };
  const trial=lc45TryOn?LC35_BY_ID.get(Object.values(lc45TryOn)[0]):null;
- const status=lc39Preview?'Комплект: '+lc39Preview.name:trial?'Примерка: '+trial.name:'Надетые вещи';
- const missing=Object.entries(equipped).filter(([type,id])=>!LC45_IMAGES.has(id)).map(([type,id])=>{
-  const item=LC35_BY_ID.get(id);
-  return item?'<span class="lc45-unrendered">'+rankEsc(item.name)+'</span>':'';
+ const status=lc39Preview?'Комплект: '+lc39Preview.name:trial?'Примерка: '+trial.name:'Текущий образ';
+ const photos=['hat','jacket','pants','shoes','accessory'].map(type=>{
+   const id=equipped[type],item=LC35_BY_ID.get(id);
+   if(!item)return '';
+   const art=LC45_IMAGES.has(id)
+     ?'<img alt="" loading="lazy" src="./assets/character44/'+id+'.png" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="lc46-fallback" hidden>'+lc43ItemIcon(item)+'</span>'
+     :'<span class="lc46-fallback">'+lc43ItemIcon(item)+'</span>';
+   return '<div class="lc46-piece">'+art+'<span>'+rankEsc(item.name)+'</span></div>';
  }).join('');
- return '<div class="lc45-panel"><div class="lc45-brow">REALISTIC CHARACTER · 45.0</div>'+
- '<div class="lc45-canvas"><img class="lc45-base" alt="Персонаж Lucky City" src="./assets/character44/avatar.png">'+
- photo('pants','lc45-pants')+photo('shoes','lc45-shoes')+photo('jacket','lc45-jacket')+
- photo('hat','lc45-hat')+photo('accessory','lc45-accessory')+'</div>'+
+ return '<div class="lc45-panel lc46-panel"><div class="lc45-brow">REALISTIC CHARACTER · 46.0</div>'+
+ '<div class="lc46-showcase"><div class="lc46-avatar"><img alt="Реалистичный персонаж Lucky City" src="./assets/character44/avatar.png"></div>'+
+ '<div class="lc46-kit">'+photos+'</div></div>'+
  '<div class="lc45-status">'+rankEsc(status)+'</div>'+
- (missing?'<div class="lc45-missing">Нет готовых фотослоёв: '+missing+'</div>':'')+
- '<p class="lc45-note">Экспериментальная подгонка: пока используются товарные PNG, а не специально подготовленные слои для персонажа.</p>'+
- (lc45TryOn?'<button type="button" class="lc45-clear" data-lc45-clear>Вернуться к надетому</button>':'')+'</div>';
+ '<p class="lc45-note">Реалистичный персонаж и выбранная одежда показаны отдельно. Одежда пока не надета на эту 3D-модель: товарные изображения не совпадают с пропорциями тела. Рабочая экипировка и образы сохранены ниже.</p>'+
+ (lc45TryOn?'<button type="button" class="lc45-clear" data-lc45-clear>Сбросить примерку</button>':'')+'</div>';
 }
 document.addEventListener('click',function(e){
  if(e.target.closest('[data-lc45-clear]')){lc45TryOn=null;render();return}
@@ -853,6 +851,18 @@ lc45Styles.textContent=
 '.lc33-item{cursor:pointer}'+
 '@media(max-width:390px){.lc45-canvas{height:330px}}';
 document.head.appendChild(lc45Styles);
+const lc46Styles=document.createElement('style');lc46Styles.id='lc46-styles';
+lc46Styles.textContent=
+'.lc46-showcase{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);align-items:center;gap:8px;min-height:335px}'+
+'.lc46-avatar{height:345px;display:flex;align-items:center;justify-content:center;min-width:0}'+
+'.lc46-avatar img{height:100%;width:100%;object-fit:contain}'+
+'.lc46-kit{display:flex;flex-direction:column;gap:5px;min-width:0}'+
+'.lc46-piece{height:64px;display:flex;gap:5px;align-items:center;background:#251437aa;border:1px solid #8e53bf66;border-radius:11px;padding:4px;min-width:0}'+
+'.lc46-piece img,.lc46-fallback{height:53px;width:50px;object-fit:contain;flex:0 0 50px;display:flex;align-items:center;justify-content:center}'+
+'.lc46-fallback svg{height:100%;width:100%}'+
+'.lc46-piece span:last-child{font-size:10px;color:#eee0ff;line-height:1.2;overflow-wrap:anywhere;text-align:left}'+
+'@media(max-width:380px){.lc46-avatar{height:305px}.lc46-piece{height:57px}.lc46-piece img,.lc46-fallback{height:47px;width:41px;flex-basis:41px}}';
+document.head.appendChild(lc46Styles);
 
 /* Lucky City 44.0 — safe photorealistic wardrobe preview.
    Existing item identifiers, prices, owned inventory and payments are untouched.
