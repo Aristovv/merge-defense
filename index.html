@@ -4433,8 +4433,12 @@ async function casinoCloudFetch(method,body){
  const timer=setTimeout(()=>controller.abort(),12000);
  try{
   const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/save',{method,headers,body:body?JSON.stringify(body):undefined,cache:'no-store',signal:controller.signal});
-  if(!response.ok)throw Object.assign(new Error('Cloud HTTP '+response.status),{status:response.status});
-  return await response.json();
+  const payload=await response.json().catch(()=>null);
+  if(!response.ok)throw Object.assign(new Error('Cloud HTTP '+response.status+(payload?.error?' · '+payload.error:'')),{
+   status:response.status,code:payload?.error||'',reason:payload?.reason||''
+  });
+  if(!payload||typeof payload!=='object')throw Error('INVALID_CLOUD_RESPONSE');
+  return payload;
  }finally{clearTimeout(timer)}
 }
 function casinoCloudRetryStart(){
@@ -4632,30 +4636,64 @@ async function casinoDonationPullOwnRewards(){
 function casinoCloudSchedule(){if(casinoCloudRevision===null||casinoCloudBusy)return;clearTimeout(casinoCloudTimer);casinoCloudTimer=setTimeout(casinoCloudUpload,casinoCloudRetryMs)}
 async function casinoCloudUpload(){
  if(casinoCloudBusy||casinoCloudRevision===null||!casinoCloudDirty)return;
- casinoCloudBusy=true;const snapshot=JSON.stringify(state),revision=casinoCloudRevision;
+ casinoCloudBusy=true;
+ const snapshot=JSON.stringify(state),revision=casinoCloudRevision;
  try{
   const result=await casinoCloudFetch('PUT',{revision,save:JSON.parse(snapshot)});
-  casinoCloudRevision=result.revision;casinoCloudDirty=JSON.stringify(state)!==snapshot;
+  if(result?.ok!==true||!Number.isSafeInteger(result.revision)||result.revision<=revision)
+   throw Error('INVALID_SAVE_ACK');
+  casinoCloudRevision=result.revision;
+  casinoCloudDirty=JSON.stringify(state)!==snapshot;
+  casinoCloudLastIssue='';
   casinoCloudRetryMs=2000;
   if(casinoCloudDirty)casinoCloudPendingWrite(casinoCloudRevision);
   else casinoCloudPendingClear();
   try{localStorage.setItem('casino_city_last_cloud_revision',String(casinoCloudRevision))}catch(_){}
   if(revision===0)render();
  }catch(error){
-  if(error.status===409){
-   casinoCloudBackup('Cloud revision conflict on upload '+revision);
-   // The next startup fetch can capture the remote copy; do not guess its contents.
+  if(error.status===409&&error.code==='REVISION_CONFLICT'){
+   // A request can commit in Postgres even when its response is lost.
+   // Read it back: only a byte-equivalent logical snapshot counts as acknowledged.
+   try{
+    const remote=await casinoCloudFetch('GET');
+    if(remote.save&&Number.isSafeInteger(remote.revision)&&remote.revision>=1&&
+       casinoStableJSON(remote.save)===casinoStableJSON(JSON.parse(snapshot))){
+     casinoCloudRevision=remote.revision;
+     casinoCloudDirty=JSON.stringify(state)!==snapshot;
+     casinoCloudLastIssue='';
+     casinoCloudRetryMs=2000;
+     if(casinoCloudDirty)casinoCloudPendingWrite(remote.revision);
+     else casinoCloudPendingClear();
+     try{localStorage.setItem('casino_city_last_cloud_revision',String(remote.revision))}catch(_){}
+     render();
+    }else{
+     casinoCloudBackup('Cloud revision conflict on upload '+revision);
+     casinoCloudPreserveRemote(remote,'unresolved upload revision conflict');
+     casinoCloudRevision=null;
+     casinoCloudNotice('Облако содержит другую версию прогресса. Обе копии сохранены для безопасной проверки.');
+    }
+   }catch(verifyError){
+    casinoCloudBackup('Cloud revision conflict; read-back failed '+revision);
+    casinoCloudRevision=null;
+    casinoCloudNotice('Не удалось сверить сохранение с облаком. Локальная копия сохранена, повторная запись заблокирована.');
+   }
+  }else if(error.status===409){
+   casinoCloudBackup('Cloud write rejected: '+(error.reason||error.code||'conflict'));
    casinoCloudRevision=null;
-   casinoCloudNotice('Облачное сохранение изменилось. Локальный прогресс сохранён отдельно; перезапусти игру для проверки.');
+   casinoCloudNotice('Облако остановило запись для защиты прогресса: '+(error.reason||error.code||'конфликт данных'));
   }else if([400,401,403,413].includes(error.status)){
    casinoCloudBackup('Cloud save rejected with HTTP '+error.status);
    casinoCloudRevision=null;
-   casinoCloudNotice('Облако отклонило сохранение (HTTP '+error.status+'). Прогресс сохранён локально, запись остановлена для проверки.');
+   casinoCloudNotice('Облако отклонило сохранение (HTTP '+error.status+(error.code?' · '+error.code:'')+'). Прогресс сохранён локально, запись остановлена для проверки.');
   }else{
    console.warn('Cloud upload failed',error.message);
+   casinoCloudLastIssue='Нет подтверждения облака, повторяем отправку. Данные сохранены на устройстве.';
    casinoCloudRetryMs=Math.min(60000,Math.round(casinoCloudRetryMs*1.8));
   }
- }finally{casinoCloudBusy=false;if(casinoCloudDirty&&casinoCloudRevision!==null)casinoCloudSchedule()}
+ }finally{
+  casinoCloudBusy=false;
+  if(casinoCloudDirty&&casinoCloudRevision!==null)casinoCloudSchedule();
+ }
 }
 function save(){
  if(casinoCloudRevision===null){console.warn('Save deferred: cloud session not ready');return;}
