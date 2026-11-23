@@ -87,6 +87,11 @@ function registerCasinoSaves(app,pool,requireAuth){
    await client.query('BEGIN');
    const q=await client.query('SELECT save,revision::text AS revision FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vk]);
    if(!q.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'SAVE_NOT_FOUND'})}
+   const expected=req.body?.revision;
+   if(!valid(expected,1,Number.MAX_SAFE_INTEGER)||Number(q.rows[0].revision)!==expected){
+    await client.query('ROLLBACK');
+    return res.status(409).json({error:'REVISION_CONFLICT',revision:Number(q.rows[0].revision)});
+   }
    const saved=q.rows[0].save;
    const next=settleRecordedPlinko(saved);
    if(!next){
