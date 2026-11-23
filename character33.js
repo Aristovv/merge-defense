@@ -722,7 +722,8 @@ const LC49_OUTFITS=[
  ['galaxy','COSMIC LEGEND','outfit-galaxy.png']
 ];
 function lc33Avatar(){
- const outfit=LC49_OUTFITS.find(o=>o[0]===lc49SelectedOutfit)||LC49_OUTFITS[0];
+ const previewId=lc39Preview?.id||lc49SelectedOutfit;
+ const outfit=LC49_OUTFITS.find(o=>o[0]===previewId)||LC49_OUTFITS[0];
  const src='./assets/character44/'+outfit[2];
  return '<img class="lc47-real-avatar" src="'+src+'" alt="Реалистичный персонаж: '+outfit[1]+'" draggable="false" onerror="this.onerror=null;this.src=\'./assets/character44/avatar.png\'">';
 }
@@ -805,9 +806,9 @@ document.addEventListener('click',function(e){
 document.addEventListener('click',function(e){
  const preview=e.target.closest('[data-lc39-preview]');
  if(preview){const set=lc39GetSet(preview.dataset.lc39Preview);if(!set)return;
-  lc39Preview=set;render();message('Примерка: '+set.name);return}
+  lc39Preview=set;lc49SelectedOutfit=set.id;render();message('Примерка: '+set.name);return}
  const reset=e.target.closest('[data-lc39-reset]');
- if(reset){lc39Preview=null;render();return}
+ if(reset){lc39Preview=null;lc49SelectedOutfit='base';render();return}
  const wear=e.target.closest('[data-lc39-wear]');
  if(wear){const set=lc39GetSet(wear.dataset.lc39Wear);if(!set)return;
   const c=lc33State(),missing=lc39Missing(set,c);
@@ -949,6 +950,7 @@ document.addEventListener('click',function(e){
  const id=btn.dataset.lc49Outfit;
  if(!LC49_OUTFITS.some(o=>o[0]===id))return;
  lc49SelectedOutfit=id;
+ lc39Preview=null;
  render();
 });
 const lc49Style=document.createElement('style');lc49Style.id='lc49-style';
