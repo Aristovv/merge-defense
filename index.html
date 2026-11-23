@@ -5245,20 +5245,55 @@ function casinoStreakSection(){
  '<p>За ежедневный подарок начисляются дополнительные фишки. Каждые 7 дней подряд — особый бонус.</p>'+
  '<div class="casino-streak-days">'+list+'</div><div class="casino-streak-footer"><span>Твоя самая длинная серия: '+Math.max(streak,Number(state.giftBestStreak)||0)+' дн.</span><b>'+(state.lastGift===today()?'Бонус за сегодня получен':'За следующий подарок: +'+fmt(upcoming.chips)+' фишек'+(upcoming.coins?' и +'+fmt(upcoming.coins)+' монет':''))+'</b></div></div>';
 }
-function daily(){
- // Prevent repeated day-one rewards when an older local save is disconnected from VK cloud.
- if(CASINO_LAUNCH_PARAMS&&(casinoCloudRevision===null||casinoCloudRevision===0))return message('Облачное сохранение не подключено. Восстанови синхронизацию перед получением награды.');
- if(state.lastGift===today())return message('Сегодня подарок уже получен');
- const continued=state.lastGift===casinoYesterdayUTC();
- const previous=continued?Math.max(1,Math.floor(Number(state.giftStreak)||1)):0;
- const streak=Math.min(100000,previous+1);
- const bonus=casinoGiftBonus(streak);
- state.lastGift=today();
- state.giftStreak=streak;
- state.giftBestStreak=Math.max(streak,Number(state.giftBestStreak)||0);
- grant(400+bonus.chips,700+bonus.coins);
- xp(15);render();
- message('Подарок за '+streak+' день серии: +'+fmt(400+bonus.chips)+' фишек и +'+fmt(700+bonus.coins)+' монет');
+let casinoDailyClaiming=false;
+async function daily(){
+ if(casinoDailyClaiming)return message('Награда уже проверяется на сервере');
+ if(!CASINO_LAUNCH_PARAMS||!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1)
+  return message('Дождись облачной синхронизации перед получением награды.');
+ if(casinoCloudStarting||casinoCloudBusy||casinoCloudDirty||casinoCloudPendingRead()||busy||round||state.pendingMiniRound)
+  return message('Есть незавершённое сохранение или игра. Дождись синхронизации и повтори.');
+ const revision=casinoCloudRevision;
+ casinoDailyClaiming=true;
+ casinoCloudBusy=true;
+ try{
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),12000);
+  let response;
+  try{
+   response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/daily/claim',{
+    method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
+    body:JSON.stringify({revision}),cache:'no-store',signal:controller.signal
+   });
+  }finally{clearTimeout(timeout)}
+  if(!response.ok){
+   let data={};try{data=await response.json()}catch(_){}
+   if(response.status===409){
+    casinoCloudRevision=null;casinoCloudBackup('Daily claim conflict, preserving local progress');
+    return message('Прогресс на сервере изменился. Проверь облачное сохранение перед новой попыткой.');
+   }
+   return message('Сервер не подтвердил награду (HTTP '+response.status+'). Повтори позже.');
+  }
+  const result=await response.json();
+  if(!result?.ok||!result.save||!Number.isSafeInteger(result.revision)||result.revision<revision)
+   throw Error('INVALID_DAILY_RECEIPT');
+  // The server has already committed the grant. Never grant coins locally again.
+  const next={...fresh(),...result.save};
+  const raw=JSON.stringify(next);
+  try{localStorage.setItem(STORAGE,raw)}catch(error){console.warn('Daily gift local cache write',error)}
+  state=next;casinoCloudRevision=result.revision;casinoCloudDirty=false;casinoCloudPendingClear();
+  casinoCloudRetryMs=2000;
+  render();
+  if(result.alreadyClaimed)message('Сегодня ежедневный подарок уже получен. Серия сохранена в облаке.');
+  else message('Награда за '+result.streak+' день получена и сохранена: +'+fmt(result.chips)+' фишек, +'+fmt(result.coins)+' монет');
+ }catch(error){
+  console.warn('Daily gift server check failed',error);
+  // A response can be lost after a successful server commit. Re-read cloud
+  // next session; never auto-grant or repeat credits from the browser.
+  casinoCloudNotice('Награда не подтверждена на устройстве. Проверь облако; повторное начисление защищено сервером.');
+ }finally{
+  casinoDailyClaiming=false;casinoCloudBusy=false;
+  if(casinoCloudDirty&&casinoCloudRevision!==null)casinoCloudSchedule();
+ }
 }
 function exchange(){collectPassive();const input=$('coin-exchange-amount'),raw=input?.value?.trim()||'';if(!/^\d+$/.test(raw))return message('Введите целое количество монет');const amount=Number(raw);if(!Number.isSafeInteger(amount)||amount<2)return message('Минимальный обмен — 2 монеты');if(amount>state.coins)return message('Недостаточно монет для обмена');const chips=Math.floor(amount/2);if(!Number.isSafeInteger(state.chips+chips))return message('Слишком большая сумма');state.coins-=amount;state.chips+=chips;save();render();message('Обменено '+fmt(amount)+' монет на '+fmt(chips)+' фишек')}
 function updateCoinExchangePreview(){const input=$('coin-exchange-amount'),preview=$('coin-exchange-preview'),button=$('coin-exchange-submit');if(!input||!preview||!button)return;const raw=input.value.trim(),amount=/^\d+$/.test(raw)?Number(raw):NaN;const valid=Number.isSafeInteger(amount)&&amount>=2&&amount<=state.coins&&Number.isSafeInteger(state.chips+Math.floor(amount/2));preview.textContent=!raw?'Введите количество монет':!Number.isSafeInteger(amount)?'Введите целое число':amount<2?'Минимум 2 монеты':amount>state.coins?'Недостаточно монет':'Получите '+fmt(Math.floor(amount/2))+' фишек';button.disabled=!valid}
