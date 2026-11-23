@@ -4026,7 +4026,7 @@ button:focus-visible,[role="button"]:focus-visible{outline-color:#E5B85C}
 .lucky-donation-symbol{font-size:26px;color:#f9d5ff}
 @media(min-width:550px){.lucky-donation-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style><link rel="stylesheet" href="./character33.css?v=49.0.0"></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js">
-</script><script src="./character33.js?v=55.3.0"></script><script src="./outfits56.js?v=56.4.2"></script><script src="./clan-scenes.js?v=clan-scenes-1"></script><script src="./clans.js?v=clans-community-proof-v7"></script><script>
+</script><script src="./character33.js?v=55.3.0"></script><script src="./outfits56.js?v=56.4.2"></script><script src="./clan-scenes.js?v=clan-scenes-1"></script><script src="./clans.js?v=clan-coins-economy-v8"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
 const CASINO_DONATION_OPTIONS={
@@ -5292,6 +5292,59 @@ async function casinoDailySettleCloud(){
  }
  return 'Сохранение пока не завершилось. Проверь интернет и повтори.';
 }
+
+/* Clan coin deposits use the exact server-owned cloud balance.
+ * No local optimistic debit: server commits save+clan treasury atomically. */
+window.LuckyClanEconomy={
+ async deposit(amount){
+  if(casinoDailyClaiming||casinoCloudBusy||casinoCloudStarting)throw Error('Дождись завершения сохранения');
+  if(!CASINO_LAUNCH_PARAMS||!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1)
+   throw Error('Облачное сохранение ещё не подтверждено');
+  const issue=await casinoDailySettleCloud();
+  if(issue)throw Error(issue);
+  if(casinoCloudBusy||casinoCloudDirty||casinoCloudPendingRead()||casinoCloudRevision===null)
+   throw Error('Сначала заверши облачную синхронизацию');
+  const revision=casinoCloudRevision;
+  const requestId='clan-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2).padEnd(18,'0');
+  let response;
+  casinoCloudBusy=true;
+  try{
+   const controller=new AbortController();
+   const timeout=setTimeout(()=>controller.abort(),12000);
+   try{
+    response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/clans/deposit',{
+     method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
+     body:JSON.stringify({amount,revision,requestId}),cache:'no-store',signal:controller.signal
+    });
+   }finally{clearTimeout(timeout)}
+   let result={};try{result=await response.json()}catch(_){}
+   if(!response.ok){
+    if(response.status===409){
+     casinoCloudBackup('Clan coin transfer revision conflict');
+     casinoCloudRevision=null;
+     throw Error('Серверное сохранение изменилось. Перезапусти игру для проверки баланса');
+    }
+    throw Error(result.error||'Взнос отклонён сервером: HTTP '+response.status);
+   }
+   if(!result.ok||!result.save||!Number.isSafeInteger(result.revision)||result.revision<revision)
+    throw Error('Ответ сервера не подтвердил баланс после взноса');
+   const next={...fresh(),...result.save};
+   casinoCloudRevision=result.revision;casinoCloudDirty=false;casinoCloudPendingClear();
+   state=next;
+   try{localStorage.setItem(STORAGE,JSON.stringify(next))}catch(error){console.warn('Clan deposit local cache write',error)}
+   render();
+   return result;
+  }catch(error){
+   // A timed-out request may have committed on the server; never repeat blindly.
+   if(!response||response.ok){
+    casinoCloudBackup('Clan deposit outcome uncertain');
+    casinoCloudRevision=null;
+    throw Error('Результат взноса неясен. Перезапусти игру: проверь баланс и казну перед повторением');
+   }
+   throw error;
+  }finally{casinoCloudBusy=false}
+ }
+};
 async function daily(){
  if(casinoDailyClaiming)return message('Награда уже проверяется на сервере');
  if(!CASINO_LAUNCH_PARAMS||!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1)
