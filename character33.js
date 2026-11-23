@@ -894,6 +894,12 @@ document.addEventListener('click',function(e){
    // Verify serialization before invoking the game's existing local/cloud save.
    JSON.stringify(state);
    save();
+   const persisted=JSON.parse(localStorage.getItem('casino_city_vk_v100')||'null');
+   if(persisted?.character33?.lastBundlePurchase?.at!==c.lastBundlePurchase.at||
+      !ids.every(id=>persisted.character33.owned.includes(id))||
+      persisted.coins!==state.coins){
+    throw new Error('LOCAL_PURCHASE_NOT_PERSISTED');
+   }
    render();
    message(stillMissing.length?'Куплены недостающие вещи. Донатную часть нужно приобрести отдельно.':
     'Комплект куплен и надет. Проверить облако можно вверху вкладки «Образы».');
@@ -924,7 +930,7 @@ document.addEventListener('click',async function(e){
    localReceipt.itemIds.every(id=>remoteOwned.includes(id))
   );
   if(!receiptValid){message('Последняя покупка пока не подтверждена облаком. Не покупай повторно.');return}
-  message('Облачное сохранение проверено. Последняя покупка присутствует.');
+  message(localReceipt?'Облако проверено: последняя покупка и вещи сохранены.':'Облако проверено: данные гардероба сохранены.');
  }catch(err){
   message('Проверка облака не удалась. Локальное сохранение сохранено.');
   console.warn('Outfit cloud verification',err.message);
