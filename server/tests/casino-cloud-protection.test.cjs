@@ -19,11 +19,12 @@ test('initial defaults cannot overwrite progressed cloud profile',()=>{
  assert.match(regression(save(),save({level:1,plays:0,wins:0,best:0,earned:0})),/PROGRESS_REGRESSION/);
 });
 test('daily claimed date may not roll back',()=>{
- assert.equal(regression(save(),save({lastGift:'2026-11-22'})),'DAILY_GIFT_REGRESSION');
+ assert.equal(regression(save(),save({lastGift:'2026-11-22'})),'SERVER_DAILY_CLAIM_REQUIRED');
 });
 test('best streak persists after current streak resets',()=>{
- assert.equal(regression(save(),save({giftStreak:0,giftBestStreak:1,lastGift:'2026-11-24'})),null);
- assert.equal(regression(save(),save({giftStreak:0,giftBestStreak:0,lastGift:'2026-11-24'})),'PROGRESS_REGRESSION_GIFTBESTSTREAK');
+ assert.equal(regression(save(),save({giftStreak:0,giftBestStreak:1,lastGift:'2026-11-24'})),'SERVER_DAILY_CLAIM_REQUIRED');
+ assert.equal(regression(save(),save({giftStreak:0,giftBestStreak:0,lastGift:'2026-11-24'})),'SERVER_DAILY_CLAIM_REQUIRED');
+ assert.equal(regression(save(),save({giftBestStreak:0})),'SERVER_DAILY_CLAIM_REQUIRED');
 });
 test('purchased outfits cannot disappear from client saves',()=>{
  assert.equal(regression(save(),save({character33:{ownedOutfits:[]}})),'OUTFIT_OWNERSHIP_REGRESSION');
