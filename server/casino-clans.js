@@ -52,15 +52,34 @@ async function serviceVK(method,params){
  }
  return json.response;
 }
-async function verifiedAdminGroup(playerId,groupId){
+async function verifiedAdminGroup(playerId,groupId,communityToken){
  const requested=Number(groupId);
  if(!validId(requested))fail('Выберите группу из списка');
- const result=await serviceVK('groups.getMembers',{group_id:String(requested),filter:'managers',count:'1000'});
- const items=Array.isArray(result?.items)?result.items:[];
- const vkId=String(playerId).replace(/^vk:/,'');
- const manager=items.find(item=>String(typeof item==='object'?item.id:item)===vkId);
- if(!manager||!['administrator','creator','admin'].includes(String(manager.role||'').toLowerCase()))
-  fail('Права администратора в этой группе не подтверждены',403);
+ if(typeof communityToken!=='string'||communityToken.length<15||communityToken.length>4096)
+  fail('Для создания клана подтвердите управление группой через VK',403);
+ // VK provides this group-specific token only after an administrator approves it
+ // in the native app. Verify it on a group-specific privileged read-only API.
+ // Do not store or log the token or the returned confirmation code.
+ const body=new URLSearchParams({group_id:String(requested),access_token:communityToken,v:'5.199'});
+ let result;
+ try {
+  const response=await fetch('https://api.vk.com/method/groups.getCallbackConfirmationCode',{
+   method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+   body,signal:AbortSignal.timeout(7000)
+  });
+  if(!response.ok)fail('VK временно недоступен',503);
+  result=await response.json();
+ }catch(error){
+  if(error.status)throw error;
+  fail('Не удалось связаться с VK для подтверждения управления группой',503);
+ }
+ if(result.error){
+  const code=Number(result.error.error_code)||0;
+  fail('VK не подтвердил управление выбранной группой (код '+code+'). Проверьте разрешение сообщества.',403);
+ }
+ const confirmation=typeof result.response==='string'?result.response:result.response?.code;
+ if(typeof confirmation!=='string'||confirmation.length<5)
+  fail('VK не подтвердил полномочия сообщества',403);
  const raw=await serviceVK('groups.getById',{group_ids:String(requested),fields:'photo_200'});
  const group=(Array.isArray(raw)?raw:raw?.groups)?.[0];
  if(!group||Number(group.id)!==requested||!group.name||!group.photo_200||Number(group.is_closed)===2)
@@ -90,7 +109,7 @@ export function registerLuckyClans(app,pool,requireAuth){
  app.get('/api/casino/clans',requireAuth,wrap(async(req,res)=>{await start(pool);res.json({mine:await mine(pool,req.playerId),leaders:await listing(pool)})}));
  app.post('/api/casino/clans/create',requireAuth,wrap(async(req,res)=>{
   await start(pool);
-  const group=await verifiedAdminGroup(req.playerId,req.body?.groupId);
+  const group=await verifiedAdminGroup(req.playerId,req.body?.groupId,req.body?.communityToken);
   const result=await tx(pool,async c=>{
    const existing=await c.query('SELECT 1 FROM lucky_clan_members WHERE player_id=$1',[req.playerId]);
    if(existing.rowCount)fail('Вы уже состоите в клане');
