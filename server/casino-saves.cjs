@@ -73,4 +73,4 @@ function registerCasinoSaves(app,pool,requireAuth){
   }catch(e){console.error('casino save write',e.code||e.message);res.status(503).json({error:'SAVE_UNAVAILABLE'})}
  });
 }
-module.exports={registerCasinoSaves};
+module.exports={registerCasinoSaves,regression,clean};
