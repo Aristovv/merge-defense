@@ -55,6 +55,30 @@
   return Number(params.get('vk_group_id'))===Number(groupId)&&
     ['admin','creator'].includes(String(params.get('vk_viewer_group_role')||'').toLowerCase());
  }
+ async function getCommunityProof(groupId){
+  const bridge=window.vkBridge;
+  if(!bridge?.send)throw Error('Открой игру через приложение VK');
+  const appId=Number(new URLSearchParams(launch).get('vk_app_id'));
+  if(!Number.isSafeInteger(appId)||appId<=0)throw Error('VK не передал ID игры');
+  // Community credentials are issued only through VK's native admin consent.
+  // A groups user token is IP-bound and MUST NOT be used as server-side proof.
+  const methods=['VKWebAppGetCommunityToken','VKWebAppCommunityAccessToken','VKWebAppCommunityToken','VKWebAppGetCommunityAuthToken'];
+  const supported=methods.filter(method=>typeof bridge.supports!=='function'||bridge.supports(method));
+  if(!supported.length)throw Error('Этот клиент VK не поддерживает подтверждение сообщества. Добавьте игру в группу и откройте её оттуда.');
+  let lastError=null;
+  for(const method of supported){
+   try{
+    const response=await bridge.send(method,{app_id:appId,group_id:Number(groupId),scope:'manage'});
+    if(typeof response?.access_token==='string'&&response.access_token.length>=15)return response.access_token;
+    lastError=new Error('VK не выдал ключ сообщества');
+   }catch(error){
+    lastError=error;
+    if(/denied|cancel|отказ|отмен/i.test(String(error?.message||'')))break;
+   }
+  }
+  const code=lastError?.error_data?.error_code||lastError?.code||'';
+  throw Error('VK не выдал разрешение администратора'+(code?' (код '+code+')':'')+'. Нажмите «Подключить Lucky City к группе VK», затем откройте игру из сообщества.');
+ }
  async function installIntoCommunity(){
   if(!window.vkBridge?.send)throw Error('Добавление доступно только внутри VK');
   const id=Number(preview?.groupId);
@@ -189,9 +213,8 @@
   try{
    // The native VK client issues a group-scoped token only to an authorized admin.
    // This short-lived proof is submitted once via HTTPS and never stored locally.
-   const proof=action==='create'?(signedCommunityRole(preview.groupId)?null:userToken):null;
-   if(action==='create'&&!signedCommunityRole(preview.groupId)&&!proof)throw Error('VK не выдал разрешение на просмотр управляемых сообществ. Обновите список групп.');
-   const body=action==='create'?{groupId:preview?.groupId,vkUserToken:proof}:action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind,expectedLevel:Number(data?.mine?.[btn.dataset.kind])}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:{};
+   const proof=action==='create'?(signedCommunityRole(preview.groupId)?null:await getCommunityProof(preview.groupId)):null;
+   const body=action==='create'?{groupId:preview?.groupId,communityToken:proof}:action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind,expectedLevel:Number(data?.mine?.[btn.dataset.kind])}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:{};
    await api('/'+action,body);preview=null;userToken=null;creating=false;adminGroups=[];data=await api();notice='Успешно';rankings=data.leaders;paintTop();
   }catch(err){notice=err.message||'Ошибка сервера'}finally{
    paint();
