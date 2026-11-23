@@ -59,7 +59,7 @@ async function tx(pool,fn){
  catch(e){await client.query('ROLLBACK').catch(()=>{});throw e}
  finally{client.release()}
 }
-const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.materials,c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
+const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.materials,(5000+c.headquarters*2000) AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
 async function mine(pool,playerId){
  const {rows}=await pool.query(`SELECT ${clanFields},m.role,m.last_claim AS "lastClaim" FROM lucky_clans c JOIN lucky_clan_members m ON m.clan_id=c.id WHERE m.player_id=$1`,[playerId]);
  if(!rows[0])return null;
@@ -70,7 +70,7 @@ async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
  return rows;
 }
-function upgradeCost(level){return Math.ceil(100*Math.pow(1.18,level-1))}
+function upgradeCost(level){return Math.ceil(100*Math.pow(1.12,level-1))}
 export function registerLuckyClans(app,pool,requireAuth){
  app.get('/api/casino/clans',requireAuth,wrap(async(req,res)=>{await start(pool);res.json({mine:await mine(pool,req.playerId),leaders:await listing(pool)})}));
  app.get('/api/casino/clans/group',requireAuth,wrap(async(req,res)=>{const group=await resolveGroup(req.query.url);res.json({group})}));
@@ -121,8 +121,9 @@ export function registerLuckyClans(app,pool,requireAuth){
    if(!member.rowCount)fail('Сначала вступите в клан');
    const today=(await c.query("SELECT (NOW() AT TIME ZONE 'UTC')::date::text AS day")).rows[0].day;
    if(member.rows[0].last_claim&&new Date(member.rows[0].last_claim).toISOString().slice(0,10)===today)fail('Сегодня материалы уже получены');
+   const added=await c.query('UPDATE lucky_clans SET materials=LEAST(materials+100,5000+headquarters*2000) WHERE id=$1 AND materials<(5000+headquarters*2000) RETURNING materials',[member.rows[0].clan_id]);
+   if(!added.rowCount)fail('Казна заполнена. Улучшите штаб или потратьте материалы');
    await c.query('UPDATE lucky_clan_members SET last_claim=$1::date WHERE player_id=$2',[today,req.playerId]);
-   await c.query('UPDATE lucky_clans SET materials=materials+100 WHERE id=$1',[member.rows[0].clan_id]);
    return {reward:100};
   });res.json({ok:true,...result});
  }));
