@@ -287,7 +287,7 @@ export function registerLuckyClans(app,pool,requireAuth){
  app.post('/api/casino/clans/kick',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   const target=req.body?.playerId;
-  if(typeof target!=='string'||!/^vk:[1-9]\\d{0,18}$/.test(target))
+  if(typeof target!=='string'||!/^vk:[1-9]\d{0,18}$/.test(target))
    fail('Неверный участник');
   if(target===req.playerId)fail('Глава не может исключить себя');
   await tx(pool,async c=>{
