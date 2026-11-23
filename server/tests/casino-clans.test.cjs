@@ -64,3 +64,15 @@ test('5-vote clan construction permit uses signed payment product catalog',()=>{
  assert.equal(goods.clan_build_permit.clanPermit,1);
  assert.equal(typeof goods.clan_build_permit.id,'number');
 });
+
+test('signed community context only accepts same-group administrator, never editor',async()=>{
+ const {verifiedCommunityLaunch}=await import('../casino-clans.js');
+ const req=(group,role)=>({header(name){assert.equal(name,'X-VK-Launch-Params');return new URLSearchParams({vk_group_id:String(group),vk_viewer_group_role:role,vk_user_id:'101'}).toString()}});
+ // Must be used strictly behind requireAuth which verifies VK HMAC launch signature.
+ assert.equal(verifiedCommunityLaunch(req(243634230,'admin'),243634230),true);
+ assert.equal(verifiedCommunityLaunch(req(243634230,'admin'),243634231),false);
+ assert.equal(verifiedCommunityLaunch(req(243634230,'editor'),243634230),false);
+ assert.equal(verifiedCommunityLaunch(req(243634230,'moder'),243634230),false);
+ assert.equal(verifiedCommunityLaunch(req(243634230,'member'),243634230),false);
+ assert.equal(verifiedCommunityLaunch({header:()=>''},243634230),false);
+});
