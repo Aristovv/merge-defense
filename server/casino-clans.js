@@ -83,12 +83,14 @@ async function verifiedAdminGroup(playerId,groupId,communityToken,verifiedLaunch
  if(!verifiedLaunch){
   if(typeof communityToken!=='string'||communityToken.length<15||communityToken.length>4096)
    fail('VK не выдал ключ выбранного сообщества. Запустите игру из группы или подтвердите доступ через VK.',403);
-  // A group-scoped credential is distinct from a user's IP-restricted groups token.
-  // Privileged group-specific read must succeed for exactly the chosen community.
-  const body=new URLSearchParams({group_id:String(requested),access_token:communityToken,v:'5.199'});
+  // A scoped community token is issued by VK to an authorized group admin.
+  // Read the authenticated group's identity and reject a mismatched token.
+  // Do not request callback-management permissions: they are not granted
+  // by the messages scope used by the working Millionaire integration.
+  const body=new URLSearchParams({fields:'photo_200',access_token:communityToken,v:'5.199'});
   let answer;
   try{
-   const response=await fetch('https://api.vk.com/method/groups.getCallbackConfirmationCode',{
+   const response=await fetch('https://api.vk.com/method/groups.getById',{
     method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
     body,signal:AbortSignal.timeout(7000)
    });
@@ -96,15 +98,15 @@ async function verifiedAdminGroup(playerId,groupId,communityToken,verifiedLaunch
    answer=await response.json();
   }catch(error){
    if(error.status)throw error;
-   fail('VK временно недоступен для подтверждения сообщества',503);
+   fail('VK временно недоступен для подтверждения группы',503);
   }
   if(answer?.error){
    const code=Number(answer.error.error_code)||0;
-   fail('VK не подтвердил права для этого сообщества (код '+code+'). Подключите игру к группе или откройте её из группы.',403);
+   fail('VK не подтвердил разрешение сообщества (код '+code+')',403);
   }
-  const confirmation=typeof answer?.response==='string'?answer.response:answer?.response?.code;
-  if(typeof confirmation!=='string'||confirmation.length<5)
-   fail('VK не подтвердил права администратора выбранной группы',403);
+  const groups=Array.isArray(answer?.response)?answer.response:answer?.response?.groups;
+  if(!Array.isArray(groups)||groups.length!==1||Number(groups[0]?.id)!==requested)
+   fail('Ключ VK не принадлежит выбранному сообществу',403);
  }
  const raw=await serviceVK('groups.getById',{group_ids:String(requested),fields:'photo_200'});
  const group=(Array.isArray(raw)?raw:raw?.groups)?.[0];
