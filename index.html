@@ -4738,7 +4738,7 @@ function casinoCurrentIncomeRate(){
  const ordinary=Number(x.boosts.income)>now?.25:0;
  return rate()*(1+ordinary+casinoActiveDonationIncomePercent(now)/100);
 }
-function collectPassive(){if(casinoCloudRevision===null||casinoCloudRevision===0)return 0;const now=Date.now();const elapsedHours=Math.max(0,Math.min(8,(now-state.lastIncome)/3600000));if(elapsedHours<.0025)return 0;const x=cc14Data(),expire=Number(x.boosts.income)||0;
+function collectPassive(){if(casinoCloudRevision===null||casinoCloudRevision===0||casinoDailyClaiming)return 0;const now=Date.now();const elapsedHours=Math.max(0,Math.min(8,(now-state.lastIncome)/3600000));if(elapsedHours<.0025)return 0;const x=cc14Data(),expire=Number(x.boosts.income)||0;
  // Only time actually covered by an income booster may receive the +25%.
  const periodStart=now-elapsedHours*3600000;
  const boosterStart=Number(x.boostsStarted?.income)||expire-CC14_BOOSTERS.income.duration;
@@ -5246,6 +5246,13 @@ function casinoStreakSection(){
  '<div class="casino-streak-days">'+list+'</div><div class="casino-streak-footer"><span>Твоя самая длинная серия: '+Math.max(streak,Number(state.giftBestStreak)||0)+' дн.</span><b>'+(state.lastGift===today()?'Бонус за сегодня получен':'За следующий подарок: +'+fmt(upcoming.chips)+' фишек'+(upcoming.coins?' и +'+fmt(upcoming.coins)+' монет':''))+'</b></div></div>';
 }
 let casinoDailyClaiming=false;
+// Pause other browser actions while a gift is committed on the server.
+document.addEventListener('click',function(e){
+ if(!casinoDailyClaiming)return;
+ const target=e.target.closest('button,a,[role="button"]');
+ if(!target)return;
+ e.preventDefault();e.stopImmediatePropagation();
+},true);
 async function daily(){
  if(casinoDailyClaiming)return message('Награда уже проверяется на сервере');
  if(!CASINO_LAUNCH_PARAMS||!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1)
