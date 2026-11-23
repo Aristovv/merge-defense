@@ -779,11 +779,71 @@ const LC49_OUTFITS=[
  ['emperor','GOLDEN EMPEROR','outfit-emperor.png'],
  ['galaxy','COSMIC LEGEND','outfit-galaxy.png']
 ];
+/* 55.0 — fitted five-slot wearable preview on the existing realistic model.
+   Garment vectors share the exact coordinate space with avatar.png (384 × 704).
+   This avoids stretching whole product photos on top of a person. */
+function lc55Tone(color,fallback='#29213e'){
+ return /^#[0-9a-fA-F]{6}$/.test(color||'')?color:fallback;
+}
+function lc55Piece(type,id){
+ const g=LC35_BY_ID.get(id);
+ if(!g||g.type!==type)return '';
+ const color=lc55Tone(g.color);
+ const key=g.id;
+ const shine=/gold|royal|emperor|diamond|crown|phoenix|flame/.test(key)?'#e8c475':
+  /ice|cyan|holo|toxic/.test(key)?'#91eefa':'#c18bfa';
+ if(type==='hat'){
+  if(/crown/.test(key))return '<g class="lc55-garment"><path d="M151 120 L145 83 164 99 187 66 214 98 239 83 228 120Z" fill="'+color+'" stroke="'+shine+'" stroke-width="3"/><path d="M149 120 Q190 130 232 120 L229 133 Q192 139 151 133Z" fill="'+color+'" stroke="'+shine+'" stroke-width="3"/><circle cx="190" cy="112" r="5" fill="'+shine+'"/></g>';
+  if(/beanie/.test(key))return '<g class="lc55-garment"><path d="M152 112 Q149 71 186 68 Q222 67 228 112 L232 126 Q191 136 150 126Z" fill="'+color+'" stroke="'+shine+'" stroke-width="2"/><path d="M150 116 Q190 125 232 116 L229 134 Q189 140 152 133Z" fill="'+color+'" stroke="'+shine+'" stroke-width="2"/><path d="M166 88 L166 111 M186 82 L186 113 M207 87 L207 112" stroke="'+shine+'" opacity=".35" stroke-width="3"/></g>';
+  if(/bucket|fedora|cowboy|cylinder/.test(key))return '<g class="lc55-garment"><path d="M151 113 L159 76 Q189 68 221 76 L232 113Z" fill="'+color+'" stroke="'+shine+'" stroke-width="2.5"/><path d="M137 116 Q193 131 244 114 L240 129 Q190 146 142 126Z" fill="'+color+'" stroke="'+shine+'" stroke-width="2"/></g>';
+  return '<g class="lc55-garment"><path d="M151 111 Q155 73 191 76 Q224 76 231 112 L228 126 Q191 132 151 125Z" fill="'+color+'" stroke="'+shine+'" stroke-width="2"/><path d="M175 117 Q216 111 244 122 Q226 136 180 132Z" fill="'+color+'" stroke="'+shine+'" stroke-width="2"/><path d="M166 103 Q190 94 216 104" fill="none" stroke="'+shine+'" opacity=".4" stroke-width="2"/></g>';
+ }
+ if(type==='jacket'){
+  const long=/coat|emperor|goldcoat|royal/.test(key);
+  const hood=/hoodie/.test(key);
+  const body='<path d="M153 184 Q138 190 127 193 L110 205 Q106 213 111 240 L123 329 Q126 340 139 335 L141 277 L139 369 Q190 384 249 369 L246 276 L248 335 Q259 341 265 329 L278 238 Q282 214 269 204 L251 193 Q237 189 227 184 L213 203 Q190 221 170 204Z" fill="'+color+'" fill-opacity=".86" stroke="#bfa9d5" stroke-opacity=".45" stroke-width="2"/>';
+  const sleeves='<path d="M117 231 L127 322 M267 231 L256 322 M139 275 L144 362 M246 275 L244 362" stroke="#05020d" stroke-opacity=".5" stroke-width="9" fill="none"/>';
+  const edge='<path d="M167 191 L191 226 L214 192 M191 226 V369 M141 360 Q190 372 248 360" stroke="'+shine+'" stroke-opacity=".72" stroke-width="2.5" fill="none"/>';
+  const pockets='<path d="M153 298 L177 302 L170 316 M229 300 L208 302 L216 316" stroke="'+shine+'" stroke-opacity=".58" stroke-width="2" fill="none"/>';
+  const hoodPart=hood?'<path d="M167 190 Q157 161 172 149 Q191 168 207 149 Q221 159 215 190 Q190 206 167 190Z" fill="'+color+'" stroke="'+shine+'" stroke-width="2"/>':'';
+  const coatPart=long?'<path d="M139 352 L124 487 Q158 476 191 450 L254 487 L245 352 L195 376Z" fill="'+color+'" fill-opacity=".87" stroke="'+shine+'" stroke-width="2"/><path d="M190 371 L191 450" stroke="'+shine+'" stroke-width="2"/>':'';
+  const trim=/varsity|jacket|blackout/.test(key)?'<path d="M143 369 Q191 382 245 369 M121 325 L138 329 M253 329 L267 324" stroke="'+shine+'" stroke-width="5" fill="none" opacity=".8"/>':'';
+  const mark=/cosmos|galaxy|neon|diamond|phoenix|lunar|vip/.test(key)?'<path d="M221 250 L233 261 L222 273 L212 260Z" fill="'+shine+'" opacity=".8"/>':'';
+  return '<g class="lc55-garment">'+coatPart+body+sleeves+hoodPart+edge+pockets+trim+mark+'</g>';
+ }
+ if(type==='pants'){
+  let base='<path d="M140 364 Q192 375 246 363 L248 430 L234 629 Q215 644 201 628 L190 434 L179 628 Q162 642 143 629 L134 427Z" fill="'+color+'" fill-opacity=".83" stroke="#b4aac4" stroke-opacity=".4" stroke-width="2"/>';
+  let seams='<path d="M190 394 L191 439 M142 405 L157 613 M242 406 L223 615" stroke="'+shine+'" stroke-opacity=".36" stroke-width="2" fill="none"/>';
+  if(/cargo/.test(key))seams+='<path d="M138 456 L168 460 L167 505 L141 504Z M215 459 L244 456 L243 506 L217 505Z" fill="'+color+'" stroke="'+shine+'" stroke-opacity=".76" stroke-width="2"/><path d="M143 470 H166 M220 470 H240" stroke="'+shine+'" stroke-width="2" fill="none"/>';
+  if(/royal|diamond|emperor|galaxy|goldline/.test(key))seams+='<path d="M153 418 L157 612 M232 415 L223 612" stroke="'+shine+'" stroke-width="4" opacity=".7"/>';
+  return '<g class="lc55-garment">'+base+seams+'</g>';
+ }
+ if(type==='shoes'){
+  return '<g class="lc55-garment"><path d="M141 621 L174 621 L179 652 L190 671 Q189 687 168 687 L124 684 Q113 677 121 665 L138 649Z M208 621 L238 621 L241 650 L264 667 Q271 680 258 685 L219 688 Q203 687 197 676 L201 652Z" fill="'+color+'" stroke="'+shine+'" stroke-width="2"/><path d="M121 675 Q146 684 188 679 M198 677 Q233 688 267 675" stroke="#f4edf9" stroke-width="4" fill="none"/><path d="M138 657 L167 661 M136 665 L171 667 M214 661 L240 657 M210 669 L247 665" stroke="'+shine+'" stroke-opacity=".9" stroke-width="2.5" fill="none"/></g>';
+ }
+ if(type==='accessory'){
+  if(/glasses/.test(key))return '<g class="lc55-garment"><path d="M153 150 L165 148 L173 156 Q176 166 165 169 L156 168 Q150 165 153 150Z M200 152 L209 148 L226 150 Q229 163 221 168 L208 169 Q199 166 200 152Z" fill="'+color+'" fill-opacity=".7" stroke="'+shine+'" stroke-width="3"/><path d="M173 154 Q190 148 201 154" stroke="'+shine+'" stroke-width="3" fill="none"/></g>';
+  if(/chain/.test(key))return '<g class="lc55-garment"><path d="M169 199 Q190 245 218 198" fill="none" stroke="'+shine+'" stroke-width="5"/><circle cx="192" cy="233" r="7" fill="'+color+'" stroke="'+shine+'" stroke-width="2"/></g>';
+  return '<g class="lc55-garment"><path d="M153 115 Q148 83 191 81 Q234 82 232 116" fill="none" stroke="'+shine+'" stroke-width="10"/><rect x="141" y="111" width="17" height="44" rx="7" fill="'+color+'" stroke="'+shine+'" stroke-width="3"/><rect x="225" y="111" width="17" height="44" rx="7" fill="'+color+'" stroke="'+shine+'" stroke-width="3"/></g>';
+ }
+ return '';
+}
+function lc55WearableAvatar(equipped){
+ const layers=['pants','jacket','shoes','hat','accessory'].map(type=>{
+  const id=equipped[type];return id?lc55Piece(type,id):'';
+ }).join('');
+ return '<svg class="lc47-real-avatar lc55-avatar" viewBox="0 0 384 704" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Персонаж в выбранной одежде">'+
+ '<image href="./assets/character44/avatar.png" x="0" y="0" width="384" height="704"/>'+layers+'</svg>';
+}
 function lc33Avatar(){
- const previewId=lc39Preview?.id||lc49SelectedOutfit;
- const outfit=LC49_OUTFITS.find(o=>o[0]===previewId)||LC49_OUTFITS[0];
- const src='./assets/character44/'+outfit[2];
- return '<img class="lc47-real-avatar" src="'+src+'" alt="Реалистичный персонаж: '+outfit[1]+'" draggable="false" onerror="this.onerror=null;this.src=\'./assets/character44/avatar.png\'">';
+ const active=lc39Preview||LC39_SETS.find(set=>lc39IsWearing(set,lc33State()));
+ if(active&&!lc45TryOn){
+  const outfit=LC49_OUTFITS.find(o=>o[0]===active.id);
+  if(outfit)return '<img class="lc47-real-avatar" src="./assets/character44/'+outfit[2]+'" alt="Реалистичный образ '+outfit[1]+'" draggable="false" onerror="this.onerror=null;this.src=\'./assets/character44/avatar.png\'">';
+ }
+ const equipped={...lc33State().equipped,...(lc45TryOn||{})};
+ if(!Object.keys(equipped).length)return '<img class="lc47-real-avatar" src="./assets/character44/avatar.png" alt="Базовый персонаж" draggable="false">';
+ return lc55WearableAvatar(equipped);
 }
 
 /* 43.0: recognizable material patches and seams, painted inside each thumbnail.
@@ -829,9 +889,9 @@ function lc33Screen(){
  const cards=list.map(g=>{
   const owned=c.owned.includes(g.id),equipped=c.equipped[g.type]===g.id;
   const rarity=g.rarity==='Редкая'?'rare':g.rarity==='Эпическая'?'epic':g.rarity==='Легендарная'?'legend':g.rarity==='Мифическая'?'mythic':'';
-  const action=equipped?'✓ Надето':owned?'Надеть':g.payment==='coin'?fmt(g.price)+' 🪙':g.payment==='premium'?(typeof luckyPaymentsReady!=='undefined'&&luckyPaymentsReady?g.price+' гол. · Купить':'🔒 '+g.price+' гол.'):'Пока недоступно';
+  const action=equipped?'Снять':owned?'Надеть':g.payment==='coin'?fmt(g.price)+' 🪙':g.payment==='premium'?(typeof luckyPaymentsReady!=='undefined'&&luckyPaymentsReady?g.price+' гол. · Купить':'🔒 '+g.price+' гол.'):'Пока недоступно';
   return '<article class="lc33-item '+rarity+(equipped?' on':'')+(g.payment==='premium'?' lc35-premium':'')+'"><span class="rar">'+rankEsc(g.rarity)+'</span>'+lc34SvgItem(g)+'<strong>'+rankEsc(g.name)+'</strong>'+
-   '<button data-lc33-item="'+g.id+'"'+(equipped?' disabled':'')+'>'+action+'</button></article>';
+   '<button data-lc33-item="'+g.id+'">'+action+'</button></article>';
  }).join('');
  const view=lc33Subtab==='sets'?lc39SetCards():lc33Subtab==='wardrobe'?
   '<div class="lc33-stage"><aside class="lc33-cats">'+LC33_GROUPS.map(g=>'<button data-lc33-cat="'+g[0]+'" class="'+(lc33Category===g[0]?'active':'')+'">'+g[2]+' '+g[1]+'</button>').join('')+'</aside>'+
@@ -852,7 +912,7 @@ document.addEventListener('click',function(e){
  const control=e.target.closest('[data-lc51-remove-all]');
  if(!control)return;
  const c=lc33State();
- c.equipped={};lc39Preview=null;lc49SelectedOutfit='base';
+ c.equipped={};lc39Preview=null;lc45TryOn=null;lc49SelectedOutfit='base';
  save();render();message('Базовый персонаж: вся одежда снята, купленные вещи сохранены');
 });
 document.addEventListener('click',function(e){
@@ -972,7 +1032,7 @@ document.addEventListener('click',function(e){
  lc39Preview=null;
  const item=LC33_GOODS.find(x=>x.id===b.dataset.lc33Item);if(!item)return;
  lc33Selected=item.id;const c=lc33State();
- if(c.equipped[item.type]===item.id)return;
+ if(c.equipped[item.type]===item.id){delete c.equipped[item.type];lc45TryOn=null;lc49SelectedOutfit='base';save();render();message('Вещь снята: '+item.name);return;}
  if(!c.owned.includes(item.id)){
   if(item.payment==='premium'){if(typeof luckyPaymentsReady!=='undefined'&&luckyPaymentsReady&&typeof luckyBuy==='function'){luckyBuy('character_'+item.id);}else message('Оплата через голоса VK пока не подключена');render();return}
   if(item.payment==='locked'){message('Этот предмет пока недоступен');render();return}
@@ -981,7 +1041,7 @@ document.addEventListener('click',function(e){
    state.coins-=item.price;c.owned.push(item.id);
   }
  }
- c.equipped[item.type]=item.id;lc49SelectedOutfit='base';save();render();message('Предмет применён: '+item.name);
+ c.equipped[item.type]=item.id;lc45TryOn=null;lc49SelectedOutfit='base';save();render();message('Вещь надета: '+item.name);
 });
 
 
@@ -1016,7 +1076,7 @@ document.addEventListener('click',function(e){
  if(!btn)return;
  const g=LC35_BY_ID.get(btn.dataset.lc33Item);
  if(!g)return;
- lc45TryOn={[g.type]:g.id};render();message('Примерка без покупки: '+g.name);
+ lc39Preview=null;lc45TryOn={[g.type]:g.id};render();message('Примерка вещи: '+g.name+' (без покупки)');
 });
 const lc45Styles=document.createElement('style');lc45Styles.id='lc45-styles';
 lc45Styles.textContent=
@@ -1161,3 +1221,10 @@ const lc47Style=document.createElement('style');lc47Style.id='lc47-realistic-cha
 '.lc47-real-avatar{display:block!important;width:100%!important;height:100%!important;max-height:345px!important;object-fit:contain!important;object-position:center center!important;filter:drop-shadow(0 12px 18px #09041a99)}'+
 '.lc39-preview-avatar .lc47-real-avatar{max-height:390px!important}'+
 '.lc33-figure .lc47-real-avatar{max-height:310px!important}';document.head.appendChild(lc47Style);
+const lc55Style=document.createElement('style');lc55Style.id='lc55-wearables';
+lc55Style.textContent=
+'.lc55-avatar{overflow:visible!important;vertical-align:middle}'+
+'.lc55-avatar .lc55-garment{pointer-events:none;filter:drop-shadow(0px 2px 2px #04030866)}'+
+'.lc33-item button:not(:disabled){cursor:pointer}';
+document.head.appendChild(lc55Style);
+
