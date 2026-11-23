@@ -1,0 +1,42 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const {clean,regression}=require('../casino-saves.cjs');
+
+function player(){
+ return {
+  coins:88962,chips:35770,vip:1,level:1,xp:99,
+  buildings:[1,...Array(13).fill(0)],
+  plays:21,wins:13,best:500,earned:6000,
+  giftBestStreak:1,giftStreak:1,lastGift:'2026-11-23',
+  character33:{ownedOutfits:['city-rookie']}
+ };
+}
+
+test('valid cloud saves are accepted',()=>{
+ assert.ok(clean(player()));
+});
+test('valid spending does not trigger a false rollback',()=>{
+ const a=player(),b={...a,coins:1000,chips:3000};
+ assert.equal(regression(a,b),null);
+});
+test('stale starter save cannot overwrite established plays',()=>{
+ assert.equal(regression(player(),{...player(),plays:0}),'PROGRESS_REGRESSION_PLAYS');
+});
+test('daily login history cannot disappear',()=>{
+ assert.equal(regression(player(),{...player(),lastGift:''}),'DAILY_GIFT_REGRESSION');
+});
+test('earned level and purchased outfit cannot disappear',()=>{
+ assert.equal(regression(player(),{...player(),level:0}),'PROGRESS_REGRESSION_LEVEL');
+ assert.equal(regression(player(),{...player(),character33:{ownedOutfits:[]}}),'OUTFIT_OWNERSHIP_REGRESSION');
+});
+test('buildings cannot drop to new-game defaults',()=>{
+ assert.equal(regression(player(),{...player(),buildings:Array(14).fill(0)}),'BUILDING_REGRESSION');
+});
+test('mismatched administrative epoch rejects stale writes',()=>{
+ assert.equal(regression(player(),{...player(),resetEpoch:2}),'RESET_EPOCH_MISMATCH');
+});
+test('oversized and invalid snapshots are rejected',()=>{
+ assert.equal(clean({...player(),level:0}),null);
+ assert.equal(clean({...player(),padding:'x'.repeat(91000)}),null);
+});
