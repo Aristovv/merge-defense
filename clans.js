@@ -48,12 +48,34 @@
   if(!result?.access_token)throw Error('Не получено разрешение на просмотр сообществ');
   return result.access_token;
  }
+ async function bridgeApi(method,params){
+  if(!userToken)throw Error('Разрешение VK на группы не получено');
+  const result=await window.vkBridge.send('VKWebAppCallAPIMethod',{
+   method,request_id:'lucky-clan-'+Math.random().toString(36).slice(2),
+   params:{...params,access_token:userToken,v:'5.199'}
+  });
+  const payload=result?.response?.response??result?.response??result;
+  if(payload?.error)throw Error('VK API: код '+payload.error.error_code);
+  return payload;
+ }
  async function openCreator(){
   creating=true;preview=null;adminGroups=[];notice='';paint();
   try{
    userToken=await getAdminToken();
-   const response=await api('/admin-groups',{userToken});
-   adminGroups=response.groups||[];
+   // The VK Bridge API request is performed inside VK on the player's device.
+   // The user token never leaves the device for this read-only operation.
+   const account=await bridgeApi('users.get',{});
+   const expected=new URLSearchParams(launch).get('vk_user_id');
+   if(!Array.isArray(account)||String(account[0]?.id)!==String(expected))
+    throw Error('Авторизация принадлежит другому аккаунту VK');
+   for(let offset=0;offset<1000;offset+=200){
+    const response=await bridgeApi('groups.get',{extended:1,filter:'admin',fields:'photo_200',count:200,offset});
+    const items=Array.isArray(response?.items)?response.items:[];
+    for(const g of items)if(Number.isSafeInteger(Number(g.id))&&Number(g.id)>0&&g.name&&g.is_closed!==2){
+     adminGroups.push({groupId:Number(g.id),name:String(g.name),avatar:String(g.photo_200||g.photo_100||''),screenName:String(g.screen_name||'')});
+    }
+    if(items.length<200)break;
+   }
   }catch(e){
    notice='Не удалось получить список групп: '+(e.message||'ошибка доступа');
    userToken=null;
@@ -103,7 +125,7 @@
   if(['leave','create'].includes(action)&&!confirm(action==='leave'?'Выйти из клана?':'Создать клан из сообщества «'+(preview?.name||'')+'»?'))return;
   btn.disabled=true;
   try{
-   const body=action==='create'?{groupId:preview?.groupId,userToken}:action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:{};
+   const body=action==='create'?{groupId:preview?.groupId}:action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:{};
    await api('/'+action,body);preview=null;userToken=null;creating=false;adminGroups=[];data=await api();notice='Успешно';rankings=data.leaders;paintTop();
   }catch(err){notice=err.message}finally{paint()}
  });
