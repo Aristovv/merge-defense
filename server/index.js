@@ -13,6 +13,8 @@ app.disable('x-powered-by');
 // Requests reach this API through exactly one trusted local Caddy proxy.
 // This allows express-rate-limit to read the real client IP from X-Forwarded-For.
 app.set('trust proxy', 1);
+// Cloud saves can contain inventories and quest history; keep other APIs at 12 KB.
+app.use('/api/casino/save',express.json({limit:'96kb'}));
 app.use(express.json({limit:'12kb'}));
 app.use('/api/vk/payments/callback',express.urlencoded({extended:false,limit:'12kb'}));
 app.use('/api/casino/payments/callback',express.urlencoded({extended:false,limit:'12kb'}));
