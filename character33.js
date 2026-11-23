@@ -798,6 +798,62 @@ document.addEventListener('click',function(e){
 });
 
 
+
+/* Lucky City 45.0: prototype fitted photo layers. No purchases or ownership changes. */
+let lc45TryOn=null;
+const LC45_IMAGES=new Set(['cap','beanie','bucket','kitty','crown','cylinder','cowboy','cap-vip','varsity','hoodie','goldcoat','jeans','cargo','sneakers','neonboots','chain']);
+function lc45Figure(){
+ const equipped={...lc33State().equipped,...(lc39Preview?.equipped||{}),...(lc45TryOn||{})};
+ const photo=(type,cls)=>{
+  const id=equipped[type];
+  return LC45_IMAGES.has(id)?'<img class="lc45-layer '+cls+'" alt="" src="./assets/character44/'+id+'.png" onerror="this.hidden=true">':'';
+ };
+ const trial=lc45TryOn?LC35_BY_ID.get(Object.values(lc45TryOn)[0]):null;
+ const status=lc39Preview?'Комплект: '+lc39Preview.name:trial?'Примерка: '+trial.name:'Надетые вещи';
+ const missing=Object.entries(equipped).filter(([type,id])=>!LC45_IMAGES.has(id)).map(([type,id])=>{
+  const item=LC35_BY_ID.get(id);
+  return item?'<span class="lc45-unrendered">'+rankEsc(item.name)+'</span>':'';
+ }).join('');
+ return '<div class="lc45-panel"><div class="lc45-brow">REALISTIC CHARACTER · 45.0</div>'+
+ '<div class="lc45-canvas"><img class="lc45-base" alt="Персонаж Lucky City" src="./assets/character44/avatar.png">'+
+ photo('pants','lc45-pants')+photo('shoes','lc45-shoes')+photo('jacket','lc45-jacket')+
+ photo('hat','lc45-hat')+photo('accessory','lc45-accessory')+'</div>'+
+ '<div class="lc45-status">'+rankEsc(status)+'</div>'+
+ (missing?'<div class="lc45-missing">Нет готовых фотослоёв: '+missing+'</div>':'')+
+ '<p class="lc45-note">Экспериментальная подгонка: пока используются товарные PNG, а не специально подготовленные слои для персонажа.</p>'+
+ (lc45TryOn?'<button type="button" class="lc45-clear" data-lc45-clear>Вернуться к надетому</button>':'')+'</div>';
+}
+document.addEventListener('click',function(e){
+ if(e.target.closest('[data-lc45-clear]')){lc45TryOn=null;render();return}
+ const card=e.target.closest('.lc33-item');
+ if(!card||e.target.closest('button'))return;
+ const btn=card.querySelector('[data-lc33-item]');
+ if(!btn)return;
+ const g=LC35_BY_ID.get(btn.dataset.lc33Item);
+ if(!g)return;
+ lc45TryOn={[g.type]:g.id};render();message('Примерка без покупки: '+g.name);
+});
+const lc45Styles=document.createElement('style');lc45Styles.id='lc45-styles';
+lc45Styles.textContent=
+'.lc45-panel{background:radial-gradient(ellipse at 50% 30%,#38224c,#120c24 85%);border:1px solid #9254cf;border-radius:22px;padding:12px 12px 16px;margin:9px 0 15px;text-align:center;overflow:hidden}'+
+'.lc45-brow{color:#e9ccff;font-size:11px;font-weight:900;letter-spacing:1.4px;margin:2px 0 8px}'+
+'.lc45-canvas{height:375px;max-width:330px;margin:auto;position:relative;overflow:hidden}'+
+'.lc45-base{width:100%;height:100%;object-fit:contain;display:block;position:absolute;inset:0}'+
+'.lc45-layer{position:absolute;object-fit:contain;pointer-events:none;filter:drop-shadow(0 3px 3px #06020a55)}'+
+'.lc45-hat{width:29%;height:19%;top:3.3%;left:35.5%;z-index:5}'+
+'.lc45-jacket{width:62%;height:39%;top:16%;left:19%;z-index:4}'+
+'.lc45-pants{width:38%;height:44%;top:48%;left:31%;z-index:3}'+
+'.lc45-shoes{width:44%;height:13%;top:86%;left:28%;z-index:4}'+
+'.lc45-accessory{width:28%;height:13%;top:17%;left:36%;z-index:6}'+
+'.lc45-status{font-weight:900;font-size:14px;color:#f8ebff;margin:6px 0}'+
+'.lc45-note{font-size:11px;line-height:1.5;color:#baa9cb;margin:7px auto 0;max-width:340px}'+
+'.lc45-missing{color:#c8b2da;font-size:10px;line-height:1.8}'+
+'.lc45-unrendered{border:1px solid #755293;border-radius:8px;padding:2px 5px;margin:2px;display:inline-block}'+
+'.lc45-clear{background:#51267e;color:#fff;border:1px solid #ac77f5;border-radius:12px;padding:10px;margin:10px 0 0;font-weight:800}'+
+'.lc33-item{cursor:pointer}'+
+'@media(max-width:390px){.lc45-canvas{height:330px}}';
+document.head.appendChild(lc45Styles);
+
 /* Lucky City 44.0 — safe photorealistic wardrobe preview.
    Existing item identifiers, prices, owned inventory and payments are untouched.
    Image files: assets/character44/{item-id}.png. Fallback to 43.0 SVG art. */
@@ -813,13 +869,13 @@ document.addEventListener('click',function(e){
      '" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="lc44-old-art" hidden>'+fallback+'</span></span>';
  };
  const oldScreen=lc33Screen;
- let photorealOpen=false;
+ let photorealOpen=true;
  lc33Screen=function(){
    let html=oldScreen();
    const control='<div class="lc44-preview-action"><button type="button" data-lc44-photo>'+
       (photorealOpen?'Скрыть фотореалистичный образ':'Посмотреть фотореалистичного персонажа')+
       '</button></div>';
-   const panel=photorealOpen?'<div class="lc44-preview-stage"><img src="./assets/character44/avatar.png" alt="Фотореалистичный прототип персонажа" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><p hidden>Файл avatar.png ещё не загружен. Импортируйте пакет изображений Lucky City 44.0.</p><small>Предпросмотр внешности. Экипировка пока работает в прежней SVG-системе.</small></div>':'';
+   const panel=photorealOpen?lc45Figure():'';
    return html.replace('<div class="lc33-hero"><h1>ПЕРСОНАЖ</h1></div>','<div class="lc33-hero"><h1>ПЕРСОНАЖ</h1></div>'+control+panel);
  };
  document.addEventListener('click',function(e){if(e.target.closest('[data-lc44-photo]')){photorealOpen=!photorealOpen;render();}});
