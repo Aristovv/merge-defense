@@ -4637,7 +4637,10 @@ async function casinoCloudStart(){
   if([401,403].includes(error?.status)){
    casinoCloudNotice('Авторизация VK устарела. Закрой игру и открой заново из ВКонтакте.');
   }else{
-   casinoCloudNotice('Синхронизация недоступна. Автоматически повторяем подключение; игра защищена от сброса.');
+   // Transient network failures are not a gameplay-blocking user warning.
+   // Retry in the background until the first offline edit; after an offline
+   // edit, the local-only ownership marker forbids automatic cloud overwrite.
+   casinoCloudLastIssue='';
    casinoCloudRetryStart();
   }
  }finally{casinoCloudStarting=false}
@@ -4811,7 +4814,7 @@ function casinoCurrentIncomeRate(){
  const ordinary=Number(x.boosts.income)>now?.25:0;
  return rate()*(1+ordinary+casinoActiveDonationIncomePercent(now)/100);
 }
-function collectPassive(){if(casinoCloudRevision===null||casinoCloudRevision===0||casinoDailyClaiming)return 0;const now=Date.now();const elapsedHours=Math.max(0,Math.min(8,(now-state.lastIncome)/3600000));if(elapsedHours<.0025)return 0;const x=cc14Data(),expire=Number(x.boosts.income)||0;
+function collectPassive(){if(((casinoCloudRevision===null||casinoCloudRevision===0)&&!casinoCloudLocalOnly)||casinoDailyClaiming)return 0;const now=Date.now();const elapsedHours=Math.max(0,Math.min(8,(now-state.lastIncome)/3600000));if(elapsedHours<.0025)return 0;const x=cc14Data(),expire=Number(x.boosts.income)||0;
  // Only time actually covered by an income booster may receive the +25%.
  const periodStart=now-elapsedHours*3600000;
  const boosterStart=Number(x.boostsStarted?.income)||expire-CC14_BOOSTERS.income.duration;
