@@ -20,10 +20,21 @@ CREATE TABLE IF NOT EXISTS lucky_clan_members (
 );
 CREATE INDEX IF NOT EXISTS lucky_clan_members_clan_idx ON lucky_clan_members(clan_id);
 `;
+const ECONOMY_SQL=[
+ "ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS coins BIGINT CHECK(coins>=0)",
+ "UPDATE lucky_clans SET coins=materials WHERE coins IS NULL",
+ "ALTER TABLE lucky_clans ALTER COLUMN coins SET DEFAULT 0",
+ "ALTER TABLE lucky_clans ALTER COLUMN coins SET NOT NULL",
+ `CREATE TABLE IF NOT EXISTS lucky_clan_transactions(
+ id BIGSERIAL PRIMARY KEY, clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,
+ player_id TEXT NOT NULL, action TEXT NOT NULL, coins BIGINT NOT NULL,
+ request_id TEXT UNIQUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`,
+ "CREATE INDEX IF NOT EXISTS lucky_clan_transactions_clan_idx ON lucky_clan_transactions(clan_id,created_at DESC)"
+];
 let initialized;
 const start=pool=>{
  if(!pool)throw Error('DATABASE_NOT_CONFIGURED');
- if(!initialized)initialized=(async()=>{for(const statement of INIT.split(';').map(x=>x.trim()).filter(Boolean))await pool.query(statement)})().catch(e=>{initialized=null;throw e});
+ if(!initialized)initialized=(async()=>{for(const statement of [...INIT.split(';').map(x=>x.trim()).filter(Boolean),...ECONOMY_SQL])await pool.query(statement)})().catch(e=>{initialized=null;throw e});
  return initialized;
 };
 function err(res,e){
@@ -93,7 +104,7 @@ async function tx(pool,fn){
  catch(e){await client.query('ROLLBACK').catch(()=>{});throw e}
  finally{client.release()}
 }
-const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.materials,(5000+c.headquarters*2000) AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
+const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.coins,(50000+c.headquarters*c.headquarters*20000)::bigint AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
 async function mine(pool,playerId){
  const {rows}=await pool.query(`SELECT ${clanFields},m.role,m.last_claim AS "lastClaim" FROM lucky_clans c JOIN lucky_clan_members m ON m.clan_id=c.id WHERE m.player_id=$1`,[playerId]);
  if(!rows[0])return null;
@@ -104,7 +115,7 @@ async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
  return rows;
 }
-function upgradeCost(level){return Math.ceil(100*Math.pow(1.12,level-1))}
+function upgradeCost(kind,level){return Math.ceil((kind==='headquarters'?3000:2000)*Math.pow(1.17,level-1)/100)*100}
 export function registerLuckyClans(app,pool,requireAuth){
  app.get('/api/casino/clans',requireAuth,wrap(async(req,res)=>{await start(pool);res.json({mine:await mine(pool,req.playerId),leaders:await listing(pool)})}));
  app.post('/api/casino/clans/create',requireAuth,wrap(async(req,res)=>{
