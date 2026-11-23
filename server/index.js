@@ -15,7 +15,8 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1);
 // Cloud saves can contain inventories and quest history; keep other APIs at 12 KB.
 app.use('/api/casino/save',express.json({limit:'96kb'}));
-app.use(express.json({limit:'12kb'}));
+// Cloud saves include wardrobes, quest history and receipts. Limit is still bounded.
+app.use(express.json({limit:'128kb'}));
 app.use('/api/vk/payments/callback',express.urlencoded({extended:false,limit:'12kb'}));
 app.use('/api/casino/payments/callback',express.urlencoded({extended:false,limit:'12kb'}));
 const origin=process.env.CLIENT_ORIGIN||'https://merge-defense.onrender.com';
