@@ -37,3 +37,18 @@ If the VPS backend is still on an older commit, the frontend will continue savin
 - `/api/purchases/verify` is disabled. Test purchases are nonspendable.
 
 No secrets are stored in GitHub or sent to the browser.
+
+## Lucky City clans (new module)
+
+The new clan data is isolated in `lucky_clans` and `lucky_clan_members` and does not edit existing cloud saves, player balances, or purchases. The tables are created automatically when a clan endpoint is first requested. All mutations require signed VK launch params.
+
+- `GET /api/casino/clans`: current clan and top clan list.
+- `GET /api/casino/clans/group?url=...`: verify public VK group, load its real name and avatar.
+- `POST /api/casino/clans/create`: create a clan for a verified VK group, **free**.
+- `POST /api/casino/clans/join`, `leave`, `daily`, `upgrade`, `role`.
+
+**Required for group selection:** set `VK_GROUP_SERVICE_TOKEN` in the API server environment (a VK application service token with access to groups.getById). Never put it in the frontend or GitHub. Without the token, choosing a community returns a clear 503 instead of creating an unverified clan. Restart the MERGE DEFENSE PM2 process with `--update-env` after configuring it.
+
+The clan treasury currently holds **clan building materials** only, earned once per UTC day by each member; it is not a real-money/virtual-currency balance transfer. Headquarters and walls upgrade through 50 levels. Raids and clan attacks are not enabled in this release. Confirm backup coverage for both tables before exposing raids or clan spendable currency.
+
+Frontend file `clans.js` is served next to `index.html`. Publishing GitHub alone does not prove the VPS has pulled new code. Check the served build and the authenticated clan API after deployment.
