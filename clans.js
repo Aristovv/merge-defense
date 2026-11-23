@@ -6,6 +6,7 @@
  const root=()=>document.getElementById('lucky-clan-root');
  let launch='',data=null,preview=null,loading=false,rankings=null,notice='',loadingTop=false,creating=false,adminGroups=[],userToken=null;
  let depositFeedback='',depositFeedbackTimer=null;
+ let topSelectedClan=null,topClanDetails=null,topClanLoading=false,topClanError='';
  // Keep opened sections open after clan operations, without localStorage or save mutations.
  const expandedSections=new Set();
  const hqNames=['Гнилой сарай','Обшитый сарай','Небольшой сарай','Старый гараж с мусором','Убранный гараж','Оштукатуренный гараж','Гараж с ровным полом','Гараж с белыми стенами','Гараж с ламинатом','Освещённый гараж','Гараж с мебелью','Гараж с сейфом','Гараж с крепкой дверью','Гараж с кодовым замком','Заброшенный дом'];
@@ -33,6 +34,23 @@
 
  .lc-clan-rank{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #624879;background:#1e1732;border-radius:13px;margin:8px 0}
  .lc-clan-rank img{width:40px;height:40px;border-radius:9px;object-fit:cover}
+ .lc-clan-rank-button{font:inherit;color:inherit;text-align:left;width:100%;cursor:pointer}
+ .lc-clan-rank-button:focus-visible,.lc-clan-detail-btn:focus-visible{outline:2px solid #eac3ff;outline-offset:3px}
+ .lc-clan-detail-hero{background:linear-gradient(140deg,#4f256b,#20152f);border:1px solid #ab6bd8;border-radius:20px;padding:18px}
+ .lc-clan-detail-header{display:flex;align-items:center;gap:13px}
+ .lc-clan-detail-header img{width:72px;height:72px;border-radius:18px;object-fit:cover;flex:none}
+ .lc-clan-detail-title{font-size:19px;font-weight:850;color:#f7d6ff;overflow-wrap:anywhere}
+ .lc-clan-detail-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+ .lc-clan-detail-stat{border:1px solid #775494;border-radius:12px;padding:12px;background:#221735}
+ .lc-clan-detail-stat strong{display:block;color:#f5d2a0;font-size:18px;margin:4px 0}
+ .lc-clan-detail-action{display:block;text-align:center;padding:13px;border-radius:12px;border:1px solid #a477de;color:#f6dcff;font-weight:750;text-decoration:none;background:#533078;margin:12px 0}
+ .lc-clan-detail-members{display:grid;gap:9px}
+ .lc-clan-detail-member{display:flex;align-items:center;gap:11px;padding:10px;border:1px solid #634980;border-radius:12px;background:#21172f;color:#fff;text-decoration:none}
+ .lc-clan-detail-member img{width:43px;height:43px;border-radius:50%;object-fit:cover;flex:none}
+ .lc-clan-detail-member div{min-width:0;flex:1}
+ .lc-clan-detail-member strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .lc-clan-detail-member small{display:block;color:#bdb0ca;line-height:1.5}
+
  .lc-clan-rank>div{flex:1;min-width:0}.lc-clan-rank strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .lc-clan-error{color:#ffb6b6;line-height:1.4;margin:9px 0}
  .lc-clan-success{color:#9ef5cf;line-height:1.4;margin:9px 0}
@@ -208,15 +226,81 @@
   }
   el.innerHTML=html;
  }
+ function clanDetailUI(info){
+  const c=info.clan,stats=c.stats||{},fmt=n=>Number(n||0).toLocaleString('ru-RU');
+  const asLink=url=>esc(url||'#');
+  const tiles=[
+   ['Участники',fmt(c.memberCount)+' / '+fmt(c.memberCapacity)],
+   ['Место в рейтинге',rankings?.findIndex(x=>String(x.id)===String(c.id))+1||'—'],
+   ['Штаб',fmt(c.headquarters)+' / 50'],
+   ['Стена',fmt(c.wall)+' / 50'],
+   ['Расширение мест',fmt(c.seatTier)+' / 8'],
+   ['Казна',fmt(c.coins)+' / '+fmt(c.treasuryCapacity)],
+   ['Очки клана',fmt(c.score)],
+   ['Всего взносов',fmt(stats.totalDeposited)+' 🪙'],
+   ['Переводов в казну',fmt(stats.depositCount)],
+   ['Ежедневных наград',fmt(stats.dailyClaims)],
+   ['Улучшений штаба',fmt(stats.headquartersUpgrades)],
+   ['Улучшений стены',fmt(stats.wallUpgrades)]
+  ];
+  const memberMarkup=(c.members||[]).map(m=>{
+   const name=esc(m.profileName||'Профиль VK');
+   return '<a class="lc-clan-detail-member" href="'+asLink(m.profileUrl)+'" target="_blank" rel="noopener noreferrer">'+
+    (m.profileAvatar?'<img src="'+esc(m.profileAvatar)+'" alt="">':'<span class="lc-clan-person-placeholder" aria-hidden="true">👤</span>')+
+    '<div><strong>'+name+'</strong><small>'+(m.role==='owner'?'Глава':m.role==='officer'?'Заместитель':'Участник')+
+    ' · Внесено '+fmt(m.contributed)+' 🪙 · '+fmt(m.deposits)+' взн.</small></div><span aria-hidden="true">↗</span></a>';
+  }).join('');
+  const hq=Number(c.headquarters),wall=Number(c.wall),slots=Number(c.memberCapacity);
+  const nextHq=hq<50?(50000+20000*(hq+1)**2):null;
+  return '<div class="lc-clan-panel"><button class="btn ghost" data-clan-top-back>← К рейтингу</button></div>'+
+   '<div class="lc-clan-detail-hero"><div class="lc-clan-detail-header"><img src="'+esc(c.avatar)+'" alt=""><div><div class="lc-clan-detail-title">'+esc(c.name)+'</div><p class="lc-clan-note">Клан сообщества VK · Основан '+(c.createdAt?esc(new Date(c.createdAt).toLocaleDateString('ru-RU')):'—')+'</p></div></div>'+
+   '<a class="lc-clan-detail-action" href="'+asLink(c.communityUrl)+'" target="_blank" rel="noopener noreferrer">Открыть сообщество клана VK ↗</a></div>'+
+   '<div class="lc-clan-detail-stats">'+tiles.map(([label,value])=>'<div class="lc-clan-detail-stat"><span class="lc-clan-note">'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>').join('')+'</div>'+
+   '<div class="lc-clan-panel"><h3>🏰 Уровни и развитие</h3>'+
+    '<p class="lc-clan-note">Штаб '+fmt(hq)+'/50 · '+esc(description('headquarters',hq))+'</p><div class="lc-clan-visual">'+(window.LuckyClanScene?.headquarters?.(hq)||'🏰')+'</div>'+
+    '<p class="lc-clan-note">Стена '+fmt(wall)+'/50 · '+esc(description('wall',wall))+'</p><div class="lc-clan-visual">'+(window.LuckyClanScene?.wall?.(wall)||'🛡️')+'</div>'+
+    '<p class="lc-clan-note">Платные строительные этапы: 5, 10, 15, 20, 30, 40. Остальные уровни прокачиваются за монеты казны.</p>'+
+    '<p class="lc-clan-note">Текущая вместимость: '+fmt(slots)+' из 50 мест. '+(nextHq?'Вместимость казны после следующего уровня штаба: '+fmt(nextHq)+' 🪙.':'Штаб максимально прокачан.')+'</p></div>'+
+   '<div class="lc-clan-panel"><h3>👥 Состав клана · '+fmt(c.memberCount)+'</h3><p class="lc-clan-note">Нажмите на имя или аватарку, чтобы перейти на страницу игрока VK.</p>'+
+   '<div class="lc-clan-detail-members">'+(memberMarkup||'<p class="lc-clan-note">Участников пока нет.</p>')+'</div></div>';
+ }
  function paintTop(){
   const host=document.getElementById('lucky-clan-ranking');if(!host)return;
-  host.innerHTML='<div class="lc-clan-panel"><h3>🏰 Топ кланов</h3>'+(rankings?.length?rankings.slice(0,20).map((c,i)=>'<div class="lc-clan-rank"><strong>#'+(i+1)+'</strong><img src="'+esc(c.avatar)+'" alt=""><div><strong>'+esc(c.name)+'</strong><small>Штаб '+c.headquarters+' · Стена '+c.wall+' · '+c.memberCount+' участников</small></div></div>').join(''):'<p class="lc-clan-note">'+(loadingTop?'Загрузка рейтинга…':'Кланы пока не найдены')+'</p>')+'</div>';
+  if(topSelectedClan!==null){
+   host.innerHTML=topClanLoading?'<div class="lc-clan-panel"><button class="btn ghost" data-clan-top-back>← К рейтингу</button><p>Загрузка клана…</p></div>':
+    topClanDetails?clanDetailUI(topClanDetails):
+    '<div class="lc-clan-panel"><button class="btn ghost" data-clan-top-back>← К рейтингу</button><p class="lc-clan-error">'+esc(topClanError||'Не удалось загрузить клан')+'</p><button class="btn purple" data-clan-top-view="'+esc(topSelectedClan)+'">Повторить</button></div>';
+   return;
+  }
+  host.innerHTML='<div class="lc-clan-panel"><h3>🏰 Топ кланов</h3>'+(rankings?.length?rankings.slice(0,20).map((c,i)=>
+   '<button type="button" class="lc-clan-rank lc-clan-rank-button" data-clan-top-view="'+esc(c.id)+'"><strong>#'+(i+1)+'</strong><img src="'+esc(c.avatar)+'" alt=""><div><strong>'+esc(c.name)+'</strong><small>Штаб '+fmtTop(c.headquarters)+' · Стена '+fmtTop(c.wall)+' · '+fmtTop(c.memberCount)+'/'+fmtTop(c.memberCapacity||10)+' участников</small></div><span aria-hidden="true">›</span></button>').join(''):
+   '<p class="lc-clan-note">'+(loadingTop?'Загрузка рейтинга…':'Кланы пока не найдены')+'</p>')+'</div>';
+ }
+ const fmtTop=n=>Number(n||0).toLocaleString('ru-RU');
+ async function openClanFromTop(id){
+  const n=Number(id);if(!Number.isSafeInteger(n)||n<1)return;
+  topSelectedClan=n;topClanDetails=null;topClanLoading=true;topClanError='';paintTop();
+  try{
+   const result=await api('/'+n);
+   if(topSelectedClan!==n)return;
+   if(!result.clan)throw Error('Клан не найден');
+   topClanDetails=result;
+  }catch(error){if(topSelectedClan===n)topClanError=error.message||'Ошибка сервера'}
+  finally{if(topSelectedClan===n){topClanLoading=false;paintTop()}}
  }
  async function refreshTop(){
   if(loadingTop||!launch)return;loadingTop=true;paintTop();
   try{rankings=(await api()).leaders||[];}catch(e){rankings=[]}
   finally{loadingTop=false;paintTop()}
  }
+ document.addEventListener('click',event=>{
+  const host=document.getElementById('lucky-clan-ranking');
+  if(!host||!host.contains(event.target))return;
+  const back=event.target.closest('[data-clan-top-back]');
+  if(back){topSelectedClan=null;topClanDetails=null;topClanLoading=false;topClanError='';paintTop();return}
+  const item=event.target.closest('[data-clan-top-view]');
+  if(item){void openClanFromTop(item.dataset.clanTopView)}
+ });
  document.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-clan]');if(!btn||!root()?.contains(btn)||btn.disabled)return;
   const action=btn.dataset.clan;if(action==='reload'||action==='refresh-permits')return load();
