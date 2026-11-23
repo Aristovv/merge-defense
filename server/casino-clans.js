@@ -194,6 +194,38 @@ export function registerLuckyClans(app,pool,requireAuth){
   res.json({mine:await mine(pool,req.playerId),leaders:await listing(pool),permits:Number(p.rows[0]?.balance||0),premiumLevels:PREMIUM_LEVELS,
    seatPrices:CLAN_SEAT_PRICES,baseMemberCapacity:CLAN_SEAT_BASE});
  }));
+ // Read-only public clan card, available to signed-in VK players.
+ // Never expose personal cloud saves or grant management powers here.
+ app.get('/api/casino/clans/:id',requireAuth,wrap(async(req,res)=>{
+  await start(pool);
+  if(!validId(req.params?.id))fail('Некорректный клан');
+  const found=await pool.query(`SELECT ${clanFields},
+   (c.headquarters*1000+c.wall*600+
+    (SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score
+   FROM lucky_clans c WHERE c.id=$1`,[req.params.id]);
+  if(!found.rowCount)fail('Клан не найден',404);
+  const clan=found.rows[0];
+  const members=await pool.query(`SELECT m.player_id AS "playerId",m.role,m.joined_at AS "joinedAt",
+    COALESCE(SUM(t.coins) FILTER(WHERE t.action='deposit'),0)::bigint AS "contributed",
+    COUNT(t.id) FILTER(WHERE t.action='deposit')::int AS "deposits"
+   FROM lucky_clan_members m
+   LEFT JOIN lucky_clan_transactions t ON t.clan_id=m.clan_id AND t.player_id=m.player_id
+   WHERE m.clan_id=$1
+   GROUP BY m.player_id,m.role,m.joined_at
+   ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'officer' THEN 1 ELSE 2 END,
+    m.joined_at LIMIT 50`,[clan.id]);
+  const totals=await pool.query(`SELECT
+   COALESCE(SUM(coins) FILTER(WHERE action='deposit'),0)::bigint AS "totalDeposited",
+   COUNT(*) FILTER(WHERE action='deposit')::int AS "depositCount",
+   COUNT(*) FILTER(WHERE action='daily')::int AS "dailyClaims",
+   COUNT(*) FILTER(WHERE action='headquarters')::int AS "headquartersUpgrades",
+   COUNT(*) FILTER(WHERE action='wall')::int AS "wallUpgrades",
+   COUNT(*) FILTER(WHERE action='seats')::int AS "seatUpgrades"
+   FROM lucky_clan_transactions WHERE clan_id=$1`,[clan.id]);
+  return res.json({clan:{...clan,members:await vkMemberProfiles(members.rows),
+   stats:totals.rows[0]||{},communityUrl:'https://vk.com/club'+String(clan.groupId)},
+   premiumLevels:PREMIUM_LEVELS,seatPrices:CLAN_SEAT_PRICES});
+ }));
  app.post('/api/casino/clans/create',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   const group=await verifiedAdminGroup(req.playerId,req.body?.groupId,req.body?.communityToken,verifiedCommunityLaunch(req,req.body?.groupId));
