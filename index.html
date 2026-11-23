@@ -4479,7 +4479,20 @@ async function casinoCloudStart(){
     return;
    }
    const next={...fresh(),...result.save};
-   if(casinoHadLocalSaveOnBoot&&JSON.stringify(state)!==JSON.stringify(next)){
+   const localEpoch=Number(state.resetEpoch)||0,remoteEpoch=Number(next.resetEpoch)||0;
+   const tracked=['level','plays','wins','earned','best','giftBestStreak'];
+   const localAdvanced=casinoHadLocalSaveOnBoot&&remoteEpoch<=localEpoch&&(
+    tracked.some(key=>(Number(state[key])||0)>(Number(next[key])||0))||
+    (Array.isArray(state.character33?.ownedOutfits)&&
+     state.character33.ownedOutfits.some(id=>!next.character33?.ownedOutfits?.includes(id)))
+   );
+   if(localAdvanced){
+    casinoCloudBackup('Local monotonic progress exceeds cloud save');
+    casinoCloudPreserveRemote(result,'local progress newer than server');
+    casinoCloudNotice('На устройстве найден прогресс, отсутствующий в облаке. Данные не перезаписаны; требуется сверка.');
+    return;
+   }
+   if(casinoHadLocalSaveOnBoot&&casinoStableJSON(state)!==casinoStableJSON(next)){
     try{
      const key='casino_city_cloud_backup_'+Date.now();
      const raw=localStorage.getItem(STORAGE);
