@@ -125,7 +125,16 @@ const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ow
 async function mine(pool,playerId){
  const {rows}=await pool.query(`SELECT ${clanFields},m.role,m.last_claim AS "lastClaim" FROM lucky_clans c JOIN lucky_clan_members m ON m.clan_id=c.id WHERE m.player_id=$1`,[playerId]);
  if(!rows[0])return null;
- const members=await pool.query('SELECT player_id AS "playerId",role,joined_at AS "joinedAt" FROM lucky_clan_members WHERE clan_id=$1 ORDER BY joined_at LIMIT 50',[rows[0].id]);
+ const members=await pool.query(`SELECT m.player_id AS "playerId",m.role,m.joined_at AS "joinedAt",
+ COALESCE(SUM(t.coins) FILTER(WHERE t.action='deposit'),0)::bigint AS "contributed",
+ COUNT(t.id) FILTER(WHERE t.action='deposit')::int AS "deposits"
+ FROM lucky_clan_members m
+ LEFT JOIN lucky_clan_transactions t ON t.clan_id=m.clan_id
+  AND t.player_id=m.player_id
+ WHERE m.clan_id=$1
+ GROUP BY m.player_id,m.role,m.joined_at
+ ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'officer' THEN 1 ELSE 2 END,
+  m.joined_at LIMIT 50`,[rows[0].id]);
  const log=await pool.query('SELECT action,coins,player_id AS "playerId",created_at AS "createdAt" FROM lucky_clan_transactions WHERE clan_id=$1 ORDER BY created_at DESC,id DESC LIMIT 25',[rows[0].id]);
  return {...rows[0],members:members.rows,history:log.rows};
 }
@@ -274,6 +283,25 @@ export function registerLuckyClans(app,pool,requireAuth){
    return {level:level+1,cost,premium:false};
   });
   res.json({ok:true,...result});
+ }));
+ app.post('/api/casino/clans/kick',requireAuth,wrap(async(req,res)=>{
+  await start(pool);
+  const target=req.body?.playerId;
+  if(typeof target!=='string'||!/^vk:[1-9]\d{0,18}$/.test(target))
+   fail('Неверный участник');
+  if(target===req.playerId)fail('Глава не может исключить себя');
+  await tx(pool,async c=>{
+   // Lock the target first, preserving member->clan lock order used by leave.
+   const member=await c.query('SELECT clan_id,role FROM lucky_clan_members WHERE player_id=$1 FOR UPDATE',[target]);
+   if(!member.rowCount)fail('Участник уже покинул клан',404);
+   const clan=await c.query('SELECT id,owner_id FROM lucky_clans WHERE id=$1 FOR UPDATE',[member.rows[0].clan_id]);
+   if(!clan.rowCount)fail('Клан не найден',404);
+   if(clan.rows[0].owner_id!==req.playerId)fail('Исключать участников может только глава',403);
+   if(member.rows[0].role==='owner')fail('Главу нельзя исключить',403);
+   const removed=await c.query('DELETE FROM lucky_clan_members WHERE player_id=$1 AND clan_id=$2 AND role<>\'owner\' RETURNING player_id',[target,member.rows[0].clan_id]);
+   if(!removed.rowCount)fail('Участник больше не состоит в клане',409);
+  });
+  res.json({ok:true});
  }));
  app.post('/api/casino/clans/role',requireAuth,wrap(async(req,res)=>{
   await start(pool);const target=req.body?.playerId,role=req.body?.role;
