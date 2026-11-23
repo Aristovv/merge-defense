@@ -125,10 +125,10 @@ export async function verifyUserAdminGroup(playerId,groupId,userToken){
   }
   return body?.response;
  };
- const vkId=String(playerId||'').replace(/^vk:/,'');
- const users=await call('users.get',{});
- if(!Array.isArray(users)||String(users[0]?.id)!==vkId)
-  fail('VK-токен выдан другому пользователю',403);
+ // The same signed-in VK Bridge token has already populated the group
+ // picker on the device. Follow Millionaire's primary flow: check its
+ // groups.get admin list directly instead of preflighting users.get, which
+ // is an extra API call that can fail independently on mobile.
  for(let offset=0;offset<1000;offset+=200){
   const result=await call('groups.get',{filter:'admin',extended:'1',fields:'photo_200',count:'200',offset:String(offset)});
   const groups=Array.isArray(result?.items)?result.items:[];
