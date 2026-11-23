@@ -5320,7 +5320,7 @@ function plinkoPlay(){
  casinoNormalizeBet();
  const count=plinkoCount,stake=bet,total=stake*count;
  if(!Number.isSafeInteger(total)||state.chips<total)return message('Недостаточно фишек на '+count+' шариков');
- busy=true;roundBet=stake;casinoCurrentStake=total;state.chips-=total;state.plays++;recordCasinoQuestEvent('plays',1);xp(4);save();
+ busy=true;roundBet=stake;casinoCurrentStake=total;state.chips-=total;state.plays++;recordCasinoQuestEvent('plays',1);
  plinkoHits=[];plinkoLastSector=-1;
  const table=PLINKO_PAYTABLES[plinkoRisk],board=$('plinko-board'),bins=$('plinko-bins'),hits=$('plinko-hits');
  const width=board?.clientWidth||320,center=width/2,step=width/15,duration=3000,launchGap=180,pegs=board?Array.from(board.querySelectorAll('.plinko-peg')):[],binEls=bins?Array.from(bins.querySelectorAll('span')):[],boardHeight=board?.clientHeight||305,boardRect=board?.getBoundingClientRect();
@@ -5329,7 +5329,8 @@ function plinkoPlay(){
   for(let i=0;i<12;i++){index+=rand(2);path.push(index)}
   return {index,path,prize:Math.floor(stake*table[index])};
  });
- state.pendingMiniRound={kind:'plinko',stake:total,prize:results.reduce((sum,item)=>sum+item.prize,0)};save();
+ // Persist stake debit and deterministic outcome together; never save a wager without its recovery record.
+ state.pendingMiniRound={kind:'plinko',stake:total,prize:results.reduce((sum,item)=>sum+item.prize,0)};xp(4);
  let completed=0,earned=0;
  if(hits)hits.textContent='Запущено: '+count+' · Приземлилось: 0/'+count;
  results.forEach((result,n)=>{
