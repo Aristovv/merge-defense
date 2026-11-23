@@ -4473,12 +4473,12 @@ function casinoCloudRetryStart(){
  casinoCloudStartRetryTimer=setTimeout(()=>casinoCloudStart(),casinoCloudStartRetryMs);
  casinoCloudStartRetryMs=Math.min(60000,Math.round(casinoCloudStartRetryMs*1.7));
 }
-async function casinoCloudSettleRecordedPlinko(){
+async function casinoCloudSettleRecordedPlinko(revision){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
  try{
   const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/rounds/settle-plinko',{
-   method:'POST',headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
-   cache:'no-store',signal:controller.signal
+   method:'POST',headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS,'Content-Type':'application/json'},
+   body:JSON.stringify({revision}),cache:'no-store',signal:controller.signal
   });
   const result=await response.json().catch(()=>null);
   if(!response.ok||!result?.ok||!Number.isSafeInteger(result.revision)||!result.save)
@@ -4510,7 +4510,7 @@ async function casinoCloudReconcilePlinko(knownRemote=null){
   const backupKey='casino_city_plinko_reconcile_backup_'+Date.now();
   localStorage.setItem(backupKey,JSON.stringify({vkId:casinoCloudVKId(),local:localRaw,pending:pendingRaw,remote}));
   if(!localStorage.getItem(backupKey))return false;
-  const settled=await casinoCloudSettleRecordedPlinko();
+  const settled=await casinoCloudSettleRecordedPlinko(Number(remote.revision));
   if(settled.save.pendingMiniRound||casinoStableJSON(state)!==before)return false;
   // Never overwrite server-side purchases or daily rewards with an older view.
   const beforeEpoch=Number(settled.save.resetEpoch)||0;
