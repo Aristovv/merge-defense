@@ -190,7 +190,7 @@ export function registerLuckyClans(app,pool,requireAuth){
  app.post('/api/casino/clans/deposit',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   const amount=req.body?.amount,revision=req.body?.revision,key=req.body?.requestId;
-  if(!Number.isSafeInteger(amount)||amount<100||amount>1000000||amount%100!==0)fail('Взнос от 100 до 1 000 000 монет, шаг 100');
+  if(!Number.isSafeInteger(amount)||amount<100||amount>100000||amount%100!==0)fail('Взнос от 100 до 100 000 монет, шаг 100');
   if(!Number.isSafeInteger(revision)||revision<1)fail('Облако не подтверждено');
   if(typeof key!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(key))fail('Неверный идентификатор операции');
   const result=await tx(pool,async c=>{
@@ -238,6 +238,7 @@ export function registerLuckyClans(app,pool,requireAuth){
    if(!clan)fail('Клан не найден',404);
    const level=Number(clan[kind]);
    if(level>=50)fail('Максимальный уровень');
+   if(!Number.isSafeInteger(req.body?.expectedLevel)||req.body.expectedLevel!==level)fail('Уровень изменился. Обновите клан перед повторной прокачкой',409);
    if(premiumUpgrade(kind,level+1)){
     const balance=await c.query('SELECT balance FROM lucky_clan_permits WHERE vk_id=$1 FOR UPDATE',[vk]);
     if(!balance.rowCount||Number(balance.rows[0].balance)<1)fail('Для этого уровня требуется строительный пропуск за 5 голосов VK',402);
