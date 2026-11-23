@@ -77,46 +77,35 @@ export function verifiedCommunityLaunch(req,groupId){
  return Number(params.get('vk_group_id'))===Number(groupId)&&
   ['admin','creator'].includes(String(params.get('vk_viewer_group_role')||'').toLowerCase());
 }
-async function userVK(method,params,token){
- if(typeof token!=='string'||token.length<20||token.length>4096)fail('VK не предоставил токен просмотра сообществ',403);
- const body=new URLSearchParams({...params,access_token:token,v:'5.199'});
- let response;
- try{
-  const result=await fetch('https://api.vk.com/method/'+method,{
-   method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
-   body,signal:AbortSignal.timeout(7000)
-  });
-  if(!result.ok)fail('VK временно недоступен',503);
-  response=await result.json();
- }catch(e){
-  if(e.status)throw e;
-  fail('Не удалось проверить полномочия через VK',503);
- }
- if(response.error){
-  const code=Number(response.error.error_code)||0;
-  // Never treat an inaccessible token or an IP-bound token as proof of ownership.
-  fail('VK не подтвердил права администратора (код '+code+'). Откройте игру из сообщества либо повторите авторизацию VK.',403);
- }
- return response.response;
-}
-async function verifiedAdminGroup(playerId,groupId,vkUserToken,verifiedLaunch){
+async function verifiedAdminGroup(playerId,groupId,communityToken,verifiedLaunch){
  const requested=Number(groupId);
  if(!validId(requested))fail('Выберите группу из списка');
  if(!verifiedLaunch){
-  const account=await userVK('users.get',{},vkUserToken);
-  const expected=String(playerId).replace(/^vk:/,'');
-  if(!Array.isArray(account)||String(account[0]?.id)!==expected)
-   fail('Токен VK принадлежит другому игроку',403);
-  let authorized=false;
-  for(let offset=0;offset<1000;offset+=200){
-   const groups=await userVK('groups.get',{filter:'admin',extended:1,count:200,offset},vkUserToken);
-   const items=Array.isArray(groups?.items)?groups.items:[];
-   if(items.some(g=>Number(g.id)===requested)){authorized=true;break}
-   if(items.length<200)break;
+  if(typeof communityToken!=='string'||communityToken.length<15||communityToken.length>4096)
+   fail('VK не выдал ключ выбранного сообщества. Запустите игру из группы или подтвердите доступ через VK.',403);
+  // A group-scoped credential is distinct from a user's IP-restricted groups token.
+  // Privileged group-specific read must succeed for exactly the chosen community.
+  const body=new URLSearchParams({group_id:String(requested),access_token:communityToken,v:'5.199'});
+  let answer;
+  try{
+   const response=await fetch('https://api.vk.com/method/groups.getCallbackConfirmationCode',{
+    method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body,signal:AbortSignal.timeout(7000)
+   });
+   if(!response.ok)fail('VK временно недоступен',503);
+   answer=await response.json();
+  }catch(error){
+   if(error.status)throw error;
+   fail('VK временно недоступен для подтверждения сообщества',503);
   }
-  if(!authorized)fail('Вы не администратор выбранного сообщества VK',403);
+  if(answer?.error){
+   const code=Number(answer.error.error_code)||0;
+   fail('VK не подтвердил права для этого сообщества (код '+code+'). Подключите игру к группе или откройте её из группы.',403);
+  }
+  const confirmation=typeof answer?.response==='string'?answer.response:answer?.response?.code;
+  if(typeof confirmation!=='string'||confirmation.length<5)
+   fail('VK не подтвердил права администратора выбранной группы',403);
  }
- // Use the independently configured service token for display metadata only.
  const raw=await serviceVK('groups.getById',{group_ids:String(requested),fields:'photo_200'});
  const group=(Array.isArray(raw)?raw:raw?.groups)?.[0];
  if(!group||Number(group.id)!==requested||!group.name||!group.photo_200||Number(group.is_closed)===2)
@@ -153,7 +142,7 @@ export function registerLuckyClans(app,pool,requireAuth){
  }));
  app.post('/api/casino/clans/create',requireAuth,wrap(async(req,res)=>{
   await start(pool);
-  const group=await verifiedAdminGroup(req.playerId,req.body?.groupId,req.body?.vkUserToken,verifiedCommunityLaunch(req,req.body?.groupId));
+  const group=await verifiedAdminGroup(req.playerId,req.body?.groupId,req.body?.communityToken,verifiedCommunityLaunch(req,req.body?.groupId));
   const result=await tx(pool,async c=>{
    const existing=await c.query('SELECT 1 FROM lucky_clan_members WHERE player_id=$1',[req.playerId]);
    if(existing.rowCount)fail('Вы уже состоите в клане');

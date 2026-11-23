@@ -77,17 +77,18 @@ test('signed community context only accepts same-group administrator, never edit
  assert.equal(verifiedCommunityLaunch({header:()=>''},243634230),false);
 });
 
-test('clan creation verifies VK user identity and administered group on server',async()=>{
+
+test('clan creation relies on signed admin launch or VK-issued group-specific proof',async()=>{
  const fs=require('node:fs');
  const path=require('node:path');
  const server=fs.readFileSync(path.join(__dirname,'../casino-clans.js'),'utf8');
  const client=fs.readFileSync(path.join(__dirname,'../../clans.js'),'utf8');
- assert.match(server,/userVK\('users\.get'/);
- assert.match(server,/userVK\('groups\.get'/);
- assert.match(server,/filter:'admin'/);
- assert.match(server,/String\(account\[0\]\?\.id\)!==expected/);
- assert.match(server,/req\.body\?\.vkUserToken/);
- assert.match(client,/vkUserToken:proof/);
- assert.doesNotMatch(client,/VKWebAppCommunityAccessToken/);
- assert.doesNotMatch(server,/groups\.getCallbackConfirmationCode/);
+ assert.match(server,/groups\.getCallbackConfirmationCode/);
+ assert.match(server,/req\.body\?\.communityToken/);
+ assert.match(server,/verifiedCommunityLaunch\(req,req\.body\?\.groupId\)/);
+ assert.match(server,/group_id:String\(requested\),access_token:communityToken/);
+ assert.match(client,/VKWebAppGetCommunityToken/);
+ assert.match(client,/communityToken:proof/);
+ assert.doesNotMatch(server,/userVK\('groups\.get'/);
+ assert.doesNotMatch(client,/vkUserToken:proof/);
 });
