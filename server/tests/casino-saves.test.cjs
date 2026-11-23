@@ -36,6 +36,16 @@ test('buildings cannot drop to new-game defaults',()=>{
 test('mismatched administrative epoch rejects stale writes',()=>{
  assert.equal(regression(player(),{...player(),resetEpoch:2}),'RESET_EPOCH_MISMATCH');
 });
+
+test('permanent achievements and VIP cosmetics cannot vanish',()=>{
+ const old={...player(),achievementsClaimed:[0,1],levelRewards:[5],
+  donationInventory:{nicks:['nick-rainbow'],frames:['frame-royal']}};
+ assert.equal(regression(old,{...old,achievementsClaimed:[0]}),
+  'PERMANENT_COLLECTION_REGRESSION_ACHIEVEMENTSCLAIMED');
+ assert.equal(regression(old,{...old,donationInventory:{nicks:[],frames:['frame-royal']}}),
+  'DONATION_OWNERSHIP_REGRESSION_NICKS');
+});
+
 test('oversized and invalid snapshots are rejected',()=>{
  assert.equal(clean({...player(),level:0}),null);
  assert.equal(clean({...player(),padding:'x'.repeat(91000)}),null);
