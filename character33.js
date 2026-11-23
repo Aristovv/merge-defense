@@ -692,18 +692,10 @@ function lc42AvatarBase(equipped){
 }
 
 function lc33Avatar(){
- const c=lc33State();
- const equipped=lc39CurrentEquipped();
- let svg=lc42AvatarBase(equipped);
- const layerOrder=['pants','shoes','jacket','hat','accessory'];
- const details=layerOrder.map(type=>{
-  const item=LC35_BY_ID.get(equipped[type]);
-  return lc37Shape(item)+lc36AvatarMark(item)+lc41CoutureDetail(item);
- }).join('');
- const special=lc38Aura(layerOrder.map(type=>LC35_BY_ID.get(equipped[type])));
- const outfit=lc40SetMark(lc40FullSet(equipped));
- return svg.replace('</svg>',special+details+outfit+'</svg>');
+ // 47.0: the only character shown in wardrobe and outfit previews is the realistic avatar.
+ return '<img class="lc47-real-avatar" src="./assets/character44/avatar.png" alt="Фотореалистичный персонаж Lucky City" draggable="false">';
 }
+
 /* 43.0: recognizable material patches and seams, painted inside each thumbnail.
    No external SVG <use>, filenames, fonts or network dependencies. */
 function lc43ItemSignature(g){
@@ -878,17 +870,6 @@ document.head.appendChild(lc46Styles);
    return '<span class="lc44-asset-wrap"><img loading="lazy" alt="" class="lc44-photo" src="'+src+
      '" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="lc44-old-art" hidden>'+fallback+'</span></span>';
  };
- const oldScreen=lc33Screen;
- let photorealOpen=true;
- lc33Screen=function(){
-   let html=oldScreen();
-   const control='<div class="lc44-preview-action"><button type="button" data-lc44-photo>'+
-      (photorealOpen?'Скрыть фотореалистичный образ':'Посмотреть фотореалистичного персонажа')+
-      '</button></div>';
-   const panel=photorealOpen?lc45Figure():'';
-   return html.replace('<div class="lc33-hero"><h1>ПЕРСОНАЖ</h1></div>','<div class="lc33-hero"><h1>ПЕРСОНАЖ</h1></div>'+control+panel);
- };
- document.addEventListener('click',function(e){if(e.target.closest('[data-lc44-photo]')){photorealOpen=!photorealOpen;render();}});
  const style=document.createElement('style');style.id='lc44-style';style.textContent=
  '.lc44-asset-wrap{display:flex;align-items:center;justify-content:center;height:100px;max-width:100%;position:relative}' +
  '.lc44-photo{width:100%!important;height:100%!important;object-fit:contain!important;display:block}' +
@@ -902,3 +883,10 @@ document.head.appendChild(lc46Styles);
  '.lc44-preview-stage small{display:block;color:#bba5d2;padding-top:8px}';
  document.head.appendChild(style);
 })();
+
+/* 47.0 Realistic-only viewport, no duplicate 44-46 photo panel. */
+const lc47Style=document.createElement('style');lc47Style.id='lc47-realistic-character';lc47Style.textContent=
+'.lc33-person{display:flex!important;align-items:center!important;justify-content:center!important;max-width:100%!important;width:100%!important;overflow:visible!important}'+
+'.lc47-real-avatar{display:block!important;width:100%!important;height:100%!important;max-height:345px!important;object-fit:contain!important;object-position:center center!important;filter:drop-shadow(0 12px 18px #09041a99)}'+
+'.lc39-preview-avatar .lc47-real-avatar{max-height:390px!important}'+
+'.lc33-figure .lc47-real-avatar{max-height:310px!important}';document.head.appendChild(lc47Style);
