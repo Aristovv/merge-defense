@@ -155,6 +155,7 @@ document.addEventListener('click',async function(e){
     if(localStorage.getItem(STORAGE)!==encoded)throw Error('VERIFY_FAILED');
     clearTimeout(casinoCloudTimer);
     state=freshRemote;casinoCloudRevision=candidate.revision;casinoCloudDirty=false;
+    if(typeof casinoCloudPendingClear==='function')casinoCloudPendingClear();
     lc56Preview=null;render();message('Облачный прогресс восстановлен. Резервная копия сохранена.');
    }catch(error){console.error('Cloud recovery apply',error);show('Не удалось записать сохранение. Резервная локальная копия сохранена.');}
    return;
