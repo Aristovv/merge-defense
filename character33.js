@@ -972,8 +972,12 @@ lc50Style.textContent=
 '.lc50-piece-list li{font-size:11px;color:#ebdcfc;line-height:1.4;overflow-wrap:anywhere}'+
 '.lc50-piece-list li.owned{color:#a8e6cf}'+
 '.lc50-premium-note{font-size:11px;color:#e9c6fc;line-height:1.4}'+
-'.lc50-set-card .lc39-set-actions{display:flex;flex-wrap:wrap;gap:7px}'+
-'.lc50-set-card .lc39-set-actions button{flex:1 1 100%;min-height:39px;white-space:normal}'+
+'.lc50-set-card .lc39-set-actions{display:flex;flex-direction:column;flex-wrap:nowrap;gap:8px;width:100%;margin-top:6px}'+
+'.lc50-set-card .lc39-set-actions button{flex:0 0 auto!important;width:100%;min-width:0;min-height:43px;height:auto;box-sizing:border-box;display:block;padding:10px 7px;font-size:12px;line-height:1.35;white-space:normal;overflow-wrap:anywhere}'+
+'.lc50-bundles .lc39-set-grid{grid-template-columns:minmax(0,1fr)!important;gap:14px!important}'+
+'.lc50-bundles .lc50-set-card{min-width:0;width:100%;box-sizing:border-box;overflow:visible}'+
+'.lc50-bundles .lc50-set-image{height:270px;max-height:48vh}'+
+'.lc50-bundles .lc50-piece-list li{font-size:12px;line-height:1.5}'+
 '.lc49-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}'+
 '.lc49-grid img{height:165px!important}'+
 '.lc49-picker{margin-bottom:12px!important}'+
