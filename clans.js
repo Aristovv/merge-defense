@@ -377,19 +377,34 @@
    if(result)result.textContent='Проверяем права администратора через VK API.';
   }
   try{
-   // The native VK client issues a group-scoped token only to an authorized admin.
-   // This short-lived proof is submitted once via HTTPS and never stored locally.
-   const proof=action==='create'?await (async()=>{
-    try{return await getCommunityProof(preview.groupId)}
-    catch(error){
-     // A signed VK administrator launch is independently verified by the API.
-     // Community-token permission is optional only in that signed context.
-     if(signedCommunityRole(preview.groupId))return null;
-     throw error;
+   // Match the working Millionaire path: verify the group using the same
+   // VK user token that populated the administrator's community list.
+   // Some user tokens are IP-bound, so fall back to a group-scoped token.
+   if(action==='create'){
+    const groupId=Number(preview.groupId);
+    let useCommunityProof=!userToken;
+    if(userToken){
+     try{
+      await api('/create',{groupId,userVKToken:userToken});
+     }catch(error){
+      if(error.message!=='VK_USER_TOKEN_NEEDS_COMMUNITY')throw error;
+      useCommunityProof=true;
+     }
     }
-   })():null;
-   const body=action==='create'?{groupId:preview?.groupId,communityToken:proof}:action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind,expectedLevel:Number(data?.mine?.[btn.dataset.kind])}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:action==='kick'?{playerId:btn.dataset.user}:action==='expand-seats'?{expectedTier:Number(data?.mine?.seatTier||0)}:{};
-   await api('/'+action,body);preview=null;userToken=null;creating=false;adminGroups=[];data=await api();notice='Успешно';rankings=data.leaders;paintTop();
+    if(useCommunityProof){
+     let proof=null;
+     try{proof=await getCommunityProof(groupId)}
+     catch(error){
+      if(!signedCommunityRole(groupId))
+       throw Error('VK ограничил проверку группы. Откройте игру из меню своей группы или разрешите доступ к сообществу: '+(error.message||'ошибка VK'));
+     }
+     await api('/create',{groupId,communityToken:proof});
+    }
+   }else{
+    const body=action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind,expectedLevel:Number(data?.mine?.[btn.dataset.kind])}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:action==='kick'?{playerId:btn.dataset.user}:action==='expand-seats'?{expectedTier:Number(data?.mine?.seatTier||0)}:{};
+    await api('/'+action,body);
+   }
+   preview=null;userToken=null;creating=false;adminGroups=[];data=await api();notice='Успешно';rankings=data.leaders;paintTop();
   }catch(err){notice=err.message||'Ошибка сервера'}finally{
    paint();
    if(action==='create'&&notice!=='Успешно'){
