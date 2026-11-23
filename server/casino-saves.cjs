@@ -12,6 +12,20 @@ function clean(s){
  const raw=JSON.stringify(s);if(raw.length>30000)return null;
  return JSON.parse(raw);
 }
+// Fail closed when a stale/default client tries to replace established progress.
+// Administrative edits occur through separate authenticated endpoints and bump resetEpoch.
+function regression(previous,next){
+ const epoch=Number(previous.resetEpoch)||0;
+ if((Number(next.resetEpoch)||0)!==epoch)return 'RESET_EPOCH_MISMATCH';
+ for(const key of ['plays','wins','earned','best','giftBestStreak']){
+  const a=Number(previous[key])||0,b=Number(next[key])||0;
+  if(!Number.isFinite(b)||b<a)return 'PROGRESS_REGRESSION_'+key.toUpperCase();
+ }
+ if(typeof previous.lastGift==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(previous.lastGift)){
+  if(typeof next.lastGift!=='string'||next.lastGift<previous.lastGift)return 'DAILY_GIFT_REGRESSION';
+ }
+ return null;
+}
 function id(req){const n=String(req.playerId||'').replace(/^vk:/,'');return /^[1-9][0-9]{0,18}$/.test(n)?n:null}
 function registerCasinoSaves(app,pool,requireAuth){
  app.get('/api/casino/save',requireAuth,async(req,res)=>{
@@ -28,7 +42,25 @@ function registerCasinoSaves(app,pool,requireAuth){
    if(revision===0){
     result=await pool.query('INSERT INTO public.casino_city_saves(vk_id,save) VALUES($1,$2::jsonb) ON CONFLICT DO NOTHING RETURNING revision::text AS revision',[vk,JSON.stringify(save)]);
    }else{
-    result=await pool.query('UPDATE public.casino_city_saves SET save=$3::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1 AND revision=$2 RETURNING revision::text AS revision',[vk,revision,JSON.stringify(save)]);
+    // Lock the row so validation and revision increment are atomic.
+    const client=await pool.connect();
+    try{
+     await client.query('BEGIN');
+     const current=await client.query('SELECT save,revision::text AS revision FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vk]);
+     if(!current.rowCount||Number(current.rows[0].revision)!==revision){
+      await client.query('ROLLBACK');
+      return res.status(409).json({error:'REVISION_CONFLICT',revision:Number(current.rows[0]?.revision||0)});
+     }
+     const reason=regression(current.rows[0].save,save);
+     if(reason){
+      await client.query('ROLLBACK');
+      console.warn('Casino progress regression blocked:',reason);
+      return res.status(409).json({error:'PROGRESS_REGRESSION',reason,revision});
+     }
+     result=await client.query('UPDATE public.casino_city_saves SET save=$3::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1 AND revision=$2 RETURNING revision::text AS revision',[vk,revision,JSON.stringify(save)]);
+     await client.query('COMMIT');
+    }catch(error){await client.query('ROLLBACK').catch(()=>{});throw error}
+    finally{client.release()}
    }
    if(!result.rowCount){const q=await pool.query('SELECT revision::text AS revision FROM public.casino_city_saves WHERE vk_id=$1',[vk]);return res.status(409).json({error:'REVISION_CONFLICT',revision:Number(q.rows[0]?.revision||0)})}
    res.set('Cache-Control','no-store');res.json({ok:true,revision:Number(result.rows[0].revision)});
