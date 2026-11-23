@@ -202,9 +202,13 @@
     data=await api();depositFeedback='Монеты зачислены в казну';
    }catch(e){
     const reason=String(e.message||'Перевод не подтверждён');
-    if(/Облачное сохранение|облачную синхронизацию|сохранение ещё не подтверждено/i.test(reason))
-     depositFeedback='Взнос не выполнен: сервер пока не подтвердил игровой баланс. Монеты не списаны.';
-    else depositFeedback='Взнос не выполнен: '+reason;
+    if(/незавершённ|раунд Plinko|раунд Crash|мини-игру|мини-игра/i.test(reason)){
+     // A stale in-game round is a safety preflight, not a clan failure.
+     // Do not keep showing it under the deposit form or imply funds were sent.
+     depositFeedback='';
+    }else if(/Облачное сохранение|облачную синхронизацию|сохранение ещё не подтверждено/i.test(reason)){
+     depositFeedback='Перевод не выполнен: требуется подтверждение баланса.';
+    }else depositFeedback='Перевод не выполнен: '+reason;
    }
    // Deposit errors describe only this attempt, not clan state or game availability.
    notice='';
