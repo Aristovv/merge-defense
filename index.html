@@ -5297,13 +5297,14 @@ async function daily(){
   return message('Дождись облачной синхронизации перед получением награды.');
  if(busy||round||state.pendingMiniRound)return message('Сначала заверши текущую игру.');
  casinoDailyClaiming=true;
+ let dailyOwnsCloudBusy=false;
  try{
   const preflight=await casinoDailySettleCloud();
   if(preflight)return message(preflight);
   if(casinoCloudStarting||casinoCloudBusy||casinoCloudDirty||casinoCloudPendingRead())
    return message('Есть изменения, ещё не записанные на сервер. Повтори после синхронизации.');
   const revision=casinoCloudRevision;
-  casinoCloudBusy=true;
+  casinoCloudBusy=true;dailyOwnsCloudBusy=true;
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),12000);
   let response;
@@ -5340,7 +5341,7 @@ async function daily(){
   casinoCloudNotice('Награда не подтверждена на устройстве. Проверь облако; повторное начисление защищено сервером.');
  }finally{
   casinoDailyClaiming=false;
-  if(casinoCloudBusy&&!casinoCloudDirty)casinoCloudBusy=false;
+  if(dailyOwnsCloudBusy)casinoCloudBusy=false;
   if(casinoCloudDirty&&casinoCloudRevision!==null)casinoCloudSchedule();
  }
 }
