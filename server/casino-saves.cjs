@@ -31,7 +31,40 @@ async function ensure(pool){
       AFTER INSERT OR UPDATE ON public.casino_city_saves
       FOR EACH ROW EXECUTE FUNCTION public.casino_city_capture_save();
      END IF;
-    END $install$`);
+    END; $install'use strict';
+// Isolated Casino City cloud saves. Browser state is not a secure payment ledger.
+let ready;
+async function ensure(pool){
+ if(!pool)throw Error('DATABASE_UNAVAILABLE');
+ if(!ready){
+  ready=(async()=>{
+   await pool.query(`CREATE TABLE IF NOT EXISTS public.casino_city_saves(
+    vk_id BIGINT PRIMARY KEY,save JSONB NOT NULL,revision BIGINT NOT NULL DEFAULT 1,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+   await pool.query(`CREATE TABLE IF NOT EXISTS public.casino_city_save_history(
+    vk_id BIGINT NOT NULL,revision BIGINT NOT NULL,save JSONB NOT NULL,
+    captured_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(vk_id,revision))`);
+   await pool.query(`CREATE OR REPLACE FUNCTION public.casino_city_capture_save()
+    RETURNS TRIGGER LANGUAGE plpgsql AS $history$
+    BEGIN
+     IF TG_OP = 'INSERT' THEN
+      INSERT INTO public.casino_city_save_history(vk_id,revision,save)
+      VALUES(NEW.vk_id,NEW.revision,NEW.save) ON CONFLICT DO NOTHING;
+     ELSIF OLD.revision IS DISTINCT FROM NEW.revision THEN
+      INSERT INTO public.casino_city_save_history(vk_id,revision,save)
+      VALUES(OLD.vk_id,OLD.revision,OLD.save) ON CONFLICT DO NOTHING;
+     END IF;
+     RETURN NEW;
+    END;
+    $history$`);
+   await pool.query(`DO $install$
+    BEGIN
+     IF NOT EXISTS(SELECT 1 FROM pg_trigger WHERE tgrelid='public.casino_city_saves'::regclass AND tgname='casino_city_archive_revision') THEN
+      CREATE TRIGGER casino_city_archive_revision
+      AFTER INSERT OR UPDATE ON public.casino_city_saves
+      FOR EACH ROW EXECUTE FUNCTION public.casino_city_capture_save();
+     END IF;
+);
   })().catch(error=>{ready=null;throw error});
  }
  await ready;
