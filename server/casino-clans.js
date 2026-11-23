@@ -48,9 +48,10 @@ async function userVkRequest(method,params,token){
   // Preserve the method and numeric VK error code for troubleshooting.
   // Never log or return access_token or the potentially sensitive VK error message.
   const code=Number(json.error.error_code)||0;
+  const subcode=Number(json.error.error_subcode)||0;
   const known={5:'Токен VK отклонён или истёк',7:'Недостаточно прав для метода VK',15:'Доступ к данным ограничен',27:'Неподходящий тип токена VK',28:'Метод недоступен сервисному ключу'};
   const detail=known[code]||'VK отклонил запрос';
-  fail(detail+' ('+method+', код '+code+')',[5,7,15,27,28].includes(code)?403:502);
+  fail(detail+' ('+method+', код '+code+(subcode?', под код '+subcode:'')+')'+(subcode===1130?'. VK привязал токен к IP устройства; для сервера нужен другой способ проверки.':''),[5,7,15,27,28].includes(code)?403:502);
  }
  return json.response;
 }
