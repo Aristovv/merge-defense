@@ -95,3 +95,9 @@ Before deployment, create a recoverable database backup and verify it. Never pas
 - Cost for all coin stages, level 1 to 50: headquarters **15,260,600 coins**; wall **10,682,900 coins**; together **25,943,500 coins** plus **30 VK votes** for all six premium stages.
 - Existing clan upgrades and server-side permit ownership are preserved; no retroactive charges or reset.
 - Live VK purchases must be confirmed with signed server callbacks and are **not claimed as production-tested**.
+
+## Treasury display and stalled-round handling (2026-11-23)
+- Treasury capacity follows the server formula `50,000 + 20,000 * headquarters_level^2`, from 70,000 coins at HQ level 1 to 50,050,000 coins at HQ level 50. The wall does not increase storage. The clan UI now shows current and next HQ capacity.
+- The construction-permit panel shows all **six** 5-vote milestones individually: HQ 5/10/15 and wall 5/10/15, with completed/next/future status and one permit per level.
+- Coin transfers cannot run while a casino round is active or unfinished. The client identifies an active round and offers to return to it without resetting game state. A stale unfinished server save is never forcibly cleared or paid out: recovery must use the game's existing save-review mechanism. Do not bypass this lock, as Plinko and Crash may have unresolved wagers.
+- A 409 representing an unfinished round is no longer mistaken for a cloud revision conflict. Balance and cloud session stay intact when that guard rejects a deposit.
