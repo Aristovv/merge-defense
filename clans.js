@@ -177,6 +177,10 @@
   if(action==='select-group'){preview=adminGroups.find(g=>g.groupId===Number(btn.dataset.id))||null;return paint()}
   if(action==='leave'&&!window.confirm('Выйти из клана?'))return;
   if(action==='kick'&&!window.confirm('Исключить участника '+String(btn.dataset.user||'')+' из клана? Его прежние взносы останутся в казне.'))return;
+  if(action==='expand-seats'){
+   const current=Number(data?.mine?.seatTier||0),price=Number(data?.seatPrices?.[current]||0);
+   if(!price||!window.confirm('Расширить клан на 5 мест за '+price.toLocaleString('ru-RU')+' монет из казны? Отменить улучшение нельзя.'))return;
+  }
   if(action==='resume-round'){
    try{window.LuckyClanEconomy?.openRound?.();notice='Открой игровое поле, заверши раунд и повтори взнос';}
    catch(e){notice=e.message||'Не удалось открыть игру'}
