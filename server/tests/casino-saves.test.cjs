@@ -50,3 +50,22 @@ test('oversized and invalid snapshots are rejected',()=>{
  assert.equal(clean({...player(),level:0}),null);
  assert.equal(clean({...player(),padding:'x'.repeat(91000)}),null);
 });
+
+// Snapshot archival must be part of the same PostgreSQL transaction as every
+// mutation, including clan deposits, daily gifts and Plinko settlement.
+test('server cloud history uses a database trigger, not browser cache',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const source=fs.readFileSync(path.join(__dirname,'../casino-saves.cjs'),'utf8');
+ assert.match(source,/CREATE TABLE IF NOT EXISTS public\.casino_city_save_history/);
+ assert.match(source,/AFTER INSERT OR UPDATE ON public\.casino_city_saves/);
+ assert.match(source,/OLD\.revision IS DISTINCT FROM NEW\.revision/);
+ assert.match(source,/VALUES\(OLD\.vk_id,OLD\.revision,OLD\.save\)/);
+ assert.match(source,/ON CONFLICT DO NOTHING/);
+});
+test('history API is read-only and scoped to authenticated account',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const source=fs.readFileSync(path.join(__dirname,'../casino-saves.cjs'),'utf8');
+ assert.match(source,/app\.get\('\/api\/casino\/save\/history',requireAuth/);
+ assert.match(source,/FROM public\.casino_city_save_history WHERE vk_id=\$1/);
+ assert.doesNotMatch(source,/app\.post\('\/api\/casino\/save\/restore'/);
+});
