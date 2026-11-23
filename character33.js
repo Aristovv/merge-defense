@@ -796,3 +796,43 @@ document.addEventListener('click',function(e){
  }
  c.equipped[item.type]=item.id;save();render();message('Предмет применён: '+item.name);
 });
+
+
+/* Lucky City 44.0 — safe photorealistic wardrobe preview.
+   Existing item identifiers, prices, owned inventory and payments are untouched.
+   Image files: assets/character44/{item-id}.png. Fallback to 43.0 SVG art. */
+(function(){
+ const previewIds=new Set(['cap','beanie','bucket','kitty','crown','cylinder','cowboy',
+ 'varsity','hoodie','goldcoat','jeans','cargo','sneakers','neonboots','chain','cap-vip']);
+ const safePreviewId=id=>/^[a-z0-9-]+$/.test(String(id||''))?id:'';
+ const originalIcon=lc34SvgItem;
+ lc34SvgItem=function(g){
+   if(!g||!previewIds.has(g.id))return originalIcon(g);
+   const fallback=originalIcon(g),src='./assets/character44/'+safePreviewId(g.id)+'.png';
+   return '<span class="lc44-asset-wrap"><img loading="lazy" alt="" class="lc44-photo" src="'+src+
+     '" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="lc44-old-art" hidden>'+fallback+'</span></span>';
+ };
+ const oldScreen=lc33Screen;
+ let photorealOpen=false;
+ lc33Screen=function(){
+   let html=oldScreen();
+   const control='<div class="lc44-preview-action"><button type="button" data-lc44-photo>'+
+      (photorealOpen?'Скрыть фотореалистичный образ':'Посмотреть фотореалистичного персонажа')+
+      '</button></div>';
+   const panel=photorealOpen?'<div class="lc44-preview-stage"><img src="./assets/character44/avatar.png" alt="Фотореалистичный прототип персонажа" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><p hidden>Файл avatar.png ещё не загружен. Импортируйте пакет изображений Lucky City 44.0.</p><small>Предпросмотр внешности. Экипировка пока работает в прежней SVG-системе.</small></div>':'';
+   return html.replace('<div class="lc33-hero"><h1>ПЕРСОНАЖ</h1></div>','<div class="lc33-hero"><h1>ПЕРСОНАЖ</h1></div>'+control+panel);
+ };
+ document.addEventListener('click',function(e){if(e.target.closest('[data-lc44-photo]')){photorealOpen=!photorealOpen;render();}});
+ const style=document.createElement('style');style.id='lc44-style';style.textContent=
+ '.lc44-asset-wrap{display:flex;align-items:center;justify-content:center;height:100px;max-width:100%;position:relative}' +
+ '.lc44-photo{width:100%!important;height:100%!important;object-fit:contain!important;display:block}' +
+ '.lc44-asset-wrap .lc44-old-art{height:92px;width:92px;max-width:100%}' +
+ '.lc44-asset-wrap .lc44-old-art svg{width:100%;height:100%}' +
+ '.lc44-preview-action{display:flex;justify-content:center;margin:0 0 13px}' +
+ '.lc44-preview-action button{border:1px solid #a965e9;background:linear-gradient(135deg,#51247c,#24163f);border-radius:14px;color:white;font-weight:800;padding:11px 15px}' +
+ '.lc44-preview-stage{border:1px solid #9958d7;border-radius:18px;background:radial-gradient(ellipse at 50% 25%,#573a80,#100b20 80%);margin-bottom:14px;padding:16px;text-align:center}' +
+ '.lc44-preview-stage img{display:block;height:360px;width:100%;object-fit:contain}' +
+ '.lc44-preview-stage p{color:#ecb9ff}' +
+ '.lc44-preview-stage small{display:block;color:#bba5d2;padding-top:8px}';
+ document.head.appendChild(style);
+})();
