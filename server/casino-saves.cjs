@@ -1,9 +1,41 @@
 'use strict';
 // Isolated Casino City cloud saves. Browser state is not a secure payment ledger.
 let ready;
-async function ensure(pool){if(!pool)throw Error('DATABASE_UNAVAILABLE');if(!ready)ready=pool.query(`CREATE TABLE IF NOT EXISTS public.casino_city_saves(
- vk_id BIGINT PRIMARY KEY, save JSONB NOT NULL, revision BIGINT NOT NULL DEFAULT 1,
- updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`).catch(e=>{ready=null;throw e});await ready}
+async function ensure(pool){
+ if(!pool)throw Error('DATABASE_UNAVAILABLE');
+ if(!ready){
+  ready=(async()=>{
+   await pool.query(`CREATE TABLE IF NOT EXISTS public.casino_city_saves(
+    vk_id BIGINT PRIMARY KEY,save JSONB NOT NULL,revision BIGINT NOT NULL DEFAULT 1,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+   await pool.query(`CREATE TABLE IF NOT EXISTS public.casino_city_save_history(
+    vk_id BIGINT NOT NULL,revision BIGINT NOT NULL,save JSONB NOT NULL,
+    captured_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(vk_id,revision))`);
+   await pool.query(`CREATE OR REPLACE FUNCTION public.casino_city_capture_save()
+    RETURNS TRIGGER LANGUAGE plpgsql AS $history$
+    BEGIN
+     IF TG_OP = 'INSERT' THEN
+      INSERT INTO public.casino_city_save_history(vk_id,revision,save)
+      VALUES(NEW.vk_id,NEW.revision,NEW.save) ON CONFLICT DO NOTHING;
+     ELSIF OLD.revision IS DISTINCT FROM NEW.revision THEN
+      INSERT INTO public.casino_city_save_history(vk_id,revision,save)
+      VALUES(OLD.vk_id,OLD.revision,OLD.save) ON CONFLICT DO NOTHING;
+     END IF;
+     RETURN NEW;
+    END;
+    $history$`);
+   await pool.query(`DO $install$
+    BEGIN
+     IF NOT EXISTS(SELECT 1 FROM pg_trigger WHERE tgrelid='public.casino_city_saves'::regclass AND tgname='casino_city_archive_revision') THEN
+      CREATE TRIGGER casino_city_archive_revision
+      AFTER INSERT OR UPDATE ON public.casino_city_saves
+      FOR EACH ROW EXECUTE FUNCTION public.casino_city_capture_save();
+     END IF;
+    END $install$`);
+  })().catch(error=>{ready=null;throw error});
+ }
+ await ready;
+}
 const valid=(n,a,b)=>Number.isSafeInteger(n)&&n>=a&&n<=b;
 function clean(s){
  if(!s||typeof s!=='object'||Array.isArray(s))return null;
@@ -76,6 +108,21 @@ function registerCasinoSaves(app,pool,requireAuth){
    const q=await pool.query('SELECT save,revision::text AS revision FROM public.casino_city_saves WHERE vk_id=$1',[vk]);
    res.set('Cache-Control','no-store');res.json(q.rows[0]?{save:q.rows[0].save,revision:Number(q.rows[0].revision)}:{save:null,revision:0});
   }catch(e){console.error('casino save read',e.code||e.message);res.status(503).json({error:'SAVE_UNAVAILABLE'})}
+ });
+ // Read-only, account-scoped history. No automatic balance rollback.
+ app.get('/api/casino/save/history',requireAuth,async(req,res)=>{
+  const vk=id(req);if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
+  try{
+   await ensure(pool);
+   const q=await pool.query(`SELECT revision::text AS revision,captured_at,
+    save->>'level' AS level,save->>'coins' AS coins,save->>'chips' AS chips,
+    save->>'plays' AS plays,save->>'earned' AS earned
+    FROM public.casino_city_save_history WHERE vk_id=$1
+    ORDER BY revision DESC LIMIT 30`,[vk]);
+   res.set('Cache-Control','no-store');
+   return res.json({history:q.rows.map(row=>({...row,revision:Number(row.revision)}))});
+  }catch(error){console.error('casino history',error.code||error.message);
+   return res.status(503).json({error:'HISTORY_UNAVAILABLE'})}
  });
  app.post('/api/casino/rounds/settle-plinko',requireAuth,async(req,res)=>{
   const vk=id(req);
