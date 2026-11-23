@@ -88,7 +88,13 @@
   if(!Number.isSafeInteger(appId)||appId<=0)throw Error('VK не передал ID игры');
   // Same community-token permission as the working Millionaire integration.
   // VK grants this token to a community administrator on the device.
-  const result=await window.vkBridge.send('VKWebAppGetCommunityToken',{
+  // VK clients expose different aliases of the same community permission.
+  // Prefer the supported bridge method rather than assuming one method name.
+  const candidates=['VKWebAppGetCommunityToken','VKWebAppGetCommunityAuthToken','VKWebAppCommunityToken','VKWebAppCommunityAccessToken'];
+  const method=typeof window.vkBridge.supports==='function'?
+   candidates.find(candidate=>window.vkBridge.supports(candidate)):candidates[0];
+  if(!method)throw Error('Эта версия VK не поддерживает выдачу ключа сообщества. Откройте игру из меню своей группы.');
+  const result=await window.vkBridge.send(method,{
    app_id:appId,group_id:Number(groupId),scope:'messages'
   });
   if(typeof result?.access_token!=='string'||result.access_token.length<20)
@@ -373,7 +379,15 @@
   try{
    // The native VK client issues a group-scoped token only to an authorized admin.
    // This short-lived proof is submitted once via HTTPS and never stored locally.
-   const proof=action==='create'?(signedCommunityRole(preview.groupId)?null:await getCommunityProof(preview.groupId)):null;
+   const proof=action==='create'?await (async()=>{
+    try{return await getCommunityProof(preview.groupId)}
+    catch(error){
+     // A signed VK administrator launch is independently verified by the API.
+     // Community-token permission is optional only in that signed context.
+     if(signedCommunityRole(preview.groupId))return null;
+     throw error;
+    }
+   })():null;
    const body=action==='create'?{groupId:preview?.groupId,communityToken:proof}:action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind,expectedLevel:Number(data?.mine?.[btn.dataset.kind])}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:action==='kick'?{playerId:btn.dataset.user}:action==='expand-seats'?{expectedTier:Number(data?.mine?.seatTier||0)}:{};
    await api('/'+action,body);preview=null;userToken=null;creating=false;adminGroups=[];data=await api();notice='Успешно';rankings=data.leaders;paintTop();
   }catch(err){notice=err.message||'Ошибка сервера'}finally{

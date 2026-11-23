@@ -86,7 +86,7 @@ test('clan creation relies on signed admin launch or VK-issued group-specific pr
  assert.match(server,/api\.vk\.com\/method\/groups\.getById/);
  assert.match(server,/req\.body\?\.communityToken/);
  assert.match(server,/verifiedCommunityLaunch\(req,req\.body\?\.groupId\)/);
- assert.match(server,/Number\(groups\[0\]\?\.id\)!==requested/);
+ assert.match(server,/Number\(group\.id\)!==requested/);
  assert.match(client,/VKWebAppGetCommunityToken/);
  assert.match(client,/scope:'messages'/);
  assert.doesNotMatch(server,/groups\.getCallbackConfirmationCode/);
@@ -154,4 +154,46 @@ test('long clan panels are collapsed without removing purchases or roster contro
  assert.match(client,/data-clan="upgrade"/);
  assert.match(client,/data-clan="kick"/);
  assert.match(client,/seats:'Расширение мест'/);
+});
+
+test('clan creation accepts verified VK group token without global service token',async()=>{
+ const {verifiedAdminGroup}=await import('../casino-clans.js');
+ const prev=global.fetch,old=process.env.VK_GROUP_SERVICE_TOKEN;
+ delete process.env.VK_GROUP_SERVICE_TOKEN;
+ const requests=[];
+ global.fetch=async(_url,opts)=>{
+  requests.push(new URLSearchParams(opts.body));
+  return {ok:true,json:async()=>({response:[{id:827364951,name:'Клан тест',photo_200:'https://sun1.userapi.com/img.jpg',is_closed:0}]})};
+ };
+ try{
+  const group=await verifiedAdminGroup('vk:101',827364951,'vk1.a.mock_token_valid_length',false);
+  assert.equal(group.groupId,827364951);
+  assert.equal(group.name,'Клан тест');
+  assert.equal(requests.length,1);
+  assert.equal(requests[0].has('group_id'),false,'An arbitrary group id with any token must NOT prove admin control');
+  assert.equal(requests[0].has('group_ids'),false);
+ }finally{global.fetch=prev;if(old===undefined)delete process.env.VK_GROUP_SERVICE_TOKEN;else process.env.VK_GROUP_SERVICE_TOKEN=old}
+});
+test('clan creation rejects foreign group token even when public lookup could find target',async()=>{
+ const {verifiedAdminGroup}=await import('../casino-clans.js');
+ const prev=global.fetch;
+ global.fetch=async()=>({ok:true,json:async()=>({response:[{id:827364952,name:'Not requested',photo_200:'https://sun1.userapi.com/img.jpg'}]})});
+ try{
+  await assert.rejects(verifiedAdminGroup('vk:101',827364951,'vk1.a.mock_token_valid_length',false),/недоступно для подтверждения/);
+ }finally{global.fetch=prev}
+});
+test('signed admin launch can use scoped token for metadata without global service token',async()=>{
+ const {verifiedAdminGroup}=await import('../casino-clans.js');
+ const prev=global.fetch,old=process.env.VK_GROUP_SERVICE_TOKEN;
+ delete process.env.VK_GROUP_SERVICE_TOKEN;
+ let id=null;
+ global.fetch=async(_url,opts)=>{
+  id=new URLSearchParams(opts.body).get('group_ids');
+  return {ok:true,json:async()=>({response:[{id:827364951,name:'Подтверждено',photo_200:'https://sun1.userapi.com/img.jpg'}]})};
+ };
+ try{
+  const group=await verifiedAdminGroup('vk:101',827364951,'vk1.a.mock_token_valid_length',true);
+  assert.equal(id,'827364951');
+  assert.equal(group.name,'Подтверждено');
+ }finally{global.fetch=prev;if(old===undefined)delete process.env.VK_GROUP_SERVICE_TOKEN;else process.env.VK_GROUP_SERVICE_TOKEN=old}
 });
