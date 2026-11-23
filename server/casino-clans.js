@@ -31,7 +31,10 @@ const ECONOMY_SQL=[
  request_id TEXT UNIQUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`,
  "CREATE INDEX IF NOT EXISTS lucky_clan_transactions_clan_idx ON lucky_clan_transactions(clan_id,created_at DESC)",
  `CREATE TABLE IF NOT EXISTS lucky_clan_permits(
- vk_id BIGINT PRIMARY KEY, balance INTEGER NOT NULL DEFAULT 0 CHECK(balance>=0))`
+ vk_id BIGINT PRIMARY KEY, balance INTEGER NOT NULL DEFAULT 0 CHECK(balance>=0))`,
+ `CREATE TABLE IF NOT EXISTS lucky_clan_daily_claims(
+ vk_id BIGINT NOT NULL, claim_day DATE NOT NULL, clan_id BIGINT NOT NULL,
+ PRIMARY KEY(vk_id,claim_day))`
 ];
 let initialized;
 const start=pool=>{
@@ -176,6 +179,11 @@ export function registerLuckyClans(app,pool,requireAuth){
    if(!m.rowCount)fail('Сначала вступите в клан');
    const date=(await c.query("SELECT to_char(now() AT TIME ZONE 'UTC','YYYY-MM-DD') AS day")).rows[0].day;
    if(m.rows[0].last_claim&&new Date(m.rows[0].last_claim).toISOString().slice(0,10)===date)fail('Ежедневный взнос уже получен');
+   // The daily unique key survives leaving and joining another clan;
+   // otherwise members could collect unlimited bonuses by switching clans.
+   const vk=String(req.playerId).replace(/^vk:/,'');
+   const claimed=await c.query('INSERT INTO lucky_clan_daily_claims(vk_id,claim_day,clan_id) VALUES($1,$2::date,$3) ON CONFLICT DO NOTHING RETURNING vk_id',[vk,date,m.rows[0].clan_id]);
+   if(!claimed.rowCount)fail('Сегодня бонус уже начислялся в другой клан');
    const clan=await c.query('SELECT coins,headquarters FROM lucky_clans WHERE id=$1 FOR UPDATE',[m.rows[0].clan_id]);
    const cap=50000+clan.rows[0].headquarters**2*20000;
    const reward=Math.min(500,cap-Number(clan.rows[0].coins));
