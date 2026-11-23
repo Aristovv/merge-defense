@@ -4481,10 +4481,14 @@ async function casinoCloudStart(){
    const next={...fresh(),...result.save};
    const localEpoch=Number(state.resetEpoch)||0,remoteEpoch=Number(next.resetEpoch)||0;
    const tracked=['level','plays','wins','earned','best','giftBestStreak'];
-   const localAdvanced=casinoHadLocalSaveOnBoot&&remoteEpoch<=localEpoch&&(
-    tracked.some(key=>(Number(state[key])||0)>(Number(next[key])||0))||
-    (Array.isArray(state.character33?.ownedOutfits)&&
-     state.character33.ownedOutfits.some(id=>!next.character33?.ownedOutfits?.includes(id)))
+   const localAdvanced=casinoHadLocalSaveOnBoot&&(
+    localEpoch>remoteEpoch||
+    (remoteEpoch===localEpoch&&(
+     tracked.some(key=>(Number(state[key])||0)>(Number(next[key])||0))||
+     (typeof state.lastGift==='string'&&state.lastGift>(next.lastGift||''))||
+     (Array.isArray(state.character33?.ownedOutfits)&&
+      state.character33.ownedOutfits.some(id=>!Array.isArray(next.character33?.ownedOutfits)||!next.character33.ownedOutfits.includes(id)))
+    ))
    );
    if(localAdvanced){
     casinoCloudBackup('Local monotonic progress exceeds cloud save');
