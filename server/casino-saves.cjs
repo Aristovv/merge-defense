@@ -24,6 +24,18 @@ function regression(previous,next){
  if(Array.isArray(previous.buildings)&&Array.isArray(next.buildings)){
   if(previous.buildings.some((v,i)=>Number(next.buildings[i])<Number(v)))return 'BUILDING_REGRESSION';
  }
+ // Permanent claims and cosmetics are never silently removed by ordinary play.
+ for(const key of ['achievementsClaimed','levelRewards','collect']){
+  const old=previous[key],fresh=next[key];
+  if(Array.isArray(old)&&old.some(value=>!Array.isArray(fresh)||!fresh.includes(value)))
+   return 'PERMANENT_COLLECTION_REGRESSION_'+key.toUpperCase();
+ }
+ const stableCosmetics=['nicks','frames','titles','badges','backgrounds','effects','themes'];
+ for(const key of stableCosmetics){
+  const old=previous.donationInventory?.[key],fresh=next.donationInventory?.[key];
+  if(Array.isArray(old)&&old.some(value=>!Array.isArray(fresh)||!fresh.includes(value)))
+   return 'DONATION_OWNERSHIP_REGRESSION_'+key.toUpperCase();
+ }
  const oldOutfits=previous.character33?.ownedOutfits;
  const newOutfits=next.character33?.ownedOutfits;
  if(Array.isArray(oldOutfits)&&oldOutfits.some(id=>!Array.isArray(newOutfits)||!newOutfits.includes(id)))return 'OUTFIT_OWNERSHIP_REGRESSION';
