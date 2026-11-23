@@ -691,9 +691,11 @@ function lc42AvatarBase(equipped){
  return H.join('');
 }
 
+let lc48StreetPreview=false;
 function lc33Avatar(){
- // 47.0: the only character shown in wardrobe and outfit previews is the realistic avatar.
- return '<img class="lc47-real-avatar" src="./assets/character44/avatar.png" alt="Фотореалистичный персонаж Lucky City" draggable="false">';
+ // Realistic-only avatar. The experimental outfit image is a visual preview, not the player's owned equipment.
+ const src=lc48StreetPreview?'./assets/character44/outfit-street.png':'./assets/character44/avatar.png';
+ return '<img class="lc47-real-avatar" src="'+src+'" alt="Фотореалистичный персонаж Lucky City" draggable="false" onerror="if(this.src.includes(\'outfit-street.png\')){this.onerror=null;this.src=\'./assets/character44/avatar.png\'}">';
 }
 
 /* 43.0: recognizable material patches and seams, painted inside each thumbnail.
@@ -883,6 +885,31 @@ document.head.appendChild(lc46Styles);
  '.lc44-preview-stage small{display:block;color:#bba5d2;padding-top:8px}';
  document.head.appendChild(style);
 })();
+
+
+/* Lucky City 48.0: optional fully rendered outfit. It does not change ownership,
+   purchased item IDs, worn items, wallets, server state, or paid content. */
+const lc48Screen=lc33Screen;
+lc33Screen=function(){
+ const html=lc48Screen();
+ const chooser='<div class="lc48-chooser"><button type="button" data-lc48-outfit="'+(lc48StreetPreview?'off':'street')+'">'+
+ (lc48StreetPreview?'Вернуть базовый внешний вид':'Посмотреть реалистичный образ STREET')+
+ '</button><small>Визуальная демонстрация, не покупка и не экипировка. Одежда игрока не меняется.</small></div>';
+ return html.replace('<div class="lc33-tabs">',chooser+'<div class="lc33-tabs">');
+};
+document.addEventListener('click',function(event){
+ const control=event.target.closest('[data-lc48-outfit]');
+ if(!control)return;
+ lc48StreetPreview=control.dataset.lc48Outfit==='street';
+ render();
+});
+const lc48Css=document.createElement('style');lc48Css.id='lc48-visual-outfits';
+lc48Css.textContent='.lc48-chooser{display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px auto 13px;padding:0 8px}'+
+'.lc48-chooser button{border:1px solid #9f62e6;border-radius:13px;background:linear-gradient(130deg,#893dc8,#3b206b);color:white;font-weight:800;padding:10px 13px;cursor:pointer}'+
+'.lc48-chooser small{max-width:300px;color:#cab8df;text-align:center;font-size:10px;line-height:1.4}'+
+'.lc33-figure .lc47-real-avatar{max-height:390px!important;filter:drop-shadow(0 12px 18px #09041a99)}'+
+'.lc33-person{min-height:335px}';
+document.head.appendChild(lc48Css);
 
 /* 47.0 Realistic-only viewport, no duplicate 44-46 photo panel. */
 const lc47Style=document.createElement('style');lc47Style.id='lc47-realistic-character';lc47Style.textContent=
