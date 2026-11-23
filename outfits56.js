@@ -93,7 +93,7 @@ function lc56Screen(){
  (c.activeOutfit!=='base'?'<button data-lc56-base>Надеть базовый</button>':'')+'</section>'+
  '<p class="lc56-sync">'+rankEsc(lc54CloudStatus())+'</p>'+
  ((typeof casinoCloudRevision!=='undefined'&&casinoCloudRevision===null&&typeof casinoCloudLastIssue!=='undefined'&&casinoCloudLastIssue)?'<p class="lc56-sync">Причина: '+rankEsc(casinoCloudLastIssue)+'</p>':'')+
- ((typeof casinoCloudRevision!=='undefined'&&casinoCloudRevision===null&&typeof CASINO_LAUNCH_PARAMS!=='undefined'&&CASINO_LAUNCH_PARAMS)?'<div class="lc56-recovery"><strong>Прогресс в облаке может отличаться</strong><p>Можно безопасно проверить облачную копию и восстановить её вручную. Перед восстановлением текущая копия сохранится отдельно.</p><button type="button" data-lc56-retry>Повторить синхронизацию</button><button type="button" data-lc56-recover>Проверить облачную копию</button><div data-lc56-recovery-status role="status"></div></div>':'')+gallery+'</main>';
+ ((typeof casinoCloudRevision!=='undefined'&&(casinoCloudRevision===null||casinoCloudLocalOnly)&&typeof CASINO_LAUNCH_PARAMS!=='undefined'&&CASINO_LAUNCH_PARAMS)?'<div class="lc56-recovery"><strong>Прогресс в облаке может отличаться</strong><p>Можно безопасно проверить облачную копию и восстановить её вручную. Перед восстановлением текущая копия сохранится отдельно.</p><button type="button" data-lc56-retry>Повторить синхронизацию</button><button type="button" data-lc56-recover>Проверить облачную копию</button><div data-lc56-recovery-status role="status"></div></div>':'')+gallery+'</main>';
 }
 lc33Screen=lc56Screen;
 document.addEventListener('click',async function(e){
@@ -104,9 +104,9 @@ document.addEventListener('click',async function(e){
   if(status)status.textContent='Повторно подключаем облако. Это не меняет твои балансы.';
   try{
    if(!CASINO_LAUNCH_PARAMS&&typeof initCasinoLaunchParams==='function')await initCasinoLaunchParams();
-   if(casinoCloudRevision===null&&typeof casinoCloudStart==='function')await casinoCloudStart();
-   if(status)status.textContent=casinoCloudRevision!==null?'Облако подключено. Прогресс загружен.':('Синхронизация остановлена. '+(typeof casinoCloudLastIssue!=='undefined'&&casinoCloudLastIssue?casinoCloudLastIssue:'Проверь облачную копию ниже.'));
-   if(casinoCloudRevision!==null){render();message('Облачная синхронизация готова');}
+   if((casinoCloudRevision===null||casinoCloudLocalOnly)&&typeof casinoCloudStart==='function')await casinoCloudStart();
+   if(status)status.textContent=casinoCloudRevision!==null&&!casinoCloudLocalOnly?'Облако подключено. Прогресс подтверждён.':'Требуется сверка копий. Нажми «Проверить облачную копию» и сравни прогресс перед восстановлением.';
+   if(casinoCloudRevision!==null&&!casinoCloudLocalOnly){render();message('Облачная синхронизация готова');}
   }catch(error){if(status)status.textContent='Ошибка подключения: '+(error?.message||'неизвестная')+'; прогресс не изменён.'}
   finally{retry.disabled=false}
   return;
