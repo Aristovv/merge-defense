@@ -68,3 +68,22 @@ Only clan tables `lucky_clans` and `lucky_clan_members` are initialized; this co
 
 ## Safety
 Before deployment, create a recoverable database backup and verify it. Never paste VK tokens or database URLs into an issue or chat. Avoid editing the legacy casino save tables for clan features.
+
+
+## Clan economy (coin/vote milestone release)
+- Clan creation: free. Existing player coins, chips and paid purchases are not reset or migrated.
+- Existing clan building materials migrate into the new clan coin treasury at **1 material = 1 clan coin** on first successful clan database initialization; the `materials` column is retained for backwards compatibility. Back up database before deployment.
+- Clan coin treasury maximum = `50,000 + 20,000 × headquarters_level²`. Level 1 = 70,000 coins; level 50 = 50,050,000.
+- Standard HQ level-up from current level L costs `ceil(3000 × 1.11^(L-1) / 100) × 100` clan coins; wall costs `ceil(2000 × 1.11^(L-1) / 100) × 100`. Prices are derived **server-side**, not trusted from browser.
+- Paywalled milestones: HQ reaches levels 4, 7, 10, 15; wall reaches levels 4, 7, 10. These require one server-owned construction permit bought for 5 VK votes; no clan coins are charged at these specific milestones. Total of 7 permits (35 votes) for both full 50-level paths.
+- Each member may claim up to 500 free clan coins **once per UTC day**; a separate cross-clan unique claim key prevents repeated claiming by leaving and rejoining.
+- A member may transfer **100–100,000** personal coins per request, with a total cap of 100,000 per UTC day. Transfers commit personal cloud-save debit, clan credit, and audit log in one PostgreSQL transaction. On uncertain network results, reload to reconcile rather than trying an untracked second transfer. Transfers are irreversible and cannot exceed available capacity.
+- Spending clan coins and spending a paid permit are guarded by transactional locks and by expected construction level; simultaneous stale requests are rejected instead of upgrading a different level unintentionally.
+- A 5-vote permit is issued **only** by the existing signature-verified VK order callback. Repeated order IDs are idempotent through `casino_city_paid_orders`; permits live in `lucky_clan_permits`, never in client-editable saves. The purchase UI only works when `LUCKY_VK_PAYMENTS_ENABLED=1` and `VK_PAYMENTS_SECRET` are already securely configured for existing commerce.
+- Purchase completion can lag VK callback processing; players use **Проверить оплаченные пропуска** to refresh the authoritative entitlement.
+
+### Risks and verification before production
+- Existing Lucky City cloud saves currently permit client-originated coin increases for ordinary gameplay. Atomic clan deposits prevent double-spending via the API but **do not make the entire local game economy cheat-proof**. A fully secure competitive market requires server-authoritative coin earning across the whole game.
+- Confirm all existing saves and table backups before deployment; this release adds clan tables and the `coins` column, not changes to individual save schema.
+- Real VK premium order, callback, duplicate notification, paid permit consumption and delayed callback need full end-to-end testing; passing syntax or unit checks is not proof of live payment success.
+- Do not publish the premium stage as live until verified with a real authorized VK order. Do not enable test order crediting. Never log payment secrets.
