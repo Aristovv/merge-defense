@@ -85,52 +85,59 @@ function cleanVKGroup(raw,requested){
  const avatar=safeVkPhoto(group.photo_200||group.photo_100||'');
  return {groupId:requested,name:String(group.name).slice(0,100),avatar};
 }
+function cleanVKGroup(raw,requested){
+ const group=(Array.isArray(raw)?raw:raw?.groups)?.[0];
+ if(!group||Number(group.id)!==requested||!group.name||Number(group.is_closed)===2)
+  fail('Сообщество VK недоступно для подтверждения',403);
+ const avatar=safeVkPhoto(group.photo_200||group.photo_100||'');
+ return {groupId:requested,name:String(group.name).slice(0,100),avatar};
+}
+async function communityGroupLookup(token,params){
+ const body=new URLSearchParams({...params,access_token:token,v:'5.199'});
+ const response=await fetch('https://api.vk.com/method/groups.getById',{
+  method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+  body,signal:AbortSignal.timeout(7000)
+ });
+ if(!response.ok)fail('VK временно недоступен',503);
+ const data=await response.json();
+ if(data?.error)fail('VK не подтвердил ключ сообщества (код '+Number(data.error.error_code||0)+')',403);
+ return data.response;
+}
 async function verifiedAdminGroup(playerId,groupId,communityToken,verifiedLaunch){
  const requested=Number(groupId);
  if(!validId(requested))fail('Выберите группу из списка');
- // A signed administrator launch is sufficient proof of ownership for THAT
- // group. A group-scoped token is sufficient when the game is opened elsewhere.
- // Verify the group ID on the fetched VK metadata, never trust browser labels.
  const token=typeof communityToken==='string'&&communityToken.length>=15&&communityToken.length<=4096?
   communityToken:null;
- let verifiedByCommunity=false,groupFromToken=null;
  if(token){
-  const body=new URLSearchParams({
-   group_id:String(requested),fields:'photo_200',access_token:token,v:'5.199'
-  });
-  try{
-   const response=await fetch('https://api.vk.com/method/groups.getById',{
-    method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body,signal:AbortSignal.timeout(7000)
-   });
-   if(!response.ok)fail('VK временно недоступен',503);
-   const answer=await response.json();
-   if(answer?.error){
-    const code=Number(answer.error.error_code)||0;
-    if(!verifiedLaunch)fail('VK не подтвердил разрешение сообщества (код '+code+')',403);
-   }else{
-    const raw=Array.isArray(answer?.response)?answer.response:answer?.response?.groups;
-    // This request is authorized by a VK-issued token for this specific group.
-    groupFromToken=cleanVKGroup(raw,requested);
-    verifiedByCommunity=true;
+  if(verifiedLaunch){
+   // Signed HMAC launch already proves this viewer is a group admin.
+   // The token here retrieves metadata only, not authorization.
+   try{
+    const group=await communityGroupLookup(token,{group_ids:String(requested),fields:'photo_200'});
+    return cleanVKGroup(group,requested);
+   }catch(error){
+    if(error.status!==403&&error.status!==503)throw error;
+    // Fallback to server service/public lookup below with signed admin proof.
    }
-  }catch(error){
-   if(error.status)throw error;
-   if(!verifiedLaunch)fail('VK не ответил при проверке сообщества. Повторите создание.',503);
+  }else{
+   // Important: querying arbitrary group_id with any token is NOT proof.
+   // Omit group_id: the VK group-token default identifies its own community.
+   let raw;
+   try{raw=await communityGroupLookup(token,{fields:'photo_200'})}
+   catch(error){
+    if(error.status)throw error;
+    fail('Не удалось проверить сообщество VK. Повторите авторизацию.',503);
+   }
+   return cleanVKGroup(raw,requested);
   }
  }
- if(!verifiedLaunch&&!verifiedByCommunity)
-  fail('VK не подтвердил права на выбранную группу. Подключите игру к сообществу или разрешите доступ VK.',403);
- // A valid group-scoped token can also fetch public group details, so clan
- // creation must not depend on an unrelated global service token.
- if(groupFromToken)return groupFromToken;
+ if(!verifiedLaunch)
+  fail('VK не подтвердил права администратора. Запустите Lucky City из сообщества либо предоставьте разрешение VK.',403);
+ // The signed launch proves the group-admin role and exact group ID.
  if(process.env.VK_GROUP_SERVICE_TOKEN){
   const details=await serviceVK('groups.getById',{group_ids:String(requested),fields:'photo_200'});
   return cleanVKGroup(details,requested);
  }
- // Signed community launch proves the selected group ID and admin role but
- // does not prove client-supplied name or image. A public VK metadata lookup
- // is attempted; if VK requires a token, explain what's missing explicitly.
  try{
   const params=new URLSearchParams({group_ids:String(requested),fields:'photo_200',v:'5.199'});
   const response=await fetch('https://api.vk.com/method/groups.getById',{
@@ -138,10 +145,9 @@ async function verifiedAdminGroup(playerId,groupId,communityToken,verifiedLaunch
    body:params,signal:AbortSignal.timeout(7000)
   });
   const details=await response.json();
-  if(response.ok&&!details?.error)
-   return cleanVKGroup(details.response,requested);
- }catch(error){console.warn('[clans] VK public group metadata unavailable',error.code||error.message)}
- fail('Невозможно получить данные группы VK. Повторите создание с разрешением сообщества.',503);
+  if(response.ok&&!details?.error)return cleanVKGroup(details.response,requested);
+ }catch(error){console.warn('[clans] VK group metadata unavailable',error.code||error.message)}
+ fail('Сервер VK не предоставил данные группы. Повторите создание через разрешение сообщества.',503);
 }
 const wrap=handler=>async(req,res)=>{try{res.set('Cache-Control','no-store');return await handler(req,res)}catch(e){return err(res,e)}};
 async function tx(pool,fn){
