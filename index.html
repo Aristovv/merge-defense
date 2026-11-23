@@ -5497,7 +5497,7 @@ async function casinoAdminLoad(){
   host.innerHTML=(data.players||[]).length?(data.players||[]).map(p=>'<div class="casino-admin-player"><b>'+rankEsc(p.display_name||'Игрок')+'</b><span>VK '+rankEsc(p.vk_id)+' · Ур. '+Number(p.level||1)+' · '+fmt(Number(p.score||0))+' очков · '+fmt(Number(p.plays||0))+' игр</span></div>').join(''):'Игроки не найдены';
  }catch(error){host.textContent=error.message||'Ошибка загрузки'}
 }
-function navbar(){return '<nav class="nav era30-global-nav" aria-label="Главное меню">'+[['city','city','Город'],['clan','city','Клан'],['top','trophy','Топ'],['shop','vip','Магазин'],['character','profile','Персонаж'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button type="button" aria-label="'+label+'" aria-current="'+(tab===k?'page':'false')+'" data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
+function navbar(){return '<nav class="nav era30-global-nav" aria-label="Главное меню">'+[['city','city','Город'],['clan','tower','Клан'],['top','trophy','Топ'],['shop','vip','Магазин'],['character','profile','Персонаж'],['profile','profile','Профиль']].map(([k,icon,label])=>'<button type="button" aria-label="'+label+'" aria-current="'+(tab===k?'page':'false')+'" data-tab="'+k+'" class="'+(tab===k?'on':'')+'">'+ic(icon)+label+'</button>').join('')+'</nav>'}
 
 /* LUCKY CITY 14.0 — LIVE CITY. All rewards are virtual, locally persisted and bounded. */
 const CC14_CHEST_WAIT=8*3600000;
@@ -6142,7 +6142,7 @@ const originalStartCost=startCost; // Preserve independent game round state; col
 // Cloud-first protection: allow viewing tabs and manual recovery, not state mutations.
 document.addEventListener('click',function(e){
  if(casinoCloudRevision!==null&&casinoCloudRevision>0)return;
- const allowed=e.target.closest('[data-tab],[data-lc56-tab],[data-lc56-filter],[data-lc56-page],[data-lc56-recover],[data-lc56-retry],[data-lc56-apply],[data-admin-section-tab],[data-casino-admin-player],[data-casino-admin-search]');
+ const allowed=e.target.closest('[data-tab],[data-lc56-tab],[data-lc56-filter],[data-lc56-page],[data-lc56-recover],[data-lc56-retry],[data-lc56-apply],[data-clan],[data-admin-section-tab],[data-casino-admin-player],[data-casino-admin-search]');
  if(allowed)return;
  const interactive=e.target.closest('button,a,[role="button"]');
  if(!interactive)return;
