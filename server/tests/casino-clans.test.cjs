@@ -16,43 +16,25 @@ function response(){
  res.json=value=>{res.body=value;return res};
  return res;
 }
-test('clan endpoints require authenticated route middleware',async()=>{
+test('clan endpoints register an authenticated admin community picker',async()=>{
  const {registerLuckyClans}=await import('../casino-clans.js');
  const {app,routes}=routeRecorder();
  const auth=()=>{};
  registerLuckyClans(app,null,auth);
- for(const url of ['/api/casino/clans','/api/casino/clans/group']){
-  const fn=routes.get('GET '+url);
-  assert.equal(typeof fn,'function');
- }
- for(const url of ['create','join','leave','daily','upgrade','role'])
+ assert.equal(typeof routes.get('GET /api/casino/clans'),'function');
+ assert.equal(routes.has('GET /api/casino/clans/group'),false,'legacy manual picker removed');
+ for(const url of ['admin-groups','create','join','leave','daily','upgrade','role'])
   assert.equal(typeof routes.get('POST /api/casino/clans/'+url),'function');
 });
-test('VK group URL is validated before contacting VK',async()=>{
+test('admin community picker rejects missing user token without contacting VK',async()=>{
  const {registerLuckyClans}=await import('../casino-clans.js');
  const {app,routes}=routeRecorder();
  registerLuckyClans(app,null,()=>{});
- const get=routes.get('GET /api/casino/clans/group');
- for(const bad of ['http://evil.example/club123','https://vk.com/club0','javascript:alert(1)','https://vk.com/club3?x=1','']){
-  const res=response();await get({query:{url:bad}},res);
-  assert.equal(res.statusCode,400,'Should reject '+bad);
-  assert.equal(typeof res.body.error,'string');
- }
-});
-test('group lookup fails closed if server token is absent',async()=>{
- const {registerLuckyClans}=await import('../casino-clans.js');
- const {app,routes}=routeRecorder();
- registerLuckyClans(app,null,()=>{});
- const old=process.env.VK_GROUP_SERVICE_TOKEN;
- delete process.env.VK_GROUP_SERVICE_TOKEN;
- try{
-  const res=response();
-  await routes.get('GET /api/casino/clans/group')({query:{url:'https://vk.com/club1234'}},res);
-  assert.equal(res.statusCode,503);
- }finally{
-  if(old===undefined)delete process.env.VK_GROUP_SERVICE_TOKEN;
-  else process.env.VK_GROUP_SERVICE_TOKEN=old;
- }
+ const route=routes.get('POST /api/casino/clans/admin-groups');
+ const res=response();
+ await route({playerId:'vk:123',body:{}},res);
+ assert.equal(res.statusCode,403);
+ assert.equal(typeof res.body.error,'string');
 });
 test('every clan upgrade level has a distinct SVG scene',()=>{
  const script=fs.readFileSync(path.join(__dirname,'../../clan-scenes.js'),'utf8');
