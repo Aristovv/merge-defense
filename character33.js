@@ -540,8 +540,8 @@ function lc54CloudRequired(){
 }
 function lc54CloudStatus(){
  if(!lc54CloudRequired())return 'Локальное сохранение. Для облака открой игру из ВКонтакте.';
- if(typeof casinoCloudRevision==='undefined'||casinoCloudRevision===null)return 'Облако не синхронизировано — действия временно недоступны.';
- if(casinoCloudRevision===0)return 'Создаём облачное сохранение — действия временно недоступны.';
+ if(typeof casinoCloudRevision==='undefined'||casinoCloudRevision===null||typeof casinoCloudLocalOnly!=='undefined'&&casinoCloudLocalOnly)return 'Прогресс сохраняется на устройстве.';
+ if(casinoCloudRevision===0)return 'Прогресс сохраняется.';
  if(typeof casinoCloudBusy!=='undefined'&&casinoCloudBusy)return 'Облачное сохранение выполняется.';
  if(typeof casinoCloudDirty!=='undefined'&&casinoCloudDirty)return 'Изменения ожидают отправки в облако.';
  return 'Облачная синхронизация готова.';
@@ -930,8 +930,8 @@ document.addEventListener('click',function(e){
  if(lc54PurchaseInFlight){message('Покупка уже обрабатывается');return}
  const set=lc39GetSet(button.dataset.lc50Buy);
  if(!set)return;
- if(lc54CloudRequired()&&(typeof casinoCloudRevision==='undefined'||casinoCloudRevision===null)){
-  message('Сначала требуется облачная синхронизация — покупка не выполнена');return;
+ if(lc54CloudRequired()&&(typeof casinoCloudRevision==='undefined'||casinoCloudRevision===null)&&!lc54StorageReady()){
+  message('Сохранение на устройстве недоступно — покупка отменена');return;
  }
  if(!lc54StorageReady()){message('Нет доступа к сохранению — покупка отменена');return}
  lc54PurchaseInFlight=true;button.disabled=true;
@@ -984,7 +984,7 @@ document.addEventListener('click',async function(e){
  const btn=e.target.closest('[data-lc54-verify]');
  if(!btn)return;
  if(!lc54CloudRequired()){message('Сохранено на устройстве. Облако доступно при запуске из ВКонтакте.');return}
- if(typeof casinoCloudRevision==='undefined'||casinoCloudRevision===null){message('Облачная синхронизация приостановлена — проверь подключение.');return}
+ if(typeof casinoCloudRevision==='undefined'||casinoCloudRevision===null||typeof casinoCloudLocalOnly!=='undefined'&&casinoCloudLocalOnly){message('Прогресс сохраняется на устройстве. Проверка облачной копии доступна при восстановлении.');return}
  if(typeof casinoCloudBusy!=='undefined'&&casinoCloudBusy){message('Сохранение ещё выполняется, проверь повторно.');return}
  btn.disabled=true;
  try{
