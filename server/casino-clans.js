@@ -85,13 +85,6 @@ function cleanVKGroup(raw,requested){
  const avatar=safeVkPhoto(group.photo_200||group.photo_100||'');
  return {groupId:requested,name:String(group.name).slice(0,100),avatar};
 }
-function cleanVKGroup(raw,requested){
- const group=(Array.isArray(raw)?raw:raw?.groups)?.[0];
- if(!group||Number(group.id)!==requested||!group.name||Number(group.is_closed)===2)
-  fail('Сообщество VK недоступно для подтверждения',403);
- const avatar=safeVkPhoto(group.photo_200||group.photo_100||'');
- return {groupId:requested,name:String(group.name).slice(0,100),avatar};
-}
 async function communityGroupLookup(token,params){
  const body=new URLSearchParams({...params,access_token:token,v:'5.199'});
  const response=await fetch('https://api.vk.com/method/groups.getById',{
