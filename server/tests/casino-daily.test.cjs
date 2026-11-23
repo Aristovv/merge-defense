@@ -27,7 +27,7 @@ function setup({day='2026-11-23',lastGift='',giftStreak=0,coins=2500,chips=1200,
  async function invoke(rev=record.revision){
   let status=200,payload;
   const res={status(n){status=n;return this},set(){return this},json(v){payload=v;return this}};
-  await claim({playerId:'vk:523218982',body:{revision:rev}},res);
+  await claim({playerId:'vk:123456789',body:{revision:rev}},res);
   return {status,payload};
  }
  return {record,invoke,setDay:(v)=>{day=v}};
