@@ -122,6 +122,44 @@ async function tx(pool,fn){
  catch(e){await client.query('ROLLBACK').catch(()=>{});throw e}
  finally{client.release()}
 }
+// Public VK profile previews are fetched only by the server. Never expose a VK
+// service token to browser code, and never persist profile photos to player saves.
+const memberProfilesCache=new Map();
+const MEMBER_PROFILE_TTL=5*60*1000;
+const safeVkPhoto=value=>{
+ if(typeof value!=='string'||value.length>650)return '';
+ try{
+  const u=new URL(value);
+  return u.protocol==='https:'&&/(^|\.)(userapi\.com|vkcdn\.ru|vk\.com|vk\.ru)$/.test(u.hostname.toLowerCase())?u.href:'';
+ }catch(_){return ''}
+};
+export async function vkMemberProfiles(members,token=process.env.VK_GROUP_SERVICE_TOKEN){
+ const ids=[...new Set(members.map(m=>String(m.playerId||'').replace(/^vk:/,'')).filter(x=>/^[1-9][0-9]{0,18}$/.test(x)))];
+ const now=Date.now(),missing=ids.filter(id=>!memberProfilesCache.has(id)||memberProfilesCache.get(id).until<=now);
+ if(missing.length&&token){
+  try{
+   const params=new URLSearchParams({user_ids:missing.join(','),fields:'photo_100',access_token:token,v:'5.199'});
+   const response=await fetch('https://api.vk.com/method/users.get',{
+    method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:params,signal:AbortSignal.timeout(5000)
+   });
+   if(!response.ok)throw Error('VK HTTP '+response.status);
+   const result=await response.json();
+   if(!Array.isArray(result?.response))throw Error('VK response unavailable');
+   for(const user of result.response){
+    const id=String(user.id||'');
+    if(!missing.includes(id))continue;
+    const name=[user.first_name,user.last_name].filter(x=>typeof x==='string'&&x.trim()).join(' ').trim().slice(0,100);
+    memberProfilesCache.set(id,{until:now+MEMBER_PROFILE_TTL,name:name||'Игрок VK',avatar:safeVkPhoto(user.photo_100)});
+   }
+  }catch(error){console.warn('[clans] VK member previews unavailable:',error.code||error.message)}
+ }
+ return members.map(member=>{
+  const id=String(member.playerId||'').replace(/^vk:/,'');
+  const profile=memberProfilesCache.get(id);
+  return {...member,profileName:profile?.until>now?profile.name:'Профиль VK',
+   profileAvatar:profile?.until>now?profile.avatar:'',profileUrl:/^[1-9][0-9]{0,18}$/.test(id)?'https://vk.com/id'+id:''};
+ });
+}
 const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.coins,c.seat_tier AS "seatTier",(10+c.seat_tier*5)::int AS "memberCapacity",(50000+c.headquarters*c.headquarters*20000)::bigint AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
 async function mine(pool,playerId){
  const {rows}=await pool.query(`SELECT ${clanFields},m.role,m.last_claim AS "lastClaim" FROM lucky_clans c JOIN lucky_clan_members m ON m.clan_id=c.id WHERE m.player_id=$1`,[playerId]);
@@ -137,7 +175,7 @@ async function mine(pool,playerId){
  ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'officer' THEN 1 ELSE 2 END,
   m.joined_at LIMIT 50`,[rows[0].id]);
  const log=await pool.query('SELECT action,coins,player_id AS "playerId",created_at AS "createdAt" FROM lucky_clan_transactions WHERE clan_id=$1 ORDER BY created_at DESC,id DESC LIMIT 25',[rows[0].id]);
- return {...rows[0],members:members.rows,history:log.rows};
+ return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows};
 }
 async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
