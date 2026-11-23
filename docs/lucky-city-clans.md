@@ -87,3 +87,11 @@ Before deployment, create a recoverable database backup and verify it. Never pas
 - Confirm all existing saves and table backups before deployment; this release adds clan tables and the `coins` column, not changes to individual save schema.
 - Real VK premium order, callback, duplicate notification, paid permit consumption and delayed callback need full end-to-end testing; passing syntax or unit checks is not proof of live payment success.
 - Do not publish the premium stage as live until verified with a real authorized VK order. Do not enable test order crediting. Never log payment secrets.
+
+## Economy revision — 3 premium upgrades per building
+- Clan creation remains **free**.
+- Exactly three premium upgrades per building: **levels 5, 10, 15** for headquarters and **levels 5, 10, 15** for wall. Each costs **one 5-VK-vote construction permit** from the existing signed-payment flow; premium levels do not also spend coins.
+- All other upgrades use **clan treasury coins**. Formula for upgrading from level `L` to `L+1`: `ceil(base * 1.13^(L-1) / 100) * 100`, with base **5,000** (headquarters) and **3,500** (wall).
+- Cost for all coin stages, level 1 to 50: headquarters **15,260,600 coins**; wall **10,682,900 coins**; together **25,943,500 coins** plus **30 VK votes** for all six premium stages.
+- Existing clan upgrades and server-side permit ownership are preserved; no retroactive charges or reset.
+- Live VK purchases must be confirmed with signed server callbacks and are **not claimed as production-tested**.
