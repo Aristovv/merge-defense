@@ -34,6 +34,31 @@ Only clan tables `lucky_clans` and `lucky_clan_members` are initialized; this co
 - Refresh / re-login retains clan membership and upgrade levels from PostgreSQL.
 - Original coins, chips, clothing, purchases, and daily rewards retain their previous values.
 
+## Clan economy (2026-11-23)
+
+- Creating/joining a clan remains free.
+- Previous `materials` treasury balances migrate to `coins` at a 1:1 ratio, with the legacy field retained for rollback compatibility. No player's personal balance is changed by the migration.
+- Clan treasury capacity: `50,000 + 20,000 × headquartersLevel²` coins; level 1 is 70,000 coins.
+- Upgrading HQ to the next level: `ceil(3,000 × 1.13^(currentLevel-1) / 100) × 100` coins.
+- Upgrading the wall to the next level: `ceil(2,000 × 1.13^(currentLevel-1) / 100) × 100` coins.
+- Member daily contribution reward: up to 500 clan coins, exactly once per UTC day, subject to vault capacity.
+- Voluntary deposits transfer personal in-game coins from authoritative-at-request cloud snapshot into the clan vault in one PostgreSQL transaction, with expected revision and idempotency request key. Amounts 100–1,000,000 in increments of 100; sum of deposits per account per UTC day capped at 100,000. A pending mini-game blocks transfers.
+- Deposits increment the player's cloud revision and return the committed save, which the frontend reconciles before allowing further actions.
+- The last 25 clan treasury actions are visible. Only the owner or an officer can upgrade the HQ/wall. Ordinary members may contribute.
+- **Important**: the existing casino personal coin save is client-generated gameplay state; it is not a fully server-authoritative earnings ledger. The revision check and atomic transfers prevent double transfers and stale writes, but they **do not prevent a malicious player from manipulating an untrusted upstream coin balance**. Before competitive coin economies or valuable prizes are introduced, migrate coin earning/spending to validated server-side game actions.
+- **VK Votes not implemented yet for clans.** The screenshot's 5-vote milestone ideas remain a separate planned purchase feature. No 5-vote option is enabled or charged. Proper integration must record a pre-authorized upgrade intent, validate VK's signed payment callback, and consume the receipt exactly once; never trust a client-only payment success flag.
+
+## Required regression tests before rollout
+
+1. Back up PostgreSQL, verify the backup can be restored and includes the existing `casino_city_saves` table.
+2. Check existing treasury migration (e.g. 100 materials becomes 100 coins), personal balances unchanged.
+3. Confirm a 3,000-coin HQ upgrade spends exactly 3,000 clan coins and raises headquarters 1→2.
+4. Confirm deposit from personal account decrements the player's saved coins exactly once, increases clan coins exactly once, and survives re-login.
+5. Confirm repeated request ID, stale cloud revision, insufficient personal funds and full vault never double-charge.
+6. Confirm two simultaneous donations don't overwrite the latest cloud save or exceed vault capacity.
+7. Confirm a pre-existing unsynced local save blocks donations and requests no payment.
+8. Confirm no vote-based upgrades are purchasable until the signed VK payment flow has been built.
+
 ## Not yet implemented or verified
 - Production installation on Timeweb has not been verified.
 - Native community-token issuance and group-specific server verification need live testing. The previous `groups.getMembers?filter=managers` approach was rejected by VK (code 15). The new flow does not use it. Failed permission requests must not create a clan.
