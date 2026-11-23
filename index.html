@@ -4356,6 +4356,27 @@ document.addEventListener('visibilitychange',()=>{
 });
 /* Lucky City cloud save v18.2: local-first, server revision guarded. */
 let casinoCloudRevision=null,casinoCloudDirty=false,casinoCloudBusy=false,casinoCloudTimer=null,casinoCloudStarting=false;
+const CASINO_PENDING_SAVE_KEY='casino_city_pending_save_v1';
+function casinoCloudVKId(){
+ try{return String(new URLSearchParams(CASINO_LAUNCH_PARAMS||'').get('vk_user_id')||'')}catch(_){return ''}
+}
+function casinoCloudPendingRead(){
+ try{
+  const data=JSON.parse(localStorage.getItem(CASINO_PENDING_SAVE_KEY)||'null');
+  return data?.vkId===casinoCloudVKId()&&Number.isSafeInteger(data.revision)&&data.revision>=0&&data.save&&typeof data.save==='object'?data:null;
+ }catch(_){return null}
+}
+function casinoCloudPendingWrite(revision=casinoCloudRevision){
+ if(revision===null||!casinoCloudVKId())return false;
+ try{
+  localStorage.setItem(CASINO_PENDING_SAVE_KEY,JSON.stringify({vkId:casinoCloudVKId(),revision,save:state,updatedAt:Date.now()}));
+  return true;
+ }catch(error){console.error('Cloud pending snapshot not persisted',error);return false}
+}
+function casinoCloudPendingClear(){
+ try{const pending=casinoCloudPendingRead();if(pending)localStorage.removeItem(CASINO_PENDING_SAVE_KEY)}catch(_){}
+}
+
 function casinoCloudBackup(reason){
  try{localStorage.setItem('casino_city_cloud_backup_'+Date.now(),JSON.stringify({reason,save:state}));}catch(_){}
 }
@@ -4380,6 +4401,45 @@ async function casinoCloudStart(){
  const startingSnapshot=JSON.stringify(state);
  try{
   const result=await casinoCloudFetch('GET');
+  // Resume a verified unacknowledged write after app termination. Do not guess
+  // when another device or admin has already advanced the server revision.
+  const pending=casinoCloudPendingRead();
+  if(pending){
+   let localRaw=null;
+   try{localRaw=JSON.parse(localStorage.getItem(STORAGE)||'null')}catch(_){}
+   if(JSON.stringify(localRaw)!==JSON.stringify(pending.save)){
+    casinoCloudBackup('Pending cloud write differs from local state');
+    casinoCloudPreserveRemote(result,'pending state mismatch');
+    casinoCloudNotice('Обнаружены несогласованные локальные изменения. Выбери восстановление вручную.');
+    return;
+   }
+   if(Number(result.revision)!==pending.revision){
+    // A successful prior PUT may have reached the server before a client crash.
+    // If the payload is identical there is nothing left to upload.
+    if(result.save&&JSON.stringify(result.save)===JSON.stringify(pending.save)){
+     casinoCloudPendingClear();
+    }else{
+     casinoCloudBackup('Cloud advanced while local save was pending');
+     casinoCloudPreserveRemote(result,'pending revision conflict');
+     casinoCloudNotice('В облаке и на устройстве разные изменения. Автоматическая перезапись запрещена.');
+     return;
+    }
+   }else{
+    try{
+     const sent=await casinoCloudFetch('PUT',{revision:pending.revision,save:pending.save});
+     if(!Number.isSafeInteger(Number(sent.revision)))throw Error('INVALID_SAVE_ACK');
+     casinoCloudPendingClear();
+     casinoCloudRevision=Number(sent.revision);casinoCloudDirty=false;
+     state={...fresh(),...pending.save};
+     try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}
+     render();
+     return;
+    }catch(error){
+     casinoCloudNotice('Не удалось отправить несохранённые изменения. Текущая копия сохранена на устройстве.');
+     return;
+    }
+   }
+  }
   if(result.save){
    if(!Number.isSafeInteger(Number(result.revision))||Number(result.revision)<1)throw Error('INVALID_CLOUD_REVISION');
    if(result.save.pendingMiniRound&&['plinko','crash'].includes(result.save.pendingMiniRound.kind)&&!state.pendingMiniRound){
@@ -4458,6 +4518,8 @@ async function casinoCloudUpload(){
  try{
   const result=await casinoCloudFetch('PUT',{revision,save:JSON.parse(snapshot)});
   casinoCloudRevision=result.revision;casinoCloudDirty=JSON.stringify(state)!==snapshot;
+  if(casinoCloudDirty)casinoCloudPendingWrite(casinoCloudRevision);
+  else casinoCloudPendingClear();
   try{localStorage.setItem('casino_city_last_cloud_revision',String(casinoCloudRevision))}catch(_){}
   if(revision===0)render();
  }catch(error){
@@ -4473,6 +4535,7 @@ function save(){
  if(casinoCloudRevision===null){console.warn('Save deferred: cloud session not ready');return;}
  state.stamp=Date.now();
  try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(error){console.error('Local save unavailable',error)}
+ casinoCloudPendingWrite();
  casinoCloudDirty=true;casinoCloudSchedule();syncCasinoRanking();
 }
 function message(s){$('toast').textContent=s;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,2800)}
