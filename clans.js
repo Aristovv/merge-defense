@@ -4,7 +4,7 @@
  const BASE='https://merge.89-23-115-251.sslip.io/api/casino/clans';
  const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
  const root=()=>document.getElementById('lucky-clan-root');
- let launch='',data=null,preview=null,loading=false,rankings=null,notice='',loadingTop=false;
+ let launch='',data=null,preview=null,loading=false,rankings=null,notice='',loadingTop=false,creating=false,adminGroups=[],userToken=null;
  const hqNames=['Гнилой сарай','Обшитый сарай','Небольшой сарай','Старый гараж с мусором','Убранный гараж','Оштукатуренный гараж','Гараж с ровным полом','Гараж с белыми стенами','Гараж с ламинатом','Освещённый гараж','Гараж с мебелью','Гараж с сейфом','Гараж с крепкой дверью','Гараж с кодовым замком','Заброшенный дом'];
  const wallNames=['Куча листьев','Листья и палки','Большая куча веток','Вкопанные колья','Колья и верёвки','Укреплённые колья','Колючая проволока','Забор и яма','Ров с мостиком','Начало бревенчатого забора','Бревенчатый забор — треть','Бревенчатый забор — две трети','Готовый бревенчатый забор','Бревенчатый забор с рвом','Ров с водой','Металлический каркас'];
  const description=(kind,level)=>kind==='headquarters'?(hqNames[level-1]||(level<=25?'Отремонтированный дом':level<=35?'Клановый особняк':level<=45?'Охраняемая резиденция':'Элитный клановый комплекс')):(wallNames[level-1]||(level<=25?'Металлический забор':level<=35?'Бетонная стена':level<=40?'Серебряная оборона':level<=44?'Золотая оборона':level<=47?'Алмазная оборона':'Изумрудная крепость'));
@@ -26,6 +26,10 @@
  .lc-clan-rank>div{flex:1;min-width:0}.lc-clan-rank strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .lc-clan-error{color:#ffb6b6;line-height:1.4;margin:9px 0}
  .lc-clan-success{color:#9ef5cf;line-height:1.4;margin:9px 0}
+ .lc-clan-select{display:flex;width:100%;text-align:left;align-items:center;gap:12px;border:1px solid #70518d;background:#221732;color:#fce9ff;border-radius:13px;padding:11px;margin:9px 0;font:inherit}
+ .lc-clan-select.is-selected{border-color:#e5b875;background:#442655;box-shadow:0 0 0 1px #e5b875}
+ .lc-clan-select .lc-clan-img{width:50px;height:50px}
+ .lc-clan-select small{display:block;color:#bcb0cd;margin-top:4px;font-size:11px}
  `;
  document.head.append(style);
  async function api(path='',body){
@@ -35,6 +39,26 @@
   const result=await response.json().catch(()=>({}));
   if(!response.ok)throw Error(result.error||'Ошибка соединения');
   return result;
+ }
+ async function getAdminToken(){
+  if(!window.vkBridge?.send)throw Error('Откройте Lucky City во ВКонтакте');
+  const appId=Number(new URLSearchParams(launch).get('vk_app_id'));
+  if(!Number.isSafeInteger(appId)||appId<=0)throw Error('VK не передал идентификатор приложения');
+  const result=await window.vkBridge.send('VKWebAppGetAuthToken',{app_id:appId,scope:'groups'});
+  if(!result?.access_token)throw Error('Не получено разрешение на просмотр сообществ');
+  return result.access_token;
+ }
+ async function openCreator(){
+  creating=true;preview=null;adminGroups=[];notice='';paint();
+  try{
+   userToken=await getAdminToken();
+   const response=await api('/admin-groups',{userToken});
+   adminGroups=response.groups||[];
+  }catch(e){
+   notice='Не удалось получить список групп: '+(e.message||'ошибка доступа');
+   userToken=null;
+  }
+  paint();
  }
  async function load(){
   if(loading)return;
@@ -55,7 +79,7 @@
    html+='<div class="lc-clan-panel"><h3>Участники клана</h3>'+(c.members||[]).map(m=>'<div class="lc-clan-roster"><span>'+esc(m.playerId.replace('vk:','VK '))+' · '+(m.role==='owner'?'Глава':m.role==='officer'?'Заместитель':'Участник')+'</span>'+(c.role==='owner'&&m.role!=='owner'?'<button class="btn ghost" data-clan="role" data-user="'+esc(m.playerId)+'" data-role="'+(m.role==='officer'?'member':'officer')+'">'+(m.role==='officer'?'Снять':'Назначить')+'</button>':'')+'</div>').join('')+'</div>';
    html+='<div class="lc-clan-panel"><button class="btn ghost" data-clan="leave">Покинуть клан</button><p class="lc-clan-note">Если глава уходит, управление автоматически передаётся другому участнику. Пустой клан закрывается.</p></div>';
   }else{
-   html+='<div class="lc-clan-panel"><h3>Создать клан бесплатно</h3><p class="lc-clan-note">Укажите ссылку на публичное сообщество VK, которое станет названием и аватаркой клана.</p><input class="lc-clan-input" id="lc-group-url" placeholder="https://vk.com/club123456" maxlength="200" autocomplete="off"><button class="btn purple" data-clan="preview">Выбрать сообщество</button><div id="lc-group-preview">'+(preview?group(preview)+'<button class="btn" data-clan="create" style="margin-top:12px">Создать клан бесплатно</button>':'')+'</div></div>';
+   html+='<div class="lc-clan-panel"><h3>Создать свой клан</h3><p class="lc-clan-note">Бесплатно. Название и аватарка автоматически берутся из сообщества VK, где вы являетесь администратором.</p>'+(creating?'<h3>Выберите свою группу VK</h3><p class="lc-clan-note">Показываются только сообщества, где у вас есть права администратора.</p>'+(adminGroups.length?adminGroups.map(g=>'<button class="lc-clan-select '+(preview?.groupId===g.groupId?'is-selected':'')+'" data-clan="select-group" data-id="'+g.groupId+'"><img class="lc-clan-img" src="'+esc(g.avatar)+'" alt=""><span><strong>'+esc(g.name)+'</strong><small>Сообщество VK · '+g.groupId+'</small></span></button>').join(''):'<p class="lc-clan-note">Нет доступных групп. Проверьте права администратора и разрешение VK.</p>')+(preview?'<div class="lc-clan-group" style="margin:12px 0">'+group(preview)+'</div><button class="btn purple" data-clan="create">Создать клан бесплатно</button>':'')+'<div style="margin-top:12px"><button class="btn ghost" data-clan="refresh-groups">Обновить список</button> <button class="btn ghost" data-clan="cancel-create">Назад</button></div>':'<button class="btn purple" data-clan="start-create">Создать клан</button>')+'</div>';
    html+='<div class="sectionhead"><h2>Присоединиться к клану</h2></div>'+(data.leaders||[]).slice(0,20).map(c=>'<div class="lc-clan-rank"><img src="'+esc(c.avatar)+'" alt=""><div><strong>'+esc(c.name)+'</strong><small>'+c.memberCount+'/30 участников · Штаб '+c.headquarters+'</small></div><button class="btn ghost" data-clan="join" data-id="'+c.id+'">Вступить</button></div>').join('') ;
   }
   html+='</div>';el.innerHTML=html;
@@ -73,17 +97,14 @@
   const btn=e.target.closest('[data-clan]');if(!btn||!root()?.contains(btn)||btn.disabled)return;
   const action=btn.dataset.clan;if(action==='reload')return load();
   if(!launch){notice='Откройте Lucky City через VK';return paint()}
-  if(['leave','create'].includes(action)&&!confirm(action==='leave'?'Выйти из клана?':'Создать клан с выбранным сообществом VK?'))return;
-  const input=document.getElementById('lc-group-url');
-  if(action==='preview'){
-   const value=input?.value;btn.disabled=true;notice='';
-   try{preview=await api('/group?url='+encodeURIComponent(value));preview=preview.group;}catch(err){preview=null;notice=err.message}
-   paint();if(input)document.getElementById('lc-group-url').value=value||'';return;
-  }
+  if(action==='start-create'||action==='refresh-groups')return openCreator();
+  if(action==='cancel-create'){creating=false;preview=null;userToken=null;adminGroups=[];notice='';return paint()}
+  if(action==='select-group'){preview=adminGroups.find(g=>g.groupId===Number(btn.dataset.id))||null;return paint()}
+  if(['leave','create'].includes(action)&&!confirm(action==='leave'?'Выйти из клана?':'Создать клан из сообщества «'+(preview?.name||'')+'»?'))return;
   btn.disabled=true;
   try{
-   const body=action==='create'?{groupUrl:'https://vk.com/club'+preview?.groupId}:action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:{};
-   await api('/'+action,body);preview=null;data=await api();notice='Успешно';rankings=data.leaders;paintTop();
+   const body=action==='create'?{groupId:preview?.groupId,userToken}:action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:{};
+   await api('/'+action,body);preview=null;userToken=null;creating=false;adminGroups=[];data=await api();notice='Успешно';rankings=data.leaders;paintTop();
   }catch(err){notice=err.message}finally{paint()}
  });
  window.LuckyClans={
