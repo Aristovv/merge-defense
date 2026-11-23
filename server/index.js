@@ -7,6 +7,7 @@ import {gameplayAction} from './game-actions.js';
 import {vkPaymentsCallback} from './vk-payments.js';
 import {cloudSaveGet,cloudSavePut} from './cloud-saves.js';
 import {kingdomGet,kingdomPut} from './kingdom-saves.js';
+import {registerLuckyClans} from './casino-clans.js';
 
 const app=express();
 app.disable('x-powered-by');
@@ -88,6 +89,7 @@ const casinoTournaments=(await import('./casino-tournaments.cjs')).registerCasin
 (await import('./casino-payments.cjs')).registerCasinoPayments(app,pool);
 (await import('./casino-saves.cjs')).registerCasinoSaves(app,pool,requireAuth);
 (await import('./casino-daily.cjs')).registerCasinoDaily(app,pool,requireAuth);
+registerLuckyClans(app,pool,requireAuth);
 app.use((_req,res)=>res.status(404).json({error:'NOT_FOUND'}));
 const port=Number(process.env.PORT||3000);
 app.listen(port,'0.0.0.0',()=>console.log('Merge Defense API listening on',port));
