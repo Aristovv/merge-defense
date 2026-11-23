@@ -15,6 +15,12 @@ function clean(s){
 // Fail closed when a stale/default client tries to replace established progress.
 // Administrative edits occur through separate authenticated endpoints and bump resetEpoch.
 function regression(previous,next){
+ // Daily login gifts are committed only through the atomic /api/casino/daily/claim route.
+ // Reject legacy browser-side awards to avoid duplicate grants and first-day resets.
+ if((next.lastGift||'')!==(previous.lastGift||'')||
+    (Number(next.giftStreak)||0)!==(Number(previous.giftStreak)||0)||
+    (Number(next.giftBestStreak)||0)!==(Number(previous.giftBestStreak)||0))
+  return 'SERVER_DAILY_CLAIM_REQUIRED';
  const epoch=Number(previous.resetEpoch)||0;
  if((Number(next.resetEpoch)||0)!==epoch)return 'RESET_EPOCH_MISMATCH';
  for(const key of ['level','plays','wins','earned','best','giftBestStreak']){
