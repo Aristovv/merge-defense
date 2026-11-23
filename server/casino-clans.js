@@ -35,11 +35,7 @@ const ECONOMY_SQL=[
  `CREATE TABLE IF NOT EXISTS lucky_clan_daily_claims(
  vk_id BIGINT NOT NULL, claim_day DATE NOT NULL, clan_id BIGINT NOT NULL,
  PRIMARY KEY(vk_id,claim_day))`,
- "ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS seat_tier SMALLINT NOT NULL DEFAULT 0 CHECK(seat_tier BETWEEN 0 AND 8)",
- `CREATE TABLE IF NOT EXISTS lucky_clan_seat_permits(
- vk_id BIGINT NOT NULL, tier SMALLINT NOT NULL CHECK(tier BETWEEN 1 AND 8),
- balance INTEGER NOT NULL DEFAULT 0 CHECK(balance>=0),
- PRIMARY KEY(vk_id,tier))`
+ "ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS seat_tier SMALLINT NOT NULL DEFAULT 0 CHECK(seat_tier BETWEEN 0 AND 8)"
 ];
 let initialized;
 const start=pool=>{
@@ -147,7 +143,7 @@ async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
  return rows;
 }
-export const CLAN_SEAT_PRICES=Object.freeze([19,29,39,49,59,79,99,129]);
+export const CLAN_SEAT_PRICES=Object.freeze([100000,200000,350000,600000,1000000,1600000,2500000,4000000]);
 export const CLAN_SEAT_BASE=10;
 export const clanSeatCapacity=tier=>CLAN_SEAT_BASE+Math.min(8,Math.max(0,Number(tier)||0))*5;
 export const PREMIUM_LEVELS=Object.freeze({headquarters:Object.freeze([5,10,15,20,30,40]),wall:Object.freeze([5,10,15,20,30,40])});
@@ -157,10 +153,8 @@ export function registerLuckyClans(app,pool,requireAuth){
  app.get('/api/casino/clans',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   const p=await pool.query('SELECT balance FROM lucky_clan_permits WHERE vk_id=$1',[String(req.playerId).replace(/^vk:/,'')]);
-  const vk=String(req.playerId).replace(/^vk:/,'');
-  const seats=await pool.query('SELECT tier,balance FROM lucky_clan_seat_permits WHERE vk_id=$1 AND balance>0 ORDER BY tier',[vk]);
   res.json({mine:await mine(pool,req.playerId),leaders:await listing(pool),permits:Number(p.rows[0]?.balance||0),premiumLevels:PREMIUM_LEVELS,
-   seatPrices:CLAN_SEAT_PRICES,seatPermits:seats.rows,baseMemberCapacity:CLAN_SEAT_BASE});
+   seatPrices:CLAN_SEAT_PRICES,baseMemberCapacity:CLAN_SEAT_BASE});
  }));
  app.post('/api/casino/clans/create',requireAuth,wrap(async(req,res)=>{
   await start(pool);
@@ -322,19 +316,17 @@ export function registerLuckyClans(app,pool,requireAuth){
   const result=await tx(pool,async c=>{
    const own=await c.query("SELECT clan_id FROM lucky_clan_members WHERE player_id=$1 AND role='owner'",[req.playerId]);
    if(!own.rowCount)fail('Расширять клан может только глава',403);
-   const clan=await c.query('SELECT id,seat_tier FROM lucky_clans WHERE id=$1 FOR UPDATE',[own.rows[0].clan_id]);
+   const clan=await c.query('SELECT id,seat_tier,coins FROM lucky_clans WHERE id=$1 FOR UPDATE',[own.rows[0].clan_id]);
    if(!clan.rowCount)fail('Клан не найден',404);
    if(Number(clan.rows[0].seat_tier)!==expectedTier)
     fail('Вместимость клана уже изменилась. Обновите страницу.',409);
-   const tier=expectedTier+1;
-   const vk=String(req.playerId).replace(/^vk:/,'');
-   const permit=await c.query('SELECT balance FROM lucky_clan_seat_permits WHERE vk_id=$1 AND tier=$2 FOR UPDATE',[vk,tier]);
-   if(!permit.rowCount||Number(permit.rows[0].balance)<1)
-    fail('Для расширения нужен оплаченный пропуск на '+clanSeatCapacity(tier)+' мест за '+CLAN_SEAT_PRICES[tier-1]+' голосов VK.',402);
-   const spent=await c.query('UPDATE lucky_clan_seat_permits SET balance=balance-1 WHERE vk_id=$1 AND tier=$2 AND balance>0 RETURNING balance',[vk,tier]);
-   if(!spent.rowCount)fail('Пропуск уже использован',409);
-   await c.query('UPDATE lucky_clans SET seat_tier=$1 WHERE id=$2',[tier,clan.rows[0].id]);
-   await c.query("INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins) VALUES($1,$2,'seats',0)",[clan.rows[0].id,req.playerId]);
+   const tier=expectedTier+1,cost=CLAN_SEAT_PRICES[tier-1];
+   if(Number(clan.rows[0].coins)<cost)
+    fail('Недостаточно монет в казне. Для '+clanSeatCapacity(tier)+' мест нужно '+cost.toLocaleString('ru-RU')+' монет.');
+   const changed=await c.query('UPDATE lucky_clans SET seat_tier=$1,coins=coins-$2 WHERE id=$3 AND seat_tier=$4 AND coins>=$2 RETURNING seat_tier',
+    [tier,cost,clan.rows[0].id,expectedTier]);
+   if(!changed.rowCount)fail('Казна или вместимость изменились. Обновите клан.',409);
+   await c.query("INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins) VALUES($1,$2,'seats',$3)",[clan.rows[0].id,req.playerId,-cost]);
    return {tier,capacity:clanSeatCapacity(tier)};
   });
   res.json({ok:true,...result});
