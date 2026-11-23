@@ -3008,7 +3008,8 @@ body{background:radial-gradient(ellipse at 50% 0,#301d42 0,transparent 500px),#0
 .plinko-moving-ball{z-index:4;pointer-events:none;transform:translateZ(0);border:1px solid #fff9;box-shadow:0 0 11px var(--plinko-ball-color,#8dbbff),0 0 3px #fff}
 .plinko-bins-13 span{min-width:0;overflow:hidden;letter-spacing:-.2px}
 @media(max-width:480px){.plinko-new{padding:11px 6px}.plinko-board{height:305px}.plinko-bins-13{gap:1px}.plinko-bins-13 span{font-size:clamp(7px,2vw,10px);padding:9px 0}}
- .lucky-pack-price{font-size:14px;font-weight:800;color:#e7c5ff;margin:8px 0}.lucky-pack-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.lucky-pack{position:relative;overflow:hidden;min-width:0;background:linear-gradient(150deg,#30214d,#151328)!important;border:1px solid #9a6add66!important}.lucky-pack-amount{font-size:clamp(19px,5vw,28px);font-weight:900;color:#f8d28e;text-shadow:0 0 15px #e7a7ff44;margin:8px 0}.lucky-pack-tag{display:inline-block;color:#d7b8ff;font-size:10px;letter-spacing:.3px}.lucky-pack .shop-disabled{display:block;margin-top:10px}.lucky-pack .shop-symbol{font-size:29px}@media(max-width:360px){.lucky-pack-grid{gap:7px!important}.lucky-pack{padding:11px!important}} </style><style>
+ .lucky-pack-price{font-size:14px;font-weight:800;color:#e7c5ff;margin:8px 0}.lucky-pack-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.lucky-pack{position:relative;overflow:hidden;min-width:0;background:linear-gradient(150deg,#30214d,#151328)!important;border:1px solid #9a6add66!important}.lucky-pack-amount{font-size:clamp(19px,5vw,28px);font-weight:900;color:#f8d28e;text-shadow:0 0 15px #e7a7ff44;margin:8px 0}.lucky-pack-tag{display:inline-block;color:#d7b8ff;font-size:10px;letter-spacing:.3px}.lucky-pack .shop-disabled{display:block;margin-top:10px}.lucky-pack .shop-symbol{font-size:29px}@media(max-width:360px){.lucky-pack-grid{gap:7px!important}.lucky-pack{padding:11px!important}}  .lc-ranking-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:3px 0 13px}.lc-ranking-switch button{min-height:43px}
+</style><style>
 .casino-admin-search{display:flex;gap:8px;margin:12px 0;align-items:center}
 .casino-admin-search select{background:#181323;color:white;border:1px solid #8b719c;border-radius:10px;padding:10px;max-width:120px}.casino-admin-search input{flex:1;min-width:0;background:#181323;border:1px solid #8b719c;border-radius:10px;color:white;padding:11px}
 .casino-admin-player{display:flex;flex-direction:column;gap:4px;padding:12px 4px;border-bottom:1px solid #ffffff20}
@@ -6046,7 +6047,7 @@ async function casinoTournamentClaim(){
  }catch(e){message('Не удалось забрать приз: '+e.message)}
 }
 
-function topScreen(){const score=casinoRankingPoints();return '<div class="page era30-ranking"><div class="era30-social-hero"><span>✦ NEW ERA 30.0 · СОРЕВНОВАНИЕ</span><strong>ЗАЛ СЛАВЫ</strong><small>Соревнуйся за место среди лучших игроков города</small></div><div class="section-intro"><div><span class="eyebrow">LUCKY CITY · РЕЙТИНГ</span><h1>Топ игроков</h1></div><span class="catalog-count">ONLINE</span></div><div class="panel"><h3>Твой рейтинг: <span id="casino-confirmed-score">'+(casinoVerifiedScore===null?'…':fmt(casinoVerifiedScore))+'</span> очков</h3><div class="rank-progress"><span>Общий рейтинг игроков Lucky City</span><div><i style="width:'+(score%1000/10)+'%"></i></div></div><p class="subline" id="casino-ranking-status">Подключаемся к серверу. Локально накоплено <b>'+fmt(score)+'</b> очков.</p></div>'+casinoTournamentHeader()+'<div id="casino-top-list"><div class="panel"><p class="subline">Загружаем общий рейтинг…</p></div></div><div id="lucky-clan-ranking"></div></div>'}
+function topScreen(){const score=casinoRankingPoints();return '<div class="page era30-ranking"><div class="lc-ranking-switch"><button type="button" class="btn purple" data-ranking-view="players" aria-pressed="true">Игроки</button><button type="button" class="btn ghost" data-ranking-view="clans" aria-pressed="false">Кланы</button></div><div id="lc-player-ranking"><div class="era30-social-hero"><span>✦ NEW ERA 30.0 · СОРЕВНОВАНИЕ</span><strong>ЗАЛ СЛАВЫ</strong><small>Соревнуйся за место среди лучших игроков города</small></div><div class="section-intro"><div><span class="eyebrow">LUCKY CITY · РЕЙТИНГ</span><h1>Топ игроков</h1></div><span class="catalog-count">ONLINE</span></div><div class="panel"><h3>Твой рейтинг: <span id="casino-confirmed-score">'+(casinoVerifiedScore===null?'…':fmt(casinoVerifiedScore))+'</span> очков</h3><div class="rank-progress"><span>Общий рейтинг игроков Lucky City</span><div><i style="width:'+(score%1000/10)+'%"></i></div></div><p class="subline" id="casino-ranking-status">Подключаемся к серверу. Локально накоплено <b>'+fmt(score)+'</b> очков.</p></div>'+casinoTournamentHeader()+'<div id="casino-top-list"><div class="panel"><p class="subline">Загружаем общий рейтинг…</p></div></div></div><div id="lc-clan-ranking-view" hidden><div id="lucky-clan-ranking"></div></div></div>'}
 const LUCKY_DONATE_PACKS=[
  {id:'chips_800',type:'chips',amount:800,price:5,name:'Стартовый',icon:'◈',tag:'Первый набор'},
  {id:'chips_5000',type:'chips',amount:5000,price:25,name:'Игровой',icon:'✦',tag:'Для игры'},
@@ -6140,6 +6141,23 @@ document.addEventListener('click',function(e){let x=e.target.closest('button');i
 const originalStartCost=startCost; // Preserve independent game round state; collection unlocks are awarded on completed parties.
 // Actions already call save(). Avoid creating an artificial newer local revision on pagehide.
 // Cloud-first protection: allow viewing tabs and manual recovery, not state mutations.
+document.addEventListener('click',function(e){
+ const target=e.target.closest('[data-ranking-view]');
+ if(!target)return;
+ const mode=target.dataset.rankingView;
+ const players=document.getElementById('lc-player-ranking');
+ const clans=document.getElementById('lc-clan-ranking-view');
+ if(!players||!clans||!['players','clans'].includes(mode))return;
+ players.hidden=mode!=='players';
+ clans.hidden=mode!=='clans';
+ document.querySelectorAll('[data-ranking-view]').forEach(button=>{
+  const active=button.dataset.rankingView===mode;
+  button.setAttribute('aria-pressed',String(active));
+  button.classList.toggle('purple',active);
+  button.classList.toggle('ghost',!active);
+ });
+ if(mode==='clans')window.LuckyClans?.mountTop(CASINO_LAUNCH_PARAMS);
+},false);
 document.addEventListener('click',function(e){
  if(casinoCloudRevision!==null&&casinoCloudRevision>0)return;
  const allowed=e.target.closest('[data-tab],[data-lc56-tab],[data-lc56-filter],[data-lc56-page],[data-lc56-recover],[data-lc56-retry],[data-lc56-apply],[data-clan],[data-admin-section-tab],[data-casino-admin-player],[data-casino-admin-search]');
