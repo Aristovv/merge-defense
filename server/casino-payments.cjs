@@ -16,6 +16,9 @@ for(const [type,list] of [['nick',nick],['frame',frame]])for(const value of list
 // Verified wardrobe cosmetics: catalog must match the client and be registered before byId.
 const wardrobeProducts=[["cap-vip","hat","Кепка VIP",5],["beanie-stars","hat","Шапка Starfall",7],["bucket-holo","hat","Панама Hologram",10],["kitty-pink","hat","Наушники Kitty Pink",8],["crown-royal","hat","Корона Royal",19],["jacket-neon-vip","jacket","Бомбер Neon VIP",7],["hoodie-lunar","jacket","Худи Lunar",9],["jacket-phoenix","jacket","Куртка Phoenix",14],["coat-royal-vip","jacket","Плащ Royal VIP",22],["pants-vip","pants","Джинсы VIP",5],["cargo-neon-vip","pants","Карго Neon",7],["pants-royal-vip","pants","Брюки Crown",12],["pants-galaxy","pants","Брюки Galaxy",17],["shoes-vip","shoes","Кеды Neon VIP",5],["shoes-sakura","shoes","Кроссовки Sakura",7],["shoes-starlight","shoes","Ботинки Starlight",12],["shoes-phoenix","shoes","Ботинки Phoenix",15],["glasses-vip","accessory","Очки VIP",4],["phones-holo","accessory","Наушники Holo",8],["chain-royal-vip","accessory","Цепь Royal",12],["glasses-phoenix","accessory","Очки Phoenix",10],["kitty","hat","Наушники Kitty",8],["crown","hat","Корона города",19],["cowboy","hat","Ковбойская шляпа",9],["goldcoat","jacket","Золотой бомбер",12],["royalpants","pants","Брюки Royal",10],["goldboots","shoes","Золотые ботинки",15],["chain","accessory","Цепь Короля",9]];
 for(const [id,type,name,price] of wardrobeProducts){goods['character_'+id]={id:++n,price,name,characterItem:id,characterType:type};}
+// A single verified purchase grants one server-owned clan construction permit.
+ // It is not credited into an editable browser cloud snapshot.
+goods.clan_build_permit={id:++n,price:5,name:'Строительный пропуск для клана',clanPermit:1};
 const byId=new Map(Object.entries(goods).map(([key,item])=>[String(item.id),{key,...item}]));
 const error=(code,msg)=>({error:{error_code:code,error_msg:msg,critical:true}});
 const ready=pool=>!!pool&&process.env.LUCKY_VK_PAYMENTS_ENABLED==='1'&&!!process.env.VK_PAYMENTS_SECRET;
@@ -87,9 +90,16 @@ function registerCasinoPayments(app,pool){
    }
    const q=await client.query('SELECT save FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vkId]);
    if(!q.rowCount){await client.query('ROLLBACK');return res.json(error(22,'Open game before purchase'))}
-   const save=q.rows[0].save;apply(save,item);
+   const save=q.rows[0].save;
+   if(!item.clanPermit)apply(save,item);
+   else await client.query(`CREATE TABLE IF NOT EXISTS lucky_clan_permits(
+      vk_id BIGINT PRIMARY KEY, balance INTEGER NOT NULL DEFAULT 0 CHECK(balance>=0))`);
    const receipt=await client.query('INSERT INTO public.casino_city_paid_orders(provider,order_id,target_vk_id,item_key) VALUES($1,$2,$3,$4) RETURNING app_order_id::text AS id',[provider,order,vkId,item.key]);
-   await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(save)]);
+   if(item.clanPermit){
+    await client.query('INSERT INTO lucky_clan_permits(vk_id,balance) VALUES($1,1) ON CONFLICT(vk_id) DO UPDATE SET balance=lucky_clan_permits.balance+1',[vkId]);
+   }else{
+    await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(save)]);
+   }
    await client.query('COMMIT');
    return res.json({response:{order_id:Number(order),app_order_id:Number(receipt.rows[0].id)}});
   }catch(e){if(client)await client.query('ROLLBACK').catch(()=>{});console.error('Lucky payments failed',e.code||e.message);return res.status(503).json(error(100,'Temporary error'))}
