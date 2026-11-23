@@ -33,42 +33,39 @@ function err(res,e){
 }
 const fail=(message,status=400)=>{let e=new Error(message);e.status=status;throw e};
 const validId=x=>Number.isSafeInteger(Number(x))&&Number(x)>0;
-/* The group list is obtained using the player's own VK OAuth token.
- * Never accept a group ID from the browser without re-verifying administrator rights.
- * Do not store user tokens, return them, or put them in URLs. */
-async function userVkRequest(method,params,token){
- const payload=new URLSearchParams({...params,access_token:token,v:'5.199'});
+/* VK Bridge performs user-token calls on device because VK binds them to device IP.
+ * The backend independently verifies the selected group using its service token.
+ * No browser-provided group data or user token is trusted for clan creation. */
+async function serviceVK(method,params){
+ const token=process.env.VK_GROUP_SERVICE_TOKEN;
+ if(!token)fail('Проверка прав клана не настроена на сервере',503);
+ const body=new URLSearchParams({...params,access_token:token,v:'5.199'});
  const response=await fetch('https://api.vk.com/method/'+method,{
   method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
-  body:payload,signal:AbortSignal.timeout(7000)
+  body,signal:AbortSignal.timeout(7000)
  });
  if(!response.ok)fail('VK временно недоступен',503);
  const json=await response.json();
  if(json.error){
-  // Preserve the method and numeric VK error code for troubleshooting.
-  // Never log or return access_token or the potentially sensitive VK error message.
   const code=Number(json.error.error_code)||0;
-  const subcode=Number(json.error.error_subcode)||0;
-  const known={5:'Токен VK отклонён или истёк',7:'Недостаточно прав для метода VK',15:'Доступ к данным ограничен',27:'Неподходящий тип токена VK',28:'Метод недоступен сервисному ключу'};
-  const detail=known[code]||'VK отклонил запрос';
-  fail(detail+' ('+method+', код '+code+(subcode?', под код '+subcode:'')+')'+(subcode===1130?'. VK привязал токен к IP устройства; для сервера нужен другой способ проверки.':''),[5,7,15,27,28].includes(code)?403:502);
+  fail('VK не разрешил серверную проверку администраторов ('+method+', код '+code+'). Создание клана остановлено для защиты.',503);
  }
  return json.response;
 }
-async function adminGroups(playerId,token){
- if(typeof token!=='string'||token.length<15||token.length>4096)fail('Не получено разрешение VK на просмотр сообществ',403);
- const identity=await userVkRequest('users.get',{},token);
- if(!Array.isArray(identity)||String(identity[0]?.id)!==String(playerId).replace(/^vk:/,''))fail('Токен VK принадлежит другому пользователю',403);
- const groups=[];
- for(let offset=0;offset<1000;offset+=200){
-  const result=await userVkRequest('groups.get',{extended:'1',filter:'admin',fields:'photo_200',count:'200',offset:String(offset)},token);
-  const items=Array.isArray(result?.items)?result.items:[];
-  for(const g of items)if(validId(g.id)&&g.name&&g.is_closed!==2){
-   groups.push({groupId:Number(g.id),name:String(g.name).slice(0,100),avatar:String(g.photo_200||g.photo_100||''),screenName:String(g.screen_name||'')});
-  }
-  if(items.length<200)break;
- }
- return groups;
+async function verifiedAdminGroup(playerId,groupId){
+ const requested=Number(groupId);
+ if(!validId(requested))fail('Выберите группу из списка');
+ const result=await serviceVK('groups.getMembers',{group_id:String(requested),filter:'managers',count:'1000'});
+ const items=Array.isArray(result?.items)?result.items:[];
+ const vkId=String(playerId).replace(/^vk:/,'');
+ const manager=items.find(item=>String(typeof item==='object'?item.id:item)===vkId);
+ if(!manager||!['administrator','creator','admin'].includes(String(manager.role||'').toLowerCase()))
+  fail('Права администратора в этой группе не подтверждены',403);
+ const raw=await serviceVK('groups.getById',{group_ids:String(requested),fields:'photo_200'});
+ const group=(Array.isArray(raw)?raw:raw?.groups)?.[0];
+ if(!group||Number(group.id)!==requested||!group.name||!group.photo_200||Number(group.is_closed)===2)
+  fail('Сообщество недоступно',403);
+ return {groupId:requested,name:String(group.name).slice(0,100),avatar:String(group.photo_200)};
 }
 const wrap=handler=>async(req,res)=>{try{res.set('Cache-Control','no-store');return await handler(req,res)}catch(e){return err(res,e)}};
 async function tx(pool,fn){
@@ -91,17 +88,9 @@ async function listing(pool){
 function upgradeCost(level){return Math.ceil(100*Math.pow(1.12,level-1))}
 export function registerLuckyClans(app,pool,requireAuth){
  app.get('/api/casino/clans',requireAuth,wrap(async(req,res)=>{await start(pool);res.json({mine:await mine(pool,req.playerId),leaders:await listing(pool)})}));
- app.post('/api/casino/clans/admin-groups',requireAuth,wrap(async(req,res)=>{
-  const groups=await adminGroups(req.playerId,req.body?.userToken);
-  res.json({groups});
- }));
  app.post('/api/casino/clans/create',requireAuth,wrap(async(req,res)=>{
   await start(pool);
-  const allowed=await adminGroups(req.playerId,req.body?.userToken);
-  const requested=Number(req.body?.groupId);
-  if(!validId(requested))fail('Выберите сообщество из списка');
-  const group=allowed.find(item=>item.groupId===requested);
-  if(!group)fail('Вы не являетесь администратором выбранного сообщества',403);
+  const group=await verifiedAdminGroup(req.playerId,req.body?.groupId);
   const result=await tx(pool,async c=>{
    const existing=await c.query('SELECT 1 FROM lucky_clan_members WHERE player_id=$1',[req.playerId]);
    if(existing.rowCount)fail('Вы уже состоите в клане');
