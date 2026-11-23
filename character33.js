@@ -704,7 +704,42 @@ function lc33Avatar(){
  const outfit=lc40SetMark(lc40FullSet(equipped));
  return svg.replace('</svg>',special+details+outfit+'</svg>');
 }
-function lc34SvgItem(g){return lc36ItemIcon(g);}
+/* 43.0: recognizable material patches and seams, painted inside each thumbnail.
+   No external SVG <use>, filenames, fonts or network dependencies. */
+function lc43ItemSignature(g){
+ if(!g)return '';
+ const id=g.id,theme=lc36Theme(g),c=g.color;
+ const high=({crystal:'#e8ffff',flame:'#ffe6a7',space:'#f0d6ff',royal:'#fff1b1',nature:'#ffe9ee',shadow:'#d2caed',neon:'#a7ffff',street:'#f6d4ff'})[theme];
+ let artwork='';
+ if(g.type==='hat'){
+  if(/crown|obsidian/.test(id))artwork='<path d="M20 42 L12 25 28 34 41 13 53 34 69 25 61 43Z" stroke="'+high+'" stroke-width="2" fill="'+c+'"/><circle cx="40" cy="33" r="6" fill="'+high+'"/>';
+  else if(/beanie/.test(id))artwork='<path d="M16 47 Q40 39 64 47 M20 52 H60" stroke="'+high+'" stroke-width="2" fill="none"/><path d="M29 24 V43 M41 20 V42 M53 25 V43" stroke="'+high+'" stroke-width="2" opacity=".78"/>';
+  else if(/bucket|fedora|cowboy/.test(id))artwork='<path d="M17 40 Q40 49 66 40 M11 52 Q40 62 72 52" fill="none" stroke="'+high+'" stroke-width="2"/>';
+  else artwork='<path d="M15 45 Q40 36 68 45 M29 26 Q40 21 51 26" stroke="'+high+'" stroke-width="2" fill="none"/>';
+ }else if(g.type==='jacket'){
+  if(/hoodie/.test(id))artwork='<path d="M25 19 Q40 40 55 19 M29 42 L24 55 M50 42 L56 55 M28 66 H52" stroke="'+high+'" stroke-width="2" fill="none"/>';
+  else if(/coat|goldcoat|emperor|phoenix/.test(id))artwork='<path d="M24 18 L40 44 56 18 M40 44 V72 M23 65 L32 57 M49 57 L57 65" stroke="'+high+'" stroke-width="2.5" fill="none"/>';
+  else artwork='<path d="M20 27 L31 20 40 35 49 20 60 27 M40 35 V73 M21 62 L30 62 M50 62 L59 62" stroke="'+high+'" stroke-width="2" fill="none"/>';
+ }else if(g.type==='pants'){
+  artwork=/cargo/.test(id)?'<rect x="14" y="43" width="19" height="16" rx="3" stroke="'+high+'" stroke-width="2" fill="'+c+'"/><rect x="48" y="43" width="18" height="16" rx="3" stroke="'+high+'" stroke-width="2" fill="'+c+'"/><path d="M17 49 H30 M51 49 H63" stroke="'+high+'" stroke-width="2"/>':'<path d="M25 15 L22 40 M56 15 L60 40 M19 65 L32 65 M48 65 H62" stroke="'+high+'" stroke-width="2" fill="none"/>';
+ }else if(g.type==='shoes'){
+  artwork=/boots|emperor|royal|diamond/.test(id)?'<path d="M22 22 V45 M49 23 V46 M17 61 H68" stroke="'+high+'" stroke-width="3" fill="none"/><path d="M26 40 H44" stroke="#fff" stroke-width="2"/>':'<path d="M20 48 L32 40 43 48 M18 56 H69 M26 52 L35 55" stroke="'+high+'" stroke-width="2.5" fill="none"/>';
+ }else if(g.type==='accessory'){
+  artwork=/glasses/.test(id)?'<path d="M12 32 L26 46 M51 45 L65 30" stroke="'+high+'" stroke-width="3" fill="none"/>':/chain/.test(id)?'<path d="M29 55 L40 64 51 55" stroke="'+high+'" stroke-width="2.5" fill="none"/>':'<path d="M17 30 V51 M61 30 V51" stroke="'+high+'" stroke-width="2.5" fill="none"/>';
+ }
+ // Uniqueness is identity-specific: four extra stitched strokes positioned from stable item ID.
+ let hash=0;for(let i=0;i<id.length;i++)hash=(hash*31+id.charCodeAt(i))>>>0;
+ const px=17+(hash%42),py=19+((hash>>>6)%27);
+ return '<g class="lc43-stitches" pointer-events="none">'+artwork+
+  '<path d="M'+px+' '+py+' l5 0 m-2.5 -2.5 v5" stroke="'+high+'" stroke-width="1.5" opacity=".72"/>'+
+  '</g>';
+}
+function lc43ItemIcon(g){
+ const svg=lc36ItemIcon(g);
+ return svg.replace('</svg>',lc43ItemSignature(g)+'</svg>');
+}
+
+function lc34SvgItem(g){return lc43ItemIcon(g);}
 function lc33Screen(){
  const c=lc33State(),active=LC33_GROUPS.find(g=>g[0]===lc33Category)||LC33_GROUPS[0];
  const list=LC33_GOODS.filter(g=>g.type===lc33Category&&g.payment!=='locked'&&(lc35Filter==='all'||(lc35Filter==='coin'&&['coin','default'].includes(g.payment))||(lc35Filter==='premium'&&g.payment==='premium')));
