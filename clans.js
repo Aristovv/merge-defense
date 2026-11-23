@@ -8,7 +8,8 @@
  const hqNames=['Гнилой сарай','Обшитый сарай','Небольшой сарай','Старый гараж с мусором','Убранный гараж','Оштукатуренный гараж','Гараж с ровным полом','Гараж с белыми стенами','Гараж с ламинатом','Освещённый гараж','Гараж с мебелью','Гараж с сейфом','Гараж с крепкой дверью','Гараж с кодовым замком','Заброшенный дом'];
  const wallNames=['Куча листьев','Листья и палки','Большая куча веток','Вкопанные колья','Колья и верёвки','Укреплённые колья','Колючая проволока','Забор и яма','Ров с мостиком','Начало бревенчатого забора','Бревенчатый забор — треть','Бревенчатый забор — две трети','Готовый бревенчатый забор','Бревенчатый забор с рвом','Ров с водой','Металлический каркас'];
  const description=(kind,level)=>kind==='headquarters'?(hqNames[level-1]||(level<=25?'Отремонтированный дом':level<=35?'Клановый особняк':level<=45?'Охраняемая резиденция':'Элитный клановый комплекс')):(wallNames[level-1]||(level<=25?'Металлический забор':level<=35?'Бетонная стена':level<=40?'Серебряная оборона':level<=44?'Золотая оборона':level<=47?'Алмазная оборона':'Изумрудная крепость'));
- const upgradeCost=(kind,l)=>Math.ceil((kind==='headquarters'?3000:2000)*Math.pow(1.13,l-1)/100)*100;
+ const upgradeCost=(kind,l)=>Math.ceil((kind==='headquarters'?3000:2000)*Math.pow(1.11,l-1)/100)*100;
+ const premiumNext=(kind,next)=>({headquarters:[4,7,10,15],wall:[4,7,10]}[kind]||[]).includes(next);
  const style=document.createElement('style');
  style.textContent=`
  .lc-clan-head{background:linear-gradient(125deg,#4b245f,#21152e);border:1px solid #a477c0;border-radius:21px;padding:20px;margin:13px 0}
@@ -120,8 +121,9 @@
   else if(data.mine){
    const c=data.mine,canEdit=c.role==='owner'||c.role==='officer';
    html+='<div class="lc-clan-head">'+group(c)+'<div class="lc-clan-title">'+esc(c.name)+'</div><p class="lc-clan-note">Участников: '+c.memberCount+'/30 · Роль: '+(c.role==='owner'?'Глава':c.role==='officer'?'Заместитель':'Участник')+'</p><p>🪙 Казна клана: <b>'+Number(c.coins).toLocaleString('ru-RU')+' / '+Number(c.treasuryCapacity).toLocaleString('ru-RU')+'</b></p><button class="btn purple" data-clan="daily">Ежедневно +500 монет в казну</button></div>';
+   html+='<div class="lc-clan-panel"><h3>Строительные пропуска</h3><p class="lc-clan-note">В наличии: '+Number(data?.permits||0)+' 🎟️. Платные этапы: штаб 4, 7, 10, 15; стена 4, 7, 10. Один пропуск — 5 голосов VK. На остальных уровнях используются только монеты из казны.</p><button class="btn ghost" data-clan="refresh-permits">Проверить оплаченные пропуска</button></div>';
    html+='<div class="lc-clan-panel"><h3>Пополнить казну монетами</h3><p class="lc-clan-note">Перевод из твоего личного баланса. Минимум 100 монет, шаг 100; максимальный взнос за раз — 1 000 000. Отменить перевод нельзя.</p><input id="lc-deposit-amount" type="number" min="100" max="1000000" step="100" class="lc-clan-input" placeholder="Например, 10000"><button class="btn purple" data-clan="deposit">Перевести монеты</button></div>';
-   html+='<div class="lc-clan-grid">'+[['headquarters','🏚️','Штаб'],['wall','🛡️','Стена']].map(([key,emoji,label])=>'<div class="lc-clan-panel"><strong>'+label+' · '+c[key]+'/50</strong><div class="lc-clan-visual">'+(window.LuckyClanScene?.[key]?.(c[key])||'🏰')+'</div><p class="lc-clan-note">'+esc(description(key,c[key]))+'</p>'+(canEdit&&c[key]<50?'<button class="btn purple" data-clan="upgrade" data-kind="'+key+'">Улучшить · '+upgradeCost(key,c[key])+' 🪙</button>':'')+'</div>').join('')+'</div>';
+   html+='<div class="lc-clan-grid">'+[['headquarters','🏚️','Штаб'],['wall','🛡️','Стена']].map(([key,emoji,label])=>'<div class="lc-clan-panel"><strong>'+label+' · '+c[key]+'/50</strong><div class="lc-clan-visual">'+(window.LuckyClanScene?.[key]?.(c[key])||'🏰')+'</div><p class="lc-clan-note">'+esc(description(key,c[key]))+'</p>'+(canEdit&&c[key]<50?(premiumNext(key,c[key]+1)?(Number(data?.permits||0)>0?'<button class="btn purple" data-clan="upgrade" data-kind="'+key+'">Строительный пропуск · 1 🎟️</button>':'<button class="btn purple" data-clan="buy-permit">Улучшить за 5 голосов VK</button>'):'<button class="btn purple" data-clan="upgrade" data-kind="'+key+'">Улучшить · '+upgradeCost(key,c[key])+' 🪙</button>'):'')+'</div>').join('')+'</div>';
    html+='<div class="lc-clan-panel"><h3>История казны</h3>'+((c.history||[]).length?(c.history||[]).map(entry=>'<div class="lc-clan-roster"><span>'+({deposit:'Взнос игрока',daily:'Ежедневный бонус',headquarters:'Улучшение штаба',wall:'Улучшение стены'}[entry.action]||'Операция')+'</span><strong>'+(Number(entry.coins)>0?'+':'')+Number(entry.coins).toLocaleString('ru-RU')+' 🪙</strong></div>').join(''):'<p class="lc-clan-note">Операций пока нет</p>')+'</div>';
    html+='<div class="lc-clan-panel"><h3>Участники клана</h3>'+(c.members||[]).map(m=>'<div class="lc-clan-roster"><span>'+esc(m.playerId.replace('vk:','VK '))+' · '+(m.role==='owner'?'Глава':m.role==='officer'?'Заместитель':'Участник')+'</span>'+(c.role==='owner'&&m.role!=='owner'?'<button class="btn ghost" data-clan="role" data-user="'+esc(m.playerId)+'" data-role="'+(m.role==='officer'?'member':'officer')+'">'+(m.role==='officer'?'Снять':'Назначить')+'</button>':'')+'</div>').join('')+'</div>';
    html+='<div class="lc-clan-panel"><button class="btn ghost" data-clan="leave">Покинуть клан</button><p class="lc-clan-note">Если глава уходит, управление автоматически передаётся другому участнику. Пустой клан закрывается.</p></div>';
@@ -142,12 +144,21 @@
  }
  document.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-clan]');if(!btn||!root()?.contains(btn)||btn.disabled)return;
-  const action=btn.dataset.clan;if(action==='reload')return load();
+  const action=btn.dataset.clan;if(action==='reload'||action==='refresh-permits')return load();
   if(!launch){notice='Откройте Lucky City через VK';return paint()}
   if(action==='start-create'||action==='refresh-groups')return openCreator();
   if(action==='cancel-create'){creating=false;preview=null;userToken=null;adminGroups=[];notice='';return paint()}
   if(action==='select-group'){preview=adminGroups.find(g=>g.groupId===Number(btn.dataset.id))||null;return paint()}
   if(action==='leave'&&!window.confirm('Выйти из клана?'))return; // The explicit Create Clan button is confirmation; no browser modal
+  if(action==='buy-permit'){
+   btn.disabled=true;btn.textContent='Открываем оплату VK…';
+   try{
+    if(!window.LuckyClanEconomy?.buyPermit)throw Error('Оплата сейчас недоступна');
+    await window.LuckyClanEconomy.buyPermit();
+    data=await api();notice='Проверь оплаченный пропуск. Сервер начисляет его только после подтверждения VK.';
+   }catch(e){notice=e.message||'Не удалось открыть оплату'}
+   paint();return;
+  }
   if(action==='deposit'){
    const amount=Number(document.getElementById('lc-deposit-amount')?.value);
    if(!Number.isSafeInteger(amount)||amount<100||amount>1000000||amount%100!==0){notice='Укажи сумму от 100 до 1 000 000 монет, кратную 100';return paint()}
