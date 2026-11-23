@@ -142,7 +142,19 @@ export async function verifiedAdminGroup(playerId,groupId,communityToken,verifie
  }catch(error){console.warn('[clans] VK group metadata unavailable',error.code||error.message)}
  fail('Сервер VK не предоставил данные группы. Повторите создание через разрешение сообщества.',503);
 }
-const wrap=handler=>async(req,res)=>{try{res.set('Cache-Control','no-store');return await handler(req,res)}catch(e){return err(res,e)}};
+const wrap=handler=>async(req,res)=>{
+ try{res.set('Cache-Control','no-store');return await handler(req,res)}
+ catch(error){
+  if(req.path==='/api/casino/clans/create'){
+   // Log only safe diagnostics. Never log launch params or VK access tokens.
+   console.error('[clans-create] failed',JSON.stringify({
+    stage:req.clanCreateStage||'unknown',status:Number(error.status)||503,
+    code:String(error.code||'NONE').slice(0,24)
+   }));
+  }
+  return err(res,error);
+ }
+};
 async function tx(pool,fn){
  const client=await pool.connect();
  try{await client.query('BEGIN');const value=await fn(client);await client.query('COMMIT');return value}
@@ -254,8 +266,16 @@ export function registerLuckyClans(app,pool,requireAuth){
    premiumLevels:PREMIUM_LEVELS,seatPrices:CLAN_SEAT_PRICES});
  }));
  app.post('/api/casino/clans/create',requireAuth,wrap(async(req,res)=>{
+  req.clanCreateStage='database-initialization';
+  console.info('[clans-create] received',JSON.stringify({
+   hasGroupId:validId(req.body?.groupId),
+   signedAdminLaunch:verifiedCommunityLaunch(req,req.body?.groupId),
+   hasCommunityProof:typeof req.body?.communityToken==='string'&&req.body.communityToken.length>0
+  }));
   await start(pool);
+  req.clanCreateStage='vk-group-verification';
   const group=await verifiedAdminGroup(req.playerId,req.body?.groupId,req.body?.communityToken,verifiedCommunityLaunch(req,req.body?.groupId));
+  req.clanCreateStage='database-create';
   const result=await tx(pool,async c=>{
    const existing=await c.query('SELECT 1 FROM lucky_clan_members WHERE player_id=$1',[req.playerId]);
    if(existing.rowCount)fail('Вы уже состоите в клане');
@@ -264,6 +284,7 @@ export function registerLuckyClans(app,pool,requireAuth){
    await c.query("INSERT INTO lucky_clan_members(player_id,clan_id,role) VALUES($1,$2,'owner')",[req.playerId,added.rows[0].id]);
    return {id:added.rows[0].id};
   });
+  console.info('[clans-create] success');
   res.status(201).json({ok:true,...result});
  }));
  app.post('/api/casino/clans/join',requireAuth,wrap(async(req,res)=>{
