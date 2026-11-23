@@ -70,7 +70,22 @@
     if(/denied|cancel|access|permission|отказ|отмен/i.test(String(e?.message||'')))break;
    }
   }
-  throw Error('VK не подтвердил управление выбранной группой: '+String(lastError?.message||'отказано'));
+  const errorCode=String(lastError?.error_data?.error_code??lastError?.error_data?.error_reason??lastError?.code??'');
+  const hint=/denied|access|permission|отказ/i.test(String(lastError?.message||''))?
+   'VK отказал в выдаче ключа сообщества. Нужна роль администратора или владельца, а не редактора. Возможно, сначала потребуется добавить Lucky City в приложения сообщества.':
+   'VK не выдал доступ к сообществу. Убедитесь, что вы вошли нужным аккаунтом и управляете этой группой.';
+  throw Error(hint+(errorCode?' (код VK: '+errorCode+')':''));
+ }
+ async function installIntoCommunity(){
+  if(!window.vkBridge?.send)throw Error('Добавление доступно только внутри VK');
+  const id=Number(preview?.groupId);
+  if(!Number.isSafeInteger(id)||id<=0)throw Error('Сначала выберите сообщество');
+  if(typeof window.vkBridge.supports==='function'&&!window.vkBridge.supports('VKWebAppAddToCommunity'))
+   throw Error('Текущая версия VK не поддерживает установку мини-приложения в сообщество');
+  const result=await window.vkBridge.send('VKWebAppAddToCommunity');
+  if(Number(result?.group_id)!==id)
+   throw Error('Выбрана другая группа. Для создания клана выберите ту же группу и повторите.');
+  return true;
  }
  async function bridgeApi(method,params){
   if(!userToken)throw Error('Разрешение VK на группы не получено');
@@ -128,7 +143,7 @@
    html+='<div class="lc-clan-panel"><h3>Участники клана</h3>'+(c.members||[]).map(m=>'<div class="lc-clan-roster"><span>'+esc(m.playerId.replace('vk:','VK '))+' · '+(m.role==='owner'?'Глава':m.role==='officer'?'Заместитель':'Участник')+'</span>'+(c.role==='owner'&&m.role!=='owner'?'<button class="btn ghost" data-clan="role" data-user="'+esc(m.playerId)+'" data-role="'+(m.role==='officer'?'member':'officer')+'">'+(m.role==='officer'?'Снять':'Назначить')+'</button>':'')+'</div>').join('')+'</div>';
    html+='<div class="lc-clan-panel"><button class="btn ghost" data-clan="leave">Покинуть клан</button><p class="lc-clan-note">Если глава уходит, управление автоматически передаётся другому участнику. Пустой клан закрывается.</p></div>';
   }else{
-   html+='<div class="lc-clan-panel"><h3>Создать свой клан</h3><p class="lc-clan-note">Бесплатно. Название и аватарка автоматически берутся из сообщества VK, где вы являетесь администратором.</p>'+(creating?'<h3>Выберите свою группу VK</h3><p class="lc-clan-note">Показываются только сообщества, где у вас есть права администратора.</p>'+(adminGroups.length?adminGroups.map(g=>'<button class="lc-clan-select '+(preview?.groupId===g.groupId?'is-selected':'')+'" data-clan="select-group" data-id="'+g.groupId+'"><img class="lc-clan-img" src="'+esc(g.avatar)+'" alt=""><span><strong>'+esc(g.name)+'</strong><small>Сообщество VK · '+g.groupId+'</small></span></button>').join(''):'<p class="lc-clan-note">Нет доступных групп. Проверьте права администратора и разрешение VK.</p>')+(preview?'<div class="lc-clan-group" style="margin:12px 0">'+group(preview)+'</div><div id="lc-clan-create-result" role="status" aria-live="polite">'+(notice?'<p class="lc-clan-error">'+esc(notice)+'</p>':'')+'</div><button class="btn purple" data-clan="create">Создать клан бесплатно</button>':'')+'<div style="margin-top:12px"><button class="btn ghost" data-clan="refresh-groups">Обновить список</button> <button class="btn ghost" data-clan="cancel-create">Назад</button></div>':'<button class="btn purple" data-clan="start-create">Создать клан</button>')+'</div>';
+   html+='<div class="lc-clan-panel"><h3>Создать свой клан</h3><p class="lc-clan-note">Бесплатно. Название и аватарка автоматически берутся из сообщества VK, где вы являетесь администратором.</p>'+(creating?'<h3>Выберите свою группу VK</h3><p class="lc-clan-note">Показываются только сообщества, где у вас есть права администратора.</p>'+(adminGroups.length?adminGroups.map(g=>'<button class="lc-clan-select '+(preview?.groupId===g.groupId?'is-selected':'')+'" data-clan="select-group" data-id="'+g.groupId+'"><img class="lc-clan-img" src="'+esc(g.avatar)+'" alt=""><span><strong>'+esc(g.name)+'</strong><small>Сообщество VK · '+g.groupId+'</small></span></button>').join(''):'<p class="lc-clan-note">Нет доступных групп. Проверьте права администратора и разрешение VK.</p>')+(preview?'<div class="lc-clan-group" style="margin:12px 0">'+group(preview)+'</div><div id="lc-clan-create-result" role="status" aria-live="polite">'+(notice?'<p class="lc-clan-error">'+esc(notice)+'</p>':'')+'</div><button class="btn purple" data-clan="create">Создать клан бесплатно</button><div class="lc-clan-note" style="margin-top:12px">Если VK отказывает: сначала проверьте роль администратора сообщества. При необходимости подключите приложение к группе, затем повторите создание.</div><button class="btn ghost" data-clan="install-community">Подключить Lucky City к группе VK</button>':'')+'<div style="margin-top:12px"><button class="btn ghost" data-clan="refresh-groups">Обновить список</button> <button class="btn ghost" data-clan="cancel-create">Назад</button></div>':'<button class="btn purple" data-clan="start-create">Создать клан</button>')+'</div>';
    html+='<div class="sectionhead"><h2>Присоединиться к клану</h2></div>'+(data.leaders||[]).slice(0,20).map(c=>'<div class="lc-clan-rank"><img src="'+esc(c.avatar)+'" alt=""><div><strong>'+esc(c.name)+'</strong><small>'+c.memberCount+'/30 участников · Штаб '+c.headquarters+'</small></div><button class="btn ghost" data-clan="join" data-id="'+c.id+'">Вступить</button></div>').join('') ;
   }
   html+='</div>';el.innerHTML=html;
@@ -164,6 +179,14 @@
    if(!Number.isSafeInteger(amount)||amount<100||amount>100000||amount%100!==0){notice='Укажи сумму от 100 до 100 000 монет, кратную 100';return paint()}
    btn.disabled=true;btn.textContent='Переводим монеты…';
    try{if(!window.LuckyClanEconomy?.deposit)throw Error('Переводы ещё не подключены. Перезагрузи игру');await window.LuckyClanEconomy.deposit(amount);data=await api();notice='Монеты зачислены в казну'}catch(e){notice=e.message||'Перевод не подтверждён'}
+   paint();return;
+  }
+  if(action==='install-community'){
+   btn.disabled=true;btn.textContent='Открываем выбор сообщества…';
+   try{
+    await installIntoCommunity();
+    notice='Приложение подключено к выбранной группе. Теперь нажмите «Создать клан бесплатно».';
+   }catch(e){notice=e.message||'VK не подтвердил установку приложения в сообщество'}
    paint();return;
   }
   if(action==='create'&&!preview){notice='Сначала выберите группу VK';paint();return}
