@@ -4473,12 +4473,32 @@ function casinoCloudRetryStart(){
  casinoCloudStartRetryTimer=setTimeout(()=>casinoCloudStart(),casinoCloudStartRetryMs);
  casinoCloudStartRetryMs=Math.min(60000,Math.round(casinoCloudStartRetryMs*1.7));
 }
+async function casinoCloudReconnectIdentical(){
+ // Safe automatic reconnection: never accept a newer/different cloud copy here.
+ // Local-only progress is not silently sent to the server.
+ if(!CASINO_LAUNCH_PARAMS||casinoCloudBusy||casinoCloudStarting)return false;
+ casinoCloudStarting=true;
+ try{
+  const snapshot=casinoStableJSON(state);
+  const remote=await casinoCloudFetch('GET');
+  if(!remote?.save||!Number.isSafeInteger(remote.revision)||remote.revision<1||
+      casinoStableJSON(state)!==snapshot||casinoStableJSON(remote.save)!==snapshot)return false;
+  const marker=localStorage.getItem(CASINO_LOCAL_ONLY_KEY);
+  if(marker===casinoCloudLocalOwner())localStorage.removeItem(CASINO_LOCAL_ONLY_KEY);
+  casinoCloudLocalOnly=false;
+  casinoCloudRevision=remote.revision;
+  casinoCloudDirty=false;
+  casinoCloudLastIssue='';
+  clearTimeout(casinoCloudStartRetryTimer);
+  render();
+  return true;
+ }catch(e){console.warn('Cloud reconnect check unavailable',e?.message||e);return false}
+ finally{casinoCloudStarting=false}
+}
 async function casinoCloudStart(){
  if(!CASINO_LAUNCH_PARAMS||casinoCloudStarting||casinoCloudRevision!==null)return;
  casinoCloudLocalOnlyStart();
- // Never overwrite locally played progress with a stale server snapshot.
- // Manual recovery remains available from the character's cloud tools.
- if(casinoCloudLocalOnly)return;
+ if(casinoCloudLocalOnly)return casinoCloudReconnectIdentical();
  casinoCloudStarting=true;
  const startingSnapshot=JSON.stringify(state);
  try{
@@ -5400,8 +5420,13 @@ window.LuckyClanEconomy={
  },
  async deposit(amount){
   if(casinoDailyClaiming||casinoCloudBusy||casinoCloudStarting)throw Error('Дождись завершения сохранения');
-  if(!CASINO_LAUNCH_PARAMS||!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1)
-   throw Error('Облачное сохранение ещё не подтверждено');
+  if(!CASINO_LAUNCH_PARAMS)throw Error('Откройте игру из ВКонтакте');
+  if(casinoCloudLocalOnly||!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1){
+   if(casinoCloudLocalOnly)await casinoCloudReconnectIdentical();
+   else await casinoCloudStart();
+   if(casinoCloudLocalOnly||!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1)
+    throw Error('Локальная и облачная копии требуют сверки. Откройте «Персонаж» → «Проверить облачную копию». Перевод не выполнен.');
+  }
   if(state.pendingMiniRound&&!busy){
    throw Error('В сохранении остался незавершённый раунд '+(state.pendingMiniRound.kind==='plinko'?'Plinko':'Crash')+'. Не переводите монеты, пока не проверите восстановление во вкладке «Персонаж».');
   }

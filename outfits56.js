@@ -166,11 +166,24 @@ document.addEventListener('click',async function(e){
    try{
     const freshRemote={...fresh(),...candidate.save};
     const encoded=JSON.stringify(freshRemote);
+    // Confirm the cloud version has not changed since the preview was shown.
+    const latest=await casinoCloudFetch('GET');
+    if(!latest?.save||latest.revision!==candidate.revision||
+       casinoStableJSON(latest.save)!==casinoStableJSON(candidate.save))
+     throw Error('CLOUD_CHANGED_SINCE_PREVIEW');
+    // The local-only marker must be cleared only after a verified local backup.
+    // Otherwise this session and the next boot would remain disconnected.
+    const owner=casinoCloudLocalOwner();
+    if(!owner||localStorage.getItem(CASINO_LOCAL_ONLY_KEY)!==owner&&casinoCloudLocalOnly)
+     throw Error('LOCAL_OWNER_UNVERIFIED');
+    const pending=casinoCloudPendingRead();
+    if(pending&&!casinoCloudQuarantinePending('manual cloud recovery'))throw Error('PENDING_BACKUP_FAILED');
     localStorage.setItem(STORAGE,encoded);
     if(localStorage.getItem(STORAGE)!==encoded)throw Error('VERIFY_FAILED');
     clearTimeout(casinoCloudTimer);
+    localStorage.removeItem(CASINO_LOCAL_ONLY_KEY);
+    casinoCloudLocalOnly=false;
     state=freshRemote;casinoCloudRevision=candidate.revision;casinoCloudDirty=false;
-    if(typeof casinoCloudPendingClear==='function')casinoCloudPendingClear();
     lc56Preview=null;render();message('Облачный прогресс восстановлен. Резервная копия сохранена.');
    }catch(error){console.error('Cloud recovery apply',error);show('Не удалось записать сохранение. Резервная локальная копия сохранена.');}
    return;
