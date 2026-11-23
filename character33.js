@@ -523,7 +523,7 @@ function lc39SetCards(){
  '<div class="lc39-set-grid">'+LC39_SETS.map(set=>{
   const offer=lc50SetOffer(set,c),on=lc39IsWearing(set,c),preview=lc39Preview?.id===set.id;
   const pieces=Object.values(set.equipped).map(id=>{
-   const g=LC35_BY_ID.get(id),owned=c.owned.includes(id)||lc503LegacyComplete(set,c);
+   const g=LC35_BY_ID.get(id),owned=c.owned.includes(id);
    return '<li class="'+(owned?'owned':'')+'">'+(owned?'✓ ':'◇ ')+rankEsc(g?.name||id)+
    (owned?' · есть':g?.payment==='coin'?' · '+fmt(g.price)+' 🪙':g?.payment==='premium'?' · '+g.price+' гол.':' · недоступно')+'</li>';
   }).join('');
@@ -537,7 +537,7 @@ function lc39SetCards(){
    '<img class="lc50-set-image" src="./assets/character44/'+files[set.id]+'" alt="'+set.name+'" loading="lazy">'+
    '<p>'+set.description+'</p>'+
    '<p class="lc39-set-status">'+(on?'✓ Надето':lc503LegacyComplete(set,c)?'✓ Доступ по оригинальному STREET':offer.missing.length?'Собрано '+(5-offer.missing.length)+' из 5':'✓ Полный комплект в коллекции')+'</p>'+
-   '<ul class="lc50-piece-list">'+pieces+'</ul>'+premiumNote+
+   '<ul class="lc50-piece-list">'+pieces+'</ul>'+(lc503LegacyComplete(set,c)?'<p class="lc50-premium-note">Ранее собранный STREET остаётся доступен. Новые вещи можно приобретать отдельно; старые предметы остаются в коллекции.</p>':'')+premiumNote
    '<div class="lc39-set-actions"><button type="button" data-lc39-preview="'+set.id+'">Примерить</button>'+
    buy+'<button type="button" data-lc39-wear="'+set.id+'" '+(offer.missing.length||on?'disabled':'')+'>'+(on?'✓ Надето':'Надеть комплект')+'</button></div>'+
    '</article>';
