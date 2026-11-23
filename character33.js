@@ -519,13 +519,13 @@ function lc39SetCards(){
  const c=lc33State();
  const files={street:'outfit-street.png',sakura:'outfit-sakura.png',phantom:'outfit-phantom.png',emperor:'outfit-emperor.png',galaxy:'outfit-galaxy.png'};
  return '<section class="lc39-sets lc50-bundles"><h2>✦ Коллекционные комплекты</h2>'+
- '<p class="subline">Каждый комплект содержит пять определённых вещей. Покупаются только отсутствующие предметы; уже приобретённые не оплачиваются повторно.</p>'+
+ '<p class="subline">Вещи показаны фрагментами реальных фотографий образов. В комплект входят только платные предметы из каталога, не стартовые бесплатные. Повторно купленные вещи не оплачиваются.</p>'+
  '<div class="lc39-set-grid">'+LC39_SETS.map(set=>{
   const offer=lc50SetOffer(set,c),on=lc39IsWearing(set,c),preview=lc39Preview?.id===set.id;
   const pieces=Object.values(set.equipped).map(id=>{
    const g=LC35_BY_ID.get(id),owned=c.owned.includes(id);
-   return '<li class="'+(owned?'owned':'')+'">'+(owned?'✓ ':'◇ ')+rankEsc(g?.name||id)+
-   (owned?' · есть':g?.payment==='coin'?' · '+fmt(g.price)+' 🪙':g?.payment==='premium'?' · '+g.price+' гол.':' · недоступно')+'</li>';
+   return '<li class="'+(owned?'owned':'')+'">'+lc505RealThumb(set.id,g?.type||'',true)+'<span>'+(owned?'✓ ':'◇ ')+rankEsc(g?.name||id)+
+   (owned?' · куплено':g?.payment==='coin'?' · '+fmt(g.price)+' 🪙':g?.payment==='premium'?' · '+g.price+' гол.':' · недоступно')+'</span></li>';
   }).join('');
   let buy='';
   if(offer.coinItems.length&&!offer.unavailable.length){
@@ -776,6 +776,24 @@ function lc43ItemIcon(g){
 }
 
 function lc34SvgItem(g){return lc43ItemIcon(g);}
+/* 50.5: show the real piece from the original full-outfit picture.
+   No cloned products, unchanged image assets, unchanged ownership IDs. */
+const LC505_FILES={street:'outfit-street.png',sakura:'outfit-sakura.png',phantom:'outfit-phantom.png',emperor:'outfit-emperor.png',galaxy:'outfit-galaxy.png'};
+const LC505_CATEGORY_POSITION={hat:'0%',jacket:'29%',pants:'68%',shoes:'100%',accessory:'36%'};
+function lc505RealThumb(setId,type,small=false){
+ const file=LC505_FILES[setId];
+ if(!file)return '';
+ const position=LC505_CATEGORY_POSITION[type]||'50%';
+ return '<span class="lc505-real-piece '+(small?'lc505-small':'')+' lc505-'+type+
+ '" role="img" aria-label="'+rankEsc((LC33_GROUPS.find(x=>x[0]===type)||[])[1]||'Вещь')+
+ '" style="background-image:url(./assets/character44/'+file+');background-position:center '+position+'"></span>';
+}
+function lc505ItemPreview(g){
+ if(!g)return '';
+ const set=LC39_SETS.find(set=>set.equipped[g.type]===g.id);
+ return set?lc505RealThumb(set.id,g.type):lc43ItemIcon(g);
+}
+
 function lc33Screen(){
  const c=lc33State(),active=LC33_GROUPS.find(g=>g[0]===lc33Category)||LC33_GROUPS[0];
  const list=LC33_GOODS.filter(g=>g.type===lc33Category&&g.payment!=='locked'&&(lc35Filter==='all'||(lc35Filter==='coin'&&['coin','default'].includes(g.payment))||(lc35Filter==='premium'&&g.payment==='premium')));
@@ -784,7 +802,7 @@ function lc33Screen(){
   const owned=c.owned.includes(g.id),equipped=c.equipped[g.type]===g.id;
   const rarity=g.rarity==='Редкая'?'rare':g.rarity==='Эпическая'?'epic':g.rarity==='Легендарная'?'legend':g.rarity==='Мифическая'?'mythic':'';
   const action=equipped?'✓ Надето':owned?'Надеть':g.payment==='coin'?fmt(g.price)+' 🪙':g.payment==='premium'?(typeof luckyPaymentsReady!=='undefined'&&luckyPaymentsReady?g.price+' гол. · Купить':'🔒 '+g.price+' гол.'):'Пока недоступно';
-  return '<article class="lc33-item '+rarity+(equipped?' on':'')+(g.payment==='premium'?' lc35-premium':'')+'"><span class="rar">'+rankEsc(g.rarity)+'</span>'+lc34SvgItem(g)+'<strong>'+rankEsc(g.name)+'</strong>'+
+  return '<article class="lc33-item '+rarity+(equipped?' on':'')+(g.payment==='premium'?' lc35-premium':'')+'"><span class="rar">'+rankEsc(g.rarity)+'</span>'+lc505ItemPreview(g)+'<strong>'+rankEsc(g.name)+'</strong>'+
    '<button data-lc33-item="'+g.id+'"'+(equipped?' disabled':'')+'>'+action+'</button></article>';
  }).join('');
  const view=lc33Subtab==='sets'?lc39SetCards():lc33Subtab==='wardrobe'?
@@ -999,6 +1017,23 @@ lc50Style.textContent=
 '.lc33-figure .lc47-real-avatar{max-height:420px!important}'+
 '@media(min-width:650px){.lc49-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.lc49-grid img{height:190px!important}}';
 document.head.appendChild(lc50Style);
+
+/* 50.5: real photographic thumbnails extracted visually from unchanged outfit art. */
+const lc505Style=document.createElement('style');lc505Style.id='lc505-accurate-sets';
+lc505Style.textContent=
+'.lc505-real-piece{display:block;width:100%;height:112px;flex:0 0 auto;border-radius:11px;background-repeat:no-repeat;background-color:#1e122c;background-size:180% auto;box-shadow:inset 0 0 0 1px #ffffff30;overflow:hidden}'+
+'.lc505-real-piece.lc505-small{width:46px;height:48px;min-width:46px;border-radius:8px;background-size:185% auto}'+
+'.lc50-piece-list li{display:flex;align-items:center;gap:10px;min-height:48px}'+
+'.lc50-piece-list li>span:last-child{flex:1;min-width:0}'+
+'.lc33-item .lc505-real-piece{margin:0 auto 6px;max-width:160px;height:122px}'+
+'.lc50-set-card .lc50-piece-list{gap:8px}'+
+'.lc505-hat{background-position:center 0%!important}'+
+'.lc505-jacket{background-position:center 29%!important}'+
+'.lc505-pants{background-position:center 68%!important}'+
+'.lc505-shoes{background-position:center 100%!important}'+
+'.lc505-accessory{background-position:center 38%!important}';
+document.head.appendChild(lc505Style);
+
 
 
 /* 47.0 Realistic-only viewport, no duplicate 44-46 photo panel. */
