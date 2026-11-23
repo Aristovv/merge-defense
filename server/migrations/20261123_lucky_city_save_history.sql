@@ -27,6 +27,9 @@ BEGIN
   INSERT INTO public.casino_city_save_history (vk_id,revision,save,saved_at)
   VALUES (OLD.vk_id,OLD.revision,OLD.save,OLD.updated_at)
   ON CONFLICT (vk_id,revision) DO NOTHING;
+  IF TG_OP = 'UPDATE' THEN
+    RETURN NEW;
+  END IF;
   RETURN OLD;
 END;
 $$;
