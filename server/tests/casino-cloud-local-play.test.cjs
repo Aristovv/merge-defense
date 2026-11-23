@@ -13,7 +13,7 @@ test('cloud outage does not block all game buttons',()=>{
 test('offline local changes are account bound and never sent to cloud without reconciliation',()=>{
  assert.match(html,/const CASINO_LOCAL_ONLY_KEY=/);
  assert.match(html,/localStorage\.setItem\(CASINO_LOCAL_ONLY_KEY,user\)/);
- assert.match(html,/if\(casinoCloudLocalOnly\)return;/);
+ assert.match(html,/if\(casinoCloudLocalOnly\)\s*\{[\s\S]*?return casinoCloudReconnectIdentical\(\)/);
  assert.match(html,/if\(casinoCloudLocalOnly\|\|casinoCloudBusy/);
 });
 test('wardrobe no longer blocks coin purchases purely because cloud is offline',()=>{

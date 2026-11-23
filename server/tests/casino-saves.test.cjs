@@ -24,7 +24,7 @@ test('stale starter save cannot overwrite established plays',()=>{
  assert.equal(regression(player(),{...player(),plays:0}),'PROGRESS_REGRESSION_PLAYS');
 });
 test('daily login history cannot disappear',()=>{
- assert.equal(regression(player(),{...player(),lastGift:''}),'DAILY_GIFT_REGRESSION');
+ assert.equal(regression(player(),{...player(),lastGift:''}),'SERVER_DAILY_CLAIM_REQUIRED');
 });
 test('earned level and purchased outfit cannot disappear',()=>{
  assert.equal(regression(player(),{...player(),level:0}),'PROGRESS_REGRESSION_LEVEL');

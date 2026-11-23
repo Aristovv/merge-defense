@@ -57,28 +57,17 @@
     ['admin','creator'].includes(String(params.get('vk_viewer_group_role')||'').toLowerCase());
  }
  async function getCommunityProof(groupId){
-  const bridge=window.vkBridge;
-  if(!bridge?.send)throw Error('Открой игру через приложение VK');
+  if(!window.vkBridge?.send)throw Error('Создание клана доступно через ВКонтакте');
   const appId=Number(new URLSearchParams(launch).get('vk_app_id'));
   if(!Number.isSafeInteger(appId)||appId<=0)throw Error('VK не передал ID игры');
-  // Community credentials are issued only through VK's native admin consent.
-  // A groups user token is IP-bound and MUST NOT be used as server-side proof.
-  const methods=['VKWebAppGetCommunityToken','VKWebAppCommunityAccessToken','VKWebAppCommunityToken','VKWebAppGetCommunityAuthToken'];
-  const supported=methods.filter(method=>typeof bridge.supports!=='function'||bridge.supports(method));
-  if(!supported.length)throw Error('Этот клиент VK не поддерживает подтверждение сообщества. Добавьте игру в группу и откройте её оттуда.');
-  let lastError=null;
-  for(const method of supported){
-   try{
-    const response=await bridge.send(method,{app_id:appId,group_id:Number(groupId),scope:'manage'});
-    if(typeof response?.access_token==='string'&&response.access_token.length>=15)return response.access_token;
-    lastError=new Error('VK не выдал ключ сообщества');
-   }catch(error){
-    lastError=error;
-    if(/denied|cancel|отказ|отмен/i.test(String(error?.message||'')))break;
-   }
-  }
-  const code=lastError?.error_data?.error_code||lastError?.code||'';
-  throw Error('VK не выдал разрешение администратора'+(code?' (код '+code+')':'')+'. Нажмите «Подключить Lucky City к группе VK», затем откройте игру из сообщества.');
+  // Same community-token permission as the working Millionaire integration.
+  // VK grants this token to a community administrator on the device.
+  const result=await window.vkBridge.send('VKWebAppGetCommunityToken',{
+   app_id:appId,group_id:Number(groupId),scope:'messages'
+  });
+  if(typeof result?.access_token!=='string'||result.access_token.length<20)
+   throw Error('VK не выдал разрешение на выбранное сообщество');
+  return result.access_token;
  }
  async function installIntoCommunity(){
   if(!window.vkBridge?.send)throw Error('Добавление доступно только внутри VK');

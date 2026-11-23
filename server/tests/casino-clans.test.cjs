@@ -83,11 +83,13 @@ test('clan creation relies on signed admin launch or VK-issued group-specific pr
  const path=require('node:path');
  const server=fs.readFileSync(path.join(__dirname,'../casino-clans.js'),'utf8');
  const client=fs.readFileSync(path.join(__dirname,'../../clans.js'),'utf8');
- assert.match(server,/groups\.getCallbackConfirmationCode/);
+ assert.match(server,/api\.vk\.com\/method\/groups\.getById/);
  assert.match(server,/req\.body\?\.communityToken/);
  assert.match(server,/verifiedCommunityLaunch\(req,req\.body\?\.groupId\)/);
- assert.match(server,/group_id:String\(requested\),access_token:communityToken/);
+ assert.match(server,/Number\(groups\[0\]\?\.id\)!==requested/);
  assert.match(client,/VKWebAppGetCommunityToken/);
+ assert.match(client,/scope:'messages'/);
+ assert.doesNotMatch(server,/groups\.getCallbackConfirmationCode/);
  assert.match(client,/communityToken:proof/);
  assert.doesNotMatch(server,/userVK\('groups\.get'/);
  assert.doesNotMatch(client,/vkUserToken:proof/);
