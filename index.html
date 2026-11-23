@@ -4356,6 +4356,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 /* Lucky City cloud save v18.2: local-first, server revision guarded. */
 let casinoCloudRevision=null,casinoCloudDirty=false,casinoCloudBusy=false,casinoCloudTimer=null,casinoCloudStarting=false;
+let casinoCloudStartRetryTimer=null,casinoCloudStartRetryMs=3000;
 let casinoCloudRetryMs=2000;
 const CASINO_PENDING_SAVE_KEY='casino_city_pending_save_v1';
 function casinoStableJSON(value){
@@ -4401,9 +4402,19 @@ function casinoCloudNotice(text){
 }
 async function casinoCloudFetch(method,body){
  const headers={'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS};if(body)headers['Content-Type']='application/json';
- const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/save',{method,headers,body:body?JSON.stringify(body):undefined,cache:'no-store'});
- if(!response.ok)throw Object.assign(new Error('Cloud HTTP '+response.status),{status:response.status});
- return response.json();
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),12000);
+ try{
+  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/save',{method,headers,body:body?JSON.stringify(body):undefined,cache:'no-store',signal:controller.signal});
+  if(!response.ok)throw Object.assign(new Error('Cloud HTTP '+response.status),{status:response.status});
+  return await response.json();
+ }finally{clearTimeout(timer)}
+}
+function casinoCloudRetryStart(){
+ if(casinoCloudRevision!==null||!CASINO_LAUNCH_PARAMS)return;
+ clearTimeout(casinoCloudStartRetryTimer);
+ casinoCloudStartRetryTimer=setTimeout(()=>casinoCloudStart(),casinoCloudStartRetryMs);
+ casinoCloudStartRetryMs=Math.min(60000,Math.round(casinoCloudStartRetryMs*1.7));
 }
 async function casinoCloudStart(){
  if(!CASINO_LAUNCH_PARAMS||casinoCloudStarting||casinoCloudRevision!==null)return;
@@ -4440,6 +4451,7 @@ async function casinoCloudStart(){
      if(!Number.isSafeInteger(Number(sent.revision)))throw Error('INVALID_SAVE_ACK');
      casinoCloudPendingClear();
      casinoCloudRevision=Number(sent.revision);casinoCloudDirty=false;
+     casinoCloudStartRetryMs=3000;clearTimeout(casinoCloudStartRetryTimer);
      state={...fresh(),...pending.save};
      try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}
      render();
@@ -4485,6 +4497,7 @@ async function casinoCloudStart(){
    state=next;
    casinoCloudRevision=Number(result.revision);
    casinoCloudDirty=false;
+   casinoCloudStartRetryMs=3000;clearTimeout(casinoCloudStartRetryTimer);
    try{localStorage.setItem('casino_city_last_cloud_revision',String(casinoCloudRevision))}catch(_){}
    render();
    syncCasinoRanking();
@@ -4502,7 +4515,12 @@ async function casinoCloudStart(){
   }
  }catch(error){
   console.warn('Casino cloud unavailable; actions remain locked',error?.status||error.message);
-  casinoCloudNotice('Сервер не подтвердил сохранение. Игровые действия временно заблокированы.');
+  if([401,403].includes(error?.status)){
+   casinoCloudNotice('Авторизация VK устарела. Закрой игру и открой заново из ВКонтакте.');
+  }else{
+   casinoCloudNotice('Синхронизация недоступна. Автоматически повторяем подключение; игра защищена от сброса.');
+   casinoCloudRetryStart();
+  }
  }finally{casinoCloudStarting=false}
 }
 
@@ -5963,6 +5981,8 @@ document.addEventListener('click',function(e){
  e.stopImmediatePropagation();
  message('Облачное сохранение ещё не подтверждено. Действия заблокированы для защиты прогресса.');
 },true);
+window.addEventListener('online',()=>{if(casinoCloudRevision===null&&CASINO_LAUNCH_PARAMS)casinoCloudStart()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&casinoCloudRevision===null&&CASINO_LAUNCH_PARAMS)casinoCloudStart()});
 window.addEventListener('pagehide',()=>{if(casinoCloudRevision!==null)try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}});
 setInterval(()=>{if(tab==='city'||tab==='profile'){let gained=collectPassive();if(gained&&tab==='city')render()}},30000);
 render();
