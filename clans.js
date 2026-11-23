@@ -9,7 +9,7 @@
  const wallNames=['Куча листьев','Листья и палки','Большая куча веток','Вкопанные колья','Колья и верёвки','Укреплённые колья','Колючая проволока','Забор и яма','Ров с мостиком','Начало бревенчатого забора','Бревенчатый забор — треть','Бревенчатый забор — две трети','Готовый бревенчатый забор','Бревенчатый забор с рвом','Ров с водой','Металлический каркас'];
  const description=(kind,level)=>kind==='headquarters'?(hqNames[level-1]||(level<=25?'Отремонтированный дом':level<=35?'Клановый особняк':level<=45?'Охраняемая резиденция':'Элитный клановый комплекс')):(wallNames[level-1]||(level<=25?'Металлический забор':level<=35?'Бетонная стена':level<=40?'Серебряная оборона':level<=44?'Золотая оборона':level<=47?'Алмазная оборона':'Изумрудная крепость'));
  const upgradeCost=(kind,l)=>Math.ceil((kind==='headquarters'?5000:3500)*Math.pow(1.13,l-1)/100)*100;
- const premiumNext=(kind,next)=>({headquarters:[5,10,15],wall:[5,10,15]}[kind]||[]).includes(next);
+ const premiumNext=(kind,next)=>({headquarters:[5,10,15,20,30,40],wall:[5,10,15,20,30,40]}[kind]||[]).includes(next);
  const style=document.createElement('style');
  style.textContent=`
  .lc-clan-head{background:linear-gradient(125deg,#4b245f,#21152e);border:1px solid #a477c0;border-radius:21px;padding:20px;margin:13px 0}
@@ -137,11 +137,11 @@
   else if(data.mine){
    const c=data.mine,canEdit=c.role==='owner'||c.role==='officer';
    html+='<div class="lc-clan-head">'+group(c)+'<div class="lc-clan-title">'+esc(c.name)+'</div><p class="lc-clan-note">Участников: '+c.memberCount+'/30 · Роль: '+(c.role==='owner'?'Глава':c.role==='officer'?'Заместитель':'Участник')+'</p><p>🪙 Казна клана: <b>'+Number(c.coins).toLocaleString('ru-RU')+' / '+Number(c.treasuryCapacity).toLocaleString('ru-RU')+'</b></p><button class="btn purple" data-clan="daily">Ежедневно до +500 монет в казну</button></div>';
-   html+='<div class="lc-clan-panel"><h3>Строительные пропуска 🎟️</h3><p class="lc-clan-note">В наличии: <b>'+Number(data?.permits||0)+'</b> шт. Каждый из шести платных этапов стоит <b>5 голосов VK</b> (1 пропуск). За такой уровень монеты из казны не списываются.</p>'+
+   html+='<div class="lc-clan-panel"><h3>Строительные пропуска 🎟️</h3><p class="lc-clan-note">В наличии: <b>'+Number(data?.permits||0)+'</b> шт. Каждый из двенадцати платных этапов стоит <b>5 голосов VK</b> (1 пропуск). За такой уровень монеты из казны не списываются.</p>'+
     '<div class="lc-clan-premium-list">'+[['headquarters','🏠 Штаб'],['wall','🛡️ Стена']].map(([kind,label])=>
       '<div class="lc-clan-premium-group"><strong>'+label+'</strong>'+
-      [5,10,15].map(level=>'<div class="lc-clan-premium-row"><span>Уровень '+level+'</span><strong>5 голосов VK</strong><small>'+(c[kind]>=level?'Пройден':c[kind]===level-1?'Следующий':'Впереди')+'</small></div>').join('')+'</div>').join('')+'</div>'+
-    '<p class="lc-clan-note">Всего: 15 голосов на штаб и 15 на стену, 30 голосов за все этапы. Остальные уровни — за монеты.</p>'+
+      [5,10,15,20,30,40].map(level=>'<div class="lc-clan-premium-row"><span>Уровень '+level+'</span><strong>5 голосов VK</strong><small>'+(c[kind]>=level?'Пройден':c[kind]===level-1?'Следующий':'Впереди')+'</small></div>').join('')+'</div>').join('')+'</div>'+
+    '<p class="lc-clan-note">Всего: 30 голосов на штаб и 30 на стену, 60 голосов за все 12 этапов. Остальные уровни — за монеты.</p>'+
     '<button class="btn ghost" data-clan="refresh-permits">Проверить оплаченные пропуска</button></div>';
    html+='<div class="lc-clan-panel"><h3>Как растёт лимит казны?</h3><p class="lc-clan-note">Вместимость зависит только от уровня штаба: 50 000 + 20 000 × уровень штаба². Стена не увеличивает казну.</p><p class="lc-clan-note">Сейчас: '+Number(c.treasuryCapacity).toLocaleString('ru-RU')+' 🪙. После следующего уровня штаба: '+(c.headquarters<50?(50000+20000*Math.pow(c.headquarters+1,2)).toLocaleString('ru-RU')+' 🪙':'максимум достигнут')+'.</p></div>';
    html+='<div class="lc-clan-panel"><h3>Пополнить казну монетами</h3><p class="lc-clan-note">Перевод из твоего личного баланса. Минимум 100 монет, шаг 100; лимит взносов — 100 000 монет в сутки на игрока. Отменить перевод нельзя.</p><input id="lc-deposit-amount" type="number" min="100" max="100000" step="100" class="lc-clan-input" placeholder="Например, 10000"><button class="btn purple" data-clan="deposit">Перевести монеты</button></div>';
