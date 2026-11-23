@@ -1,0 +1,32 @@
+name: Lucky City checks
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+jobs:
+  server-and-client:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install dependencies
+        working-directory: server
+        run: npm ci
+      - name: Check server syntax
+        working-directory: server
+        run: npm run check
+      - name: Check client JavaScript syntax
+        run: |
+          node --check clans.js
+          node --check character33.js
+          node --check outfits56.js
+      - name: Run regression tests
+        working-directory: server
+        run: npm test
