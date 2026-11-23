@@ -23,7 +23,7 @@ test('clan endpoints use device group selection and server-side verified creatio
  assert.equal(typeof routes.get('GET /api/casino/clans'),'function');
  assert.equal(routes.has('POST /api/casino/clans/admin-groups'),false);
  assert.equal(routes.has('GET /api/casino/clans/group'),false);
- for(const url of ['create','join','leave','daily','deposit','upgrade','role'])
+ for(const url of ['create','join','leave','daily','deposit','upgrade','role','kick'])
   assert.equal(typeof routes.get('POST /api/casino/clans/'+url),'function');
 });
 test('every clan upgrade level has a distinct SVG scene',()=>{
@@ -93,4 +93,25 @@ test('clan creation relies on signed admin launch or VK-issued group-specific pr
  assert.match(client,/communityToken:proof/);
  assert.doesNotMatch(server,/userVK\('groups\.get'/);
  assert.doesNotMatch(client,/vkUserToken:proof/);
+});
+
+test('member removal requires owner authority, row locks, and cannot delete leader',()=>{
+ const server=fs.readFileSync(path.join(__dirname,'../casino-clans.js'),'utf8');
+ const fragment=server.slice(server.indexOf("app.post('/api/casino/clans/kick'"),server.indexOf("app.post('/api/casino/clans/role'"));
+ assert.match(fragment,/SELECT clan_id,role FROM lucky_clan_members WHERE player_id=\$1 FOR UPDATE/);
+ assert.match(fragment,/SELECT id,owner_id FROM lucky_clans WHERE id=\$1 FOR UPDATE/);
+ assert.match(fragment,/clan\.rows\[0\]\.owner_id!==req\.playerId/);
+ assert.match(fragment,/member\.rows\[0\]\.role==='owner'/);
+ assert.match(fragment,/DELETE FROM lucky_clan_members/);
+ assert.doesNotMatch(fragment,/UPDATE lucky_clans SET coins/);
+ assert.doesNotMatch(fragment,/UPDATE public\.casino_city_saves/);
+});
+test('member roster lists lifetime contribution and keeps owner-only removal UI',()=>{
+ const server=fs.readFileSync(path.join(__dirname,'../casino-clans.js'),'utf8');
+ const client=fs.readFileSync(path.join(__dirname,'../../clans.js'),'utf8');
+ assert.match(server,/SUM\(t\.coins\) FILTER\(WHERE t\.action='deposit'\)/);
+ assert.match(server,/COUNT\(t\.id\) FILTER\(WHERE t\.action='deposit'\)/);
+ assert.match(client,/data-clan="kick"/);
+ assert.match(client,/c\.role==='owner'&&m\.role!=='owner'/);
+ assert.match(client,/window\.confirm\('Исключить участника/);
 });
