@@ -4459,6 +4459,7 @@ async function casinoCloudUpload(){
   const result=await casinoCloudFetch('PUT',{revision,save:JSON.parse(snapshot)});
   casinoCloudRevision=result.revision;casinoCloudDirty=JSON.stringify(state)!==snapshot;
   try{localStorage.setItem('casino_city_last_cloud_revision',String(casinoCloudRevision))}catch(_){}
+  if(revision===0)render();
  }catch(error){
   if(error.status===409){
    casinoCloudBackup('Cloud revision conflict on upload '+revision);
@@ -4549,7 +4550,7 @@ function casinoCurrentIncomeRate(){
  const ordinary=Number(x.boosts.income)>now?.25:0;
  return rate()*(1+ordinary+casinoActiveDonationIncomePercent(now)/100);
 }
-function collectPassive(){if(casinoCloudRevision===null)return 0;const now=Date.now();const elapsedHours=Math.max(0,Math.min(8,(now-state.lastIncome)/3600000));if(elapsedHours<.0025)return 0;const x=cc14Data(),expire=Number(x.boosts.income)||0;
+function collectPassive(){if(casinoCloudRevision===null||casinoCloudRevision===0)return 0;const now=Date.now();const elapsedHours=Math.max(0,Math.min(8,(now-state.lastIncome)/3600000));if(elapsedHours<.0025)return 0;const x=cc14Data(),expire=Number(x.boosts.income)||0;
  // Only time actually covered by an income booster may receive the +25%.
  const periodStart=now-elapsedHours*3600000;
  const boosterStart=Number(x.boostsStarted?.income)||expire-CC14_BOOSTERS.income.duration;
@@ -5058,7 +5059,7 @@ function casinoStreakSection(){
 }
 function daily(){
  // Prevent repeated day-one rewards when an older local save is disconnected from VK cloud.
- if(CASINO_LAUNCH_PARAMS&&casinoCloudRevision===null)return message('Облачное сохранение не подключено. Восстанови синхронизацию перед получением награды.');
+ if(CASINO_LAUNCH_PARAMS&&(casinoCloudRevision===null||casinoCloudRevision===0))return message('Облачное сохранение не подключено. Восстанови синхронизацию перед получением награды.');
  if(state.lastGift===today())return message('Сегодня подарок уже получен');
  const continued=state.lastGift===casinoYesterdayUTC();
  const previous=continued?Math.max(1,Math.floor(Number(state.giftStreak)||1)):0;
@@ -5867,7 +5868,7 @@ const originalStartCost=startCost; // Preserve independent game round state; col
 // Actions already call save(). Avoid creating an artificial newer local revision on pagehide.
 // Cloud-first protection: allow viewing tabs and manual recovery, not state mutations.
 document.addEventListener('click',function(e){
- if(casinoCloudRevision!==null)return;
+ if(casinoCloudRevision!==null&&casinoCloudRevision>0)return;
  const allowed=e.target.closest('[data-tab],[data-lc56-tab],[data-lc56-filter],[data-lc56-page],[data-lc56-recover],[data-lc56-apply],[data-admin-section-tab],[data-casino-admin-player],[data-casino-admin-search]');
  if(allowed)return;
  const interactive=e.target.closest('button,a,[role="button"]');
