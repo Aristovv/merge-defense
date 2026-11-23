@@ -122,10 +122,14 @@
   if(action==='start-create'||action==='refresh-groups')return openCreator();
   if(action==='cancel-create'){creating=false;preview=null;userToken=null;adminGroups=[];notice='';return paint()}
   if(action==='select-group'){preview=adminGroups.find(g=>g.groupId===Number(btn.dataset.id))||null;return paint()}
-  if(['leave','create'].includes(action)&&!confirm(action==='leave'?'Выйти из клана?':'Создать клан из сообщества «'+(preview?.name||'')+'»?'))return;
+  if(action==='leave'&&!window.confirm('Выйти из клана?'))return; // The explicit Create Clan button is confirmation; no browser modal
   if(action==='create'&&!preview){notice='Сначала выберите группу VK';paint();return}
   btn.disabled=true;
-  if(action==='create'){btn.textContent='Проверяем права VK…';notice=''}
+  if(action==='create'){
+   btn.textContent='Проверяем права VK…';notice='';
+   const result=document.getElementById('lc-clan-create-result');
+   if(result)result.textContent='Запрос отправлен на сервер. Проверяем права администратора…';
+  }
   try{
    const body=action==='create'?{groupId:preview?.groupId}:action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:{};
    await api('/'+action,body);preview=null;userToken=null;creating=false;adminGroups=[];data=await api();notice='Успешно';rankings=data.leaders;paintTop();
