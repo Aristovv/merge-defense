@@ -166,8 +166,6 @@ document.addEventListener('click',async function(e){
    try{
     const freshRemote={...fresh(),...candidate.save};
     const encoded=JSON.stringify(freshRemote);
-    localStorage.setItem(STORAGE,encoded);
-    if(localStorage.getItem(STORAGE)!==encoded)throw Error('VERIFY_FAILED');
     // Confirm the cloud version has not changed since the preview was shown.
     const latest=await casinoCloudFetch('GET');
     if(!latest?.save||latest.revision!==candidate.revision||
@@ -180,6 +178,8 @@ document.addEventListener('click',async function(e){
      throw Error('LOCAL_OWNER_UNVERIFIED');
     const pending=casinoCloudPendingRead();
     if(pending&&!casinoCloudQuarantinePending('manual cloud recovery'))throw Error('PENDING_BACKUP_FAILED');
+    localStorage.setItem(STORAGE,encoded);
+    if(localStorage.getItem(STORAGE)!==encoded)throw Error('VERIFY_FAILED');
     clearTimeout(casinoCloudTimer);
     localStorage.removeItem(CASINO_LOCAL_ONLY_KEY);
     casinoCloudLocalOnly=false;
