@@ -4,16 +4,26 @@ function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
   // Prefer the existing players.avatar_url column. If ALTER is denied, use an
   // independent table; do not disable avatar persistence for the whole ranking.
   const avatarReady = pool ? (async () => {
+    // Do not attempt ALTER on every restart. The ranking table may belong
+    // to postgres while the application role has ordinary read/write access.
+    try {
+      const column = await pool.query("SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='casino_city_players' AND column_name='avatar_url'");
+      if (column.rowCount > 0) return 'column';
+    } catch (error) {
+      console.warn('Casino avatar column lookup failed:', error.code || error.message);
+    }
     try {
       await pool.query('ALTER TABLE public.casino_city_players ADD COLUMN IF NOT EXISTS avatar_url TEXT');
       return 'column';
     } catch (error) {
-      console.warn('Casino avatar column migration unavailable:', error.code || error.message);
+      // If another administrator added the column concurrently, use it.
       try {
-        const { rowCount } = await pool.query("SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='casino_city_players' AND column_name='avatar_url'");
-        if (rowCount > 0) return 'column';
+        const column = await pool.query("SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='casino_city_players' AND column_name='avatar_url'");
+        if (column.rowCount > 0) return 'column';
       } catch (_) {}
+      if (error.code !== '42501') console.warn('Casino avatar column migration unavailable:', error.code || error.message);
     }
+    // The fallback requires only permissions on the application-owned table.
     try {
       await pool.query(`CREATE TABLE IF NOT EXISTS public.casino_city_avatars(
         vk_id BIGINT PRIMARY KEY,
