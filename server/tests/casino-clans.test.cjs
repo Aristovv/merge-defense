@@ -142,3 +142,16 @@ test('seat expansions debit only the clan treasury atomically, never VK payments
  assert.match(client,/data-clan="expand-seats"/);
  assert.doesNotMatch(client,/data-clan="buy-seats"/);
 });
+
+test('long clan panels are collapsed without removing purchases or roster controls',()=>{
+ const client=fs.readFileSync(path.join(__dirname,'../../clans.js'),'utf8');
+ assert.match(client,/const expandedSections=new Set\(\)/);
+ assert.match(client,/document\.createElement\('details'\)/);
+ assert.match(client,/data-clan-section/);
+ assert.match(client,/fold\.open=expandedSections\.has\(key\)/);
+ assert.match(client,/while\(panel\.firstChild\)content\.appendChild\(panel\.firstChild\)/);
+ assert.match(client,/data-clan="expand-seats"/);
+ assert.match(client,/data-clan="upgrade"/);
+ assert.match(client,/data-clan="kick"/);
+ assert.match(client,/seats:'Расширение мест'/);
+});
