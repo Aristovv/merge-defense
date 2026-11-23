@@ -5253,16 +5253,57 @@ document.addEventListener('click',function(e){
  if(!target)return;
  e.preventDefault();e.stopImmediatePropagation();
 },true);
+async function casinoDailySettleCloud(){
+ // Saved passive income/other actions may still be waiting for the debounced PUT.
+ // Flush that revision first instead of refusing the reward indefinitely.
+ if(busy||round||state.pendingMiniRound)return 'Сначала заверши текущую игру.';
+ const deadline=Date.now()+12000;
+ clearTimeout(casinoCloudTimer);
+ while(Date.now()<deadline){
+  if(casinoCloudRevision===null||!CASINO_LAUNCH_PARAMS)return 'Облачное сохранение не подключено.';
+  if(casinoCloudStarting||casinoCloudBusy){
+   await new Promise(resolve=>setTimeout(resolve,200));
+   continue;
+  }
+  if(casinoCloudDirty){
+   await casinoCloudUpload();
+   // The upload may be rejected or retried; recheck its confirmed revision.
+   continue;
+  }
+  const pending=casinoCloudPendingRead();
+  if(pending){
+   // Recover a leftover marker from a successful PUT whose browser cleanup
+   // was interrupted. Never discard unsent changes or guess about revisions.
+   let remote;
+   try{remote=await casinoCloudFetch('GET')}
+   catch(error){return 'Не удалось проверить последнее сохранение на сервере.'}
+   if(remote?.save&&casinoStableJSON(remote.save)===casinoStableJSON(pending.save)&&
+      Number(remote.revision)===casinoCloudRevision){
+    casinoCloudPendingClear();
+   }else{
+    casinoCloudBackup('Pending gift preflight differs from server');
+    casinoCloudPreserveRemote(remote,'daily gift preflight conflict');
+    return 'Облако и телефон содержат разные изменения. Проверь сохранение во вкладке «Персонаж».';
+   }
+  }
+  if(!casinoCloudBusy&&!casinoCloudDirty&&!casinoCloudPendingRead()&&casinoCloudRevision>=1)
+   return null;
+ }
+ return 'Сохранение пока не завершилось. Проверь интернет и повтори.';
+}
 async function daily(){
  if(casinoDailyClaiming)return message('Награда уже проверяется на сервере');
  if(!CASINO_LAUNCH_PARAMS||!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1)
   return message('Дождись облачной синхронизации перед получением награды.');
- if(casinoCloudStarting||casinoCloudBusy||casinoCloudDirty||casinoCloudPendingRead()||busy||round||state.pendingMiniRound)
-  return message('Есть незавершённое сохранение или игра. Дождись синхронизации и повтори.');
- const revision=casinoCloudRevision;
+ if(busy||round||state.pendingMiniRound)return message('Сначала заверши текущую игру.');
  casinoDailyClaiming=true;
- casinoCloudBusy=true;
  try{
+  const preflight=await casinoDailySettleCloud();
+  if(preflight)return message(preflight);
+  if(casinoCloudStarting||casinoCloudBusy||casinoCloudDirty||casinoCloudPendingRead())
+   return message('Есть изменения, ещё не записанные на сервер. Повтори после синхронизации.');
+  const revision=casinoCloudRevision;
+  casinoCloudBusy=true;
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),12000);
   let response;
@@ -5298,7 +5339,8 @@ async function daily(){
   // next session; never auto-grant or repeat credits from the browser.
   casinoCloudNotice('Награда не подтверждена на устройстве. Проверь облако; повторное начисление защищено сервером.');
  }finally{
-  casinoDailyClaiming=false;casinoCloudBusy=false;
+  casinoDailyClaiming=false;
+  if(casinoCloudBusy&&!casinoCloudDirty)casinoCloudBusy=false;
   if(casinoCloudDirty&&casinoCloudRevision!==null)casinoCloudSchedule();
  }
 }
