@@ -16,25 +16,15 @@ function response(){
  res.json=value=>{res.body=value;return res};
  return res;
 }
-test('clan endpoints register an authenticated admin community picker',async()=>{
- const {registerLuckyClans}=await import('../casino-clans.js');
- const {app,routes}=routeRecorder();
- const auth=()=>{};
- registerLuckyClans(app,null,auth);
- assert.equal(typeof routes.get('GET /api/casino/clans'),'function');
- assert.equal(routes.has('GET /api/casino/clans/group'),false,'legacy manual picker removed');
- for(const url of ['admin-groups','create','join','leave','daily','upgrade','role'])
-  assert.equal(typeof routes.get('POST /api/casino/clans/'+url),'function');
-});
-test('admin community picker rejects missing user token without contacting VK',async()=>{
+test('clan endpoints use device group selection and server-side verified creation',async()=>{
  const {registerLuckyClans}=await import('../casino-clans.js');
  const {app,routes}=routeRecorder();
  registerLuckyClans(app,null,()=>{});
- const route=routes.get('POST /api/casino/clans/admin-groups');
- const res=response();
- await route({playerId:'vk:123',body:{}},res);
- assert.equal(res.statusCode,403);
- assert.equal(typeof res.body.error,'string');
+ assert.equal(typeof routes.get('GET /api/casino/clans'),'function');
+ assert.equal(routes.has('POST /api/casino/clans/admin-groups'),false);
+ assert.equal(routes.has('GET /api/casino/clans/group'),false);
+ for(const url of ['create','join','leave','daily','upgrade','role'])
+  assert.equal(typeof routes.get('POST /api/casino/clans/'+url),'function');
 });
 test('every clan upgrade level has a distinct SVG scene',()=>{
  const script=fs.readFileSync(path.join(__dirname,'../../clan-scenes.js'),'utf8');
