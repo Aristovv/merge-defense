@@ -4360,6 +4360,32 @@ let casinoCloudRevision=null,casinoCloudDirty=false,casinoCloudBusy=false,casino
 let casinoCloudStartRetryTimer=null,casinoCloudStartRetryMs=3000;
 let casinoCloudRetryMs=2000;
 const CASINO_PENDING_SAVE_KEY='casino_city_pending_save_v1';
+const CASINO_LOCAL_ONLY_KEY='casino_city_local_only_v1';
+let casinoCloudLocalOnly=false;
+function casinoCloudLocalOwner(){
+ try{return String(new URLSearchParams(CASINO_LAUNCH_PARAMS||'').get('vk_user_id')||'')}catch(_){return ''}
+}
+function casinoCloudHasLocalOnly(){
+ const user=casinoCloudLocalOwner();
+ if(!user)return false;
+ try{return localStorage.getItem(CASINO_LOCAL_ONLY_KEY)===user}catch(_){return false}
+}
+function casinoCloudSaveLocalOnly(){
+ try{
+  const user=casinoCloudLocalOwner();
+  if(!user)return false;
+  const raw=JSON.stringify(state);
+  localStorage.setItem(STORAGE,raw);
+  if(localStorage.getItem(STORAGE)!==raw)return false;
+  localStorage.setItem(CASINO_LOCAL_ONLY_KEY,user);
+  casinoCloudLocalOnly=true;
+  return true;
+ }catch(error){console.error('Local save failed',error);return false}
+}
+function casinoCloudLocalOnlyStart(){
+ if(casinoCloudLocalOnly||casinoCloudHasLocalOnly())casinoCloudLocalOnly=true;
+}
+
 function casinoStableJSON(value){
  const ordered=(x)=>{
   if(Array.isArray(x))return x.map(ordered);
@@ -4449,6 +4475,10 @@ function casinoCloudRetryStart(){
 }
 async function casinoCloudStart(){
  if(!CASINO_LAUNCH_PARAMS||casinoCloudStarting||casinoCloudRevision!==null)return;
+ casinoCloudLocalOnlyStart();
+ // Never overwrite locally played progress with a stale server snapshot.
+ // Manual recovery remains available from the character's cloud tools.
+ if(casinoCloudLocalOnly)return;
  casinoCloudStarting=true;
  const startingSnapshot=JSON.stringify(state);
  try{
@@ -4633,9 +4663,9 @@ async function casinoDonationPullOwnRewards(){
  return {ok:true,boost:Number(remote.donationIncomeBoost?.percent)||0,coins:remote.coins,chips:remote.chips};
 }
 
-function casinoCloudSchedule(){if(casinoCloudRevision===null||casinoCloudBusy)return;clearTimeout(casinoCloudTimer);casinoCloudTimer=setTimeout(casinoCloudUpload,casinoCloudRetryMs)}
+function casinoCloudSchedule(){if(casinoCloudLocalOnly||casinoCloudRevision===null||casinoCloudBusy)return;clearTimeout(casinoCloudTimer);casinoCloudTimer=setTimeout(casinoCloudUpload,casinoCloudRetryMs)}
 async function casinoCloudUpload(){
- if(casinoCloudBusy||casinoCloudRevision===null||!casinoCloudDirty)return;
+ if(casinoCloudLocalOnly||casinoCloudBusy||casinoCloudRevision===null||!casinoCloudDirty)return;
  casinoCloudBusy=true;
  const snapshot=JSON.stringify(state),revision=casinoCloudRevision;
  try{
@@ -4696,7 +4726,11 @@ async function casinoCloudUpload(){
  }
 }
 function save(){
- if(casinoCloudRevision===null){console.warn('Save deferred: cloud session not ready');return;}
+ if(casinoCloudRevision===null||casinoCloudLocalOnly){
+  state.stamp=Date.now();
+  if(!casinoCloudSaveLocalOnly())console.error('Unable to persist local progress');
+  return;
+ }
  state.stamp=Date.now();
  try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(error){console.error('Local save unavailable',error)}
  casinoCloudPendingWrite();
@@ -6285,19 +6319,11 @@ document.addEventListener('click',function(e){
  });
  if(mode==='clans')window.LuckyClans?.mountTop(CASINO_LAUNCH_PARAMS);
 },false);
-document.addEventListener('click',function(e){
- if(casinoCloudRevision!==null&&casinoCloudRevision>0)return;
- const allowed=e.target.closest('[data-tab],[data-lc56-tab],[data-lc56-filter],[data-lc56-page],[data-lc56-recover],[data-lc56-retry],[data-lc56-apply],[data-clan],[data-admin-section-tab],[data-casino-admin-player],[data-casino-admin-search]');
- if(allowed)return;
- const interactive=e.target.closest('button,a,[role="button"]');
- if(!interactive)return;
- e.preventDefault();
- e.stopImmediatePropagation();
- message('Облачное сохранение ещё не подтверждено. Действия заблокированы для защиты прогресса.');
-},true);
+// Offline gameplay is allowed. The first local change is saved under the
+// signed VK account and never uploaded without explicit conflict recovery.
 window.addEventListener('online',()=>{if(casinoCloudRevision===null&&CASINO_LAUNCH_PARAMS)casinoCloudStart()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&casinoCloudRevision===null&&CASINO_LAUNCH_PARAMS)casinoCloudStart()});
-window.addEventListener('pagehide',()=>{if(casinoCloudRevision!==null)try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}});
+window.addEventListener('pagehide',()=>{if(casinoCloudRevision!==null||casinoCloudLocalOnly)try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}});
 setInterval(()=>{if(tab==='city'||tab==='profile'){let gained=collectPassive();if(gained&&tab==='city')render()}},30000);
 render();
 casinoCloudStart();
