@@ -25,7 +25,8 @@ const LC56=[
  ['lucky-city-vip','LUCKY CITY VIP',109,'votes','lucky-city-vip.png','Эксклюзивный']
 ].map(([id,name,price,currency,image,rarity])=>({id,name,price,currency,image,rarity}));
 const LC56_MAP=new Map(LC56.map(o=>[o.id,o]));
-let lc56Tab='shop',lc56Preview=null,lc56Buying=false;
+let lc56Tab='shop',lc56Preview=null,lc56Buying=false,lc56Filter='all',lc56Page=0;
+const LC56_PER_PAGE=8;
 function lc56State(){
  const c=lc33State();
  if(!Array.isArray(c.ownedOutfits))c.ownedOutfits=[];
@@ -65,9 +66,15 @@ function lc56Screen(){
  const featured=LC56_MAP.get(id);
  const ready=LC56.filter(o=>o.image),planned=LC56.filter(o=>!o.image);
  const owned=ready.filter(o=>c.ownedOutfits.includes(o.id));
+ const filtered=ready.filter(o=>lc56Filter==='all'||(lc56Filter==='votes'?o.currency==='votes':o.currency==='coin'));
+ const pages=Math.max(1,Math.ceil(filtered.length/LC56_PER_PAGE));
+ lc56Page=Math.max(0,Math.min(lc56Page,pages-1));
+ const visible=filtered.slice(lc56Page*LC56_PER_PAGE,(lc56Page+1)*LC56_PER_PAGE);
  const gallery=lc56Tab==='shop'?
- '<section class="lc56-section"><h2>Готовые образы</h2><p>Примерь и купи цельный образ — без отдельных вещей.</p>'+
- '<div class="lc56-gallery">'+ready.map(o=>lc56Tile(o,c)).join('')+'</div>'+
+ '<section class="lc56-section"><h2>Образы</h2>'+
+ '<div class="lc56-filters">'+[['all','Все'],['coin','За монеты'],['votes','За голоса']].map(([key,label])=>'<button data-lc56-filter="'+key+'" class="'+(lc56Filter===key?'active':'')+'">'+label+'</button>').join('')+'</div>'+
+ '<div class="lc56-gallery">'+visible.map(o=>lc56Tile(o,c)).join('')+'</div>'+
+ (pages>1?'<div class="lc56-pages"><button data-lc56-page="prev" '+(lc56Page===0?'disabled':'')+'>← Назад</button><span>'+(lc56Page+1)+' / '+pages+'</span><button data-lc56-page="next" '+(lc56Page===pages-1?'disabled':'')+'>Далее →</button></div>':'')+
  '<h2>Новые образы</h2><p>Изображения обновлены. Покупки за голоса откроются после проверки серверной оплаты VK.</p>'+
  '<div class="lc56-upcoming-list">'+planned.map(lc56Pending).join('')+'</div></section>':
  lc56Tab==='collection'?
@@ -88,7 +95,11 @@ function lc56Screen(){
 lc33Screen=lc56Screen;
 document.addEventListener('click',function(e){
  const tab=e.target.closest('[data-lc56-tab]');
- if(tab){lc56Tab=tab.dataset.lc56Tab;render();return}
+ if(tab){lc56Tab=tab.dataset.lc56Tab;lc56Page=0;render();return}
+ const filter=e.target.closest('[data-lc56-filter]');
+ if(filter){lc56Filter=filter.dataset.lc56Filter;lc56Page=0;render();return}
+ const page=e.target.closest('[data-lc56-page]');
+ if(page){lc56Page=Math.max(0,lc56Page+(page.dataset.lc56Page==='next'?1:-1));render();return}
  const preview=e.target.closest('[data-lc56-preview]');
  if(preview){const o=LC56_MAP.get(preview.dataset.lc56Preview);if(!o?.image)return;lc56Preview=o.id;render();message('Примерка бесплатно: '+o.name);return}
  if(e.target.closest('[data-lc56-reset]')){lc56Preview=null;render();return}
@@ -135,5 +146,6 @@ document.addEventListener('click',function(e){
  '.lc56-gallery{display:grid;grid-template-columns:minmax(0,1fr);gap:13px}.lc56-tile{padding:11px;border:1px solid #9162c6;border-radius:16px;background:radial-gradient(ellipse,#452558,#241234);min-width:0}.lc56-tile>strong{font-size:15px}.lc56-tile>small{display:block;color:#b8a0da;font-size:11px;margin:4px 0}.lc56-tile-photo{height:280px;text-align:center}.lc56-tile-photo img{height:100%;max-width:100%;object-fit:contain}.lc56-price{font-weight:900;font-size:13px;color:#f3d68d;margin:7px 0}.lc56-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.lc56-actions button{padding:12px 5px;border:1px solid #9a6fbd;border-radius:10px;background:#3d245b;color:white;font-size:12px;font-weight:800}.lc56-actions .lc56-buy{background:linear-gradient(140deg,#9f50d3,#65239e)}'+
  '.lc56-upcoming-list{display:grid;gap:7px}.lc56-upcoming{border:1px solid #6c4a8888;border-radius:12px;background:#28183e;padding:10px;display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:center}.lc56-upcoming strong{font-size:11px}.lc56-upcoming small{display:block;font-size:10px;color:#bda6cf}.lc56-upcoming-price{color:#e4c7f0;font-size:11px;font-weight:800;text-align:right}.lc56-upcoming-price small{font-weight:400}.lc56-root button:disabled{opacity:.65}'+
  '@media(min-width:650px){.lc56-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.lc56-big-avatar{height:410px}}';
+ el.textContent+="\n/* Compact mobile outfit gallery v56.2 */\n.lc56-root{padding:8px 6px}.lc56-root h1{font-size:21px;margin:5px 0 9px}.lc56-stage{margin:9px 0;padding:8px}.lc56-big-avatar{height:250px}.lc56-section{padding:9px 6px}.lc56-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.lc56-tile{padding:7px;border-radius:11px}.lc56-tile>strong{font-size:11px;line-height:1.2;min-height:27px;display:block}.lc56-tile>small{font-size:9px;margin:1px 0}.lc56-tile-photo{height:160px}.lc56-price{font-size:11px;margin:4px 0}.lc56-actions{gap:4px}.lc56-actions button{padding:9px 2px;font-size:10px;line-height:1.15;min-height:34px}.lc56-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:8px 0 12px}.lc56-filters button,.lc56-pages button{background:#35204c;color:#eee;border:1px solid #7d54a0;border-radius:9px;padding:9px 2px;font-size:10px;font-weight:800}.lc56-filters button.active{background:#753cb0;color:#fff}.lc56-pages{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px 0 4px}.lc56-pages span{font-size:12px;color:#e2c3ff}@media(min-width:650px){.lc56-gallery{grid-template-columns:repeat(3,minmax(0,1fr))}.lc56-big-avatar{height:310px}}";
  document.head.appendChild(el);
 })();
