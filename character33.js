@@ -101,7 +101,7 @@ const LC35_OLD_PRICES={kitty:8,crown:19,cowboy:9,goldcoat:12,royalpants:10,goldb
 for(const g of LC33_GOODS)if(Object.prototype.hasOwnProperty.call(LC35_OLD_PRICES,g.id))g.price=LC35_OLD_PRICES[g.id];
 const LC35_BY_ID=new Map(LC33_GOODS.map(g=>[g.id,g]));
 
-let lc33Category='hat',lc33Subtab='wardrobe',lc33Selected='cap',lc35Filter='all',lc39Preview=null;
+let lc33Category='hat',lc33Subtab='sets',lc33Selected='cap',lc35Filter='all',lc39Preview=null;
 /* 51.0 — bare avatar is always available without any inventory.
    The five formerly free starter IDs become paid catalogue items. Old grants
    of those five (previously issued automatically) are cleared ONCE; all paid
@@ -526,40 +526,51 @@ function lc50SetOffer(set,c=lc33State()){
  const unavailable=missing.filter(id=>{const g=LC35_BY_ID.get(id);return !g||!['coin','premium'].includes(g.payment)});
  return {missing,coinItems,premiumItems,unavailable,total:coinItems.reduce((n,g)=>n+g.price,0)};
 }
+/* 53.0: the outfit gallery itself is the fitting room and complete-bundle store.
+   Costs and included items always come from the existing catalogue. */
 function lc39SetCards(){
  const c=lc33State();
  const files={street:'outfit-street.png',sakura:'outfit-sakura.png',phantom:'outfit-phantom.png',emperor:'outfit-emperor.png',galaxy:'outfit-galaxy.png'};
- return '<section class="lc39-sets lc50-bundles"><h2>✦ Коллекционные комплекты</h2>'+
- '<p class="subline">Цена набора равна сумме цен его вещей в гардеробе. Уже купленные предметы повторно не оплачиваются. Донатные вещи оплачиваются отдельно голосами VK.</p>'+
+ return '<section class="lc39-sets lc53-sets"><h2>✦ Образы и комплекты</h2>'+
+ '<p class="subline">Выбери костюм, примерь его бесплатно и купи все недостающие вещи за монеты. Купленные вещи повторно не оплачиваются.</p>'+
  '<div class="lc39-set-grid">'+LC39_SETS.map(set=>{
-  const offer=lc50SetOffer(set,c),on=lc39IsWearing(set,c),preview=lc39Preview?.id===set.id;
+  const offer=lc50SetOffer(set,c);
+  const legacy=lc503LegacyComplete(set,c);
+  const on=lc39IsWearing(set,c),preview=lc39Preview?.id===set.id;
   const pieces=Object.values(set.equipped).map(id=>{
    const g=LC35_BY_ID.get(id),owned=c.owned.includes(id);
-   const price=g?.payment==='coin'?fmt(g.price)+' 🪙':g?.payment==='premium'?g.price+' гол.':'недоступно';
-   return '<li class="'+(owned?'owned':'')+'">'+(owned?'✓ ':'◇ ')+rankEsc(g?.name||id)+' · '+price+(owned?' · уже куплено':'')+'</li>';
+   const amount=g?.payment==='coin'?fmt(g.price)+' 🪙':g?.payment==='premium'?g.price+' гол.':'недоступно';
+   return '<li class="'+(owned?'owned':'')+'">'+(owned?'✓ ':'◇ ')+rankEsc(g?.name||id)+' · '+amount+(owned?' · куплено':'')+'</li>';
   }).join('');
-  let buy='';
-  if(offer.coinItems.length&&!offer.unavailable.length){
-   buy='<button type="button" data-lc50-buy="'+set.id+'">Купить '+offer.coinItems.length+' вещ. · '+fmt(offer.total)+' 🪙</button>';
-  }
   const allGoods=Object.values(set.equipped).map(id=>LC35_BY_ID.get(id));
   const fullCoins=allGoods.filter(g=>g?.payment==='coin').reduce((n,g)=>n+g.price,0);
   const fullVotes=allGoods.filter(g=>g?.payment==='premium').reduce((n,g)=>n+g.price,0);
-  const remainingVotes=offer.premiumItems.reduce((n,g)=>n+g.price,0);
-  const priceInfo='<p class="lc50-set-price-breakdown">Полная стоимость: '+fmt(fullCoins)+' 🪙'+(fullVotes?' + '+fullVotes+' голосов VK':'')+
-   '. К оплате за недостающие вещи: '+fmt(offer.total)+' 🪙'+(remainingVotes?' + '+remainingVotes+' голосов VK':'')+'.</p>';
-  const premiumNote=offer.premiumItems.length?'<p class="lc50-premium-note">💎 Донатные вещи приобретаются отдельно в гардеробе через VK: '+offer.premiumItems.map(g=>rankEsc(g.name)+' ('+g.price+' гол.)').join(', ')+'</p>':'';
-  return '<article class="lc39-set-card lc50-set-card'+(preview?' preview':'')+(on?' worn':'')+'" style="--set-glow:'+set.accent+'">'+
+  const complete=offer.missing.length===0;
+  const canBuyAll=offer.coinItems.length>0&&!offer.premiumItems.length&&!offer.unavailable.length;
+  const coinButton=canBuyAll?
+   '<button type="button" class="lc53-buy" data-lc50-buy="'+set.id+'">Купить комплект · '+fmt(offer.total)+' 🪙</button>':
+   offer.coinItems.length&&!offer.unavailable.length?
+   '<button type="button" class="lc53-buy" data-lc50-buy="'+set.id+'">Купить '+offer.coinItems.length+' вещи · '+fmt(offer.total)+' 🪙</button>':'';
+  const premiumButton=offer.premiumItems.length?
+   '<button type="button" class="lc53-premium-buy" data-lc53-premium="'+set.id+'">'+
+   (offer.premiumItems.length===1?'Купить '+rankEsc(offer.premiumItems[0].name):'Купить донатные вещи')+
+   ' · '+offer.premiumItems.reduce((n,g)=>n+g.price,0)+' гол. VK</button>':'';
+  const wearButton=(complete||legacy)?
+   '<button type="button" data-lc39-wear="'+set.id+'" '+(on?'disabled':'')+'>'+(on?'✓ Надето':'Надеть комплект')+'</button>':'';
+  return '<article class="lc39-set-card lc50-set-card lc53-card'+(preview?' preview':'')+(on?' worn':'')+'" style="--set-glow:'+set.accent+'">'+
    '<div class="lc39-set-top"><strong>'+set.name+'</strong><small>'+set.tier+'</small></div>'+
-   '<img class="lc50-set-image" src="./assets/character44/'+files[set.id]+'" alt="'+set.name+'" loading="lazy">'+
-   '<p>'+set.description+'</p>'+''+
-   '<p class="lc39-set-status">'+(on?'✓ Надето':offer.missing.length?'Собрано '+(5-offer.missing.length)+' из 5':'✓ Полный комплект в коллекции')+'</p>'+
-   '<ul class="lc50-piece-list">'+pieces+'</ul>'+priceInfo+(lc503LegacyComplete(set,c)?'<p class="lc50-premium-note">Ранее собранный STREET можно носить. Новые предметы STREET приобретаются отдельно по указанным ценам.</p>':'')+premiumNote+
-   '<div class="lc39-set-actions"><button type="button" data-lc39-preview="'+set.id+'">Примерить</button>'+
-   buy+'<button type="button" data-lc39-wear="'+set.id+'" '+((offer.missing.length&&!lc503LegacyComplete(set,c))||on?'disabled':'')+'>'+(on?'✓ Надето':'Надеть комплект')+'</button></div>'+
+   '<img class="lc50-set-image" loading="lazy" src="./assets/character44/'+files[set.id]+'" alt="Комплект '+set.name+'">'+
+   '<p class="lc53-status">'+(on?'✓ Надето':complete?'✓ Все вещи куплены':legacy?'✓ Доступен старый STREET':'Собрано '+(5-offer.missing.length)+' из 5')+'</p>'+
+   '<div class="lc53-pricing">Полная стоимость: <strong>'+fmt(fullCoins)+' 🪙'+(fullVotes?' + '+fullVotes+' гол. VK':'')+'</strong>'+
+   '<small>Осталось оплатить: '+fmt(offer.total)+' 🪙'+(offer.premiumItems.length?' + '+offer.premiumItems.reduce((n,g)=>n+g.price,0)+' гол. VK':'')+'</small></div>'+
+   '<div class="lc39-set-actions"><button type="button" data-lc39-preview="'+set.id+'">'+(preview?'✓ Примеряется':'Примерить бесплатно')+'</button>'+
+   coinButton+premiumButton+wearButton+'</div>'+
+   '<details class="lc53-details"><summary>Состав комплекта — 5 вещей</summary><ul class="lc50-piece-list">'+pieces+'</ul></details>'+
+   (legacy&&!complete?'<p class="lc50-premium-note">Старый STREET сохранён. Для покупки нового состава доступны только недостающие вещи.</p>':'')+
+   (offer.premiumItems.length?'<p class="lc50-premium-note">Для полного COSMIC LEGEND необходима отдельная оплата донатных вещей через VK. Монеты и голоса не списываются вместе.</p>':'')+
    '</article>';
  }).join('')+'</div>'+
- (lc39Preview?'<button type="button" class="lc39-reset" data-lc39-reset="1">Вернуться к своему персонажу</button>':'')+
+ (lc39Preview?'<button type="button" class="lc39-reset" data-lc39-reset="1">Снять примерку</button>':'')+
  '</section>';
 }
 
@@ -833,13 +844,39 @@ document.addEventListener('click',function(e){
  if(!set)return;
  const c=lc33State(),offer=lc50SetOffer(set,c);
  if(offer.unavailable.length||!offer.coinItems.length)return;
- if(!Number.isFinite(state.coins)||state.coins<offer.total){message('Недостаточно монет для комплекта');return}
- // Atomic in the existing local game-save flow: charge the exact missing coin items once.
- state.coins-=offer.total;
- for(const g of offer.coinItems)if(!c.owned.includes(g.id))c.owned.push(g.id);
+ if(!Number.isSafeInteger(offer.total)||offer.total<0||!Number.isFinite(state.coins)||state.coins<offer.total){
+  message('Недостаточно монет для покупки комплекта');return;
+ }
+ const amount=offer.total;
+ // The amount and item IDs are recalculated on click, not accepted from the DOM.
+ state.coins-=amount;
+ for(const g of offer.coinItems){
+  if(!c.owned.includes(g.id))c.owned.push(g.id);
+ }
+ const remaining=lc39Missing(set,c);
+ if(!remaining.length){
+  c.equipped={...c.equipped,...set.equipped};
+  lc39Preview=null;lc49SelectedOutfit=set.id;
+ }
  save();render();
- message('Куплено вещей: '+offer.coinItems.length+' — '+set.name+(offer.premiumItems.length?'. Донатную вещь купи отдельно.':''));
+ message(!remaining.length?'Комплект куплен и надет: '+set.name:
+  'Куплены вещи за '+fmt(amount)+' монет. Для полного '+set.name+' приобрети донатный предмет через VK.');
 });
+document.addEventListener('click',function(e){
+ const button=e.target.closest('[data-lc53-premium]');
+ if(!button)return;
+ const set=lc39GetSet(button.dataset.lc53Premium);
+ if(!set)return;
+ const items=lc50SetOffer(set,lc33State()).premiumItems;
+ if(!items.length)return;
+ if(items.length>1){message('Донатные вещи необходимо приобретать по одной');return}
+ if(typeof luckyPaymentsReady!=='undefined'&&luckyPaymentsReady&&typeof luckyBuy==='function'){
+  luckyBuy('character_'+items[0].id);
+ }else{
+  message('Оплата голосами VK пока не подключена');
+ }
+});
+
 document.addEventListener('click',function(e){
  const preview=e.target.closest('[data-lc39-preview]');
  if(preview){const set=lc39GetSet(preview.dataset.lc39Preview);if(!set)return;
@@ -970,27 +1007,7 @@ document.head.appendChild(lc46Styles);
 
 
 /* 49.0: previews are not purchases or equipped inventory. */
-const lc49BaseScreen=lc33Screen;
-lc33Screen=function(){
- const html=lc49BaseScreen();
- const buttons=LC49_OUTFITS.map(([id,title,file])=>
-  '<button type="button" data-lc49-outfit="'+id+'" class="'+(lc49SelectedOutfit===id?'active':'')+'" aria-pressed="'+(lc49SelectedOutfit===id?'true':'false')+'">'+
-  '<img alt="" loading="lazy" src="./assets/character44/'+file+'" onerror="this.style.visibility=\'hidden\'">'+
-  '<span>'+title+'</span></button>').join('');
- const choose='<section class="lc49-picker"><div class="lc49-title">Реалистичные образы · 50.0</div>'+
- '<div class="lc49-grid">'+buttons+'</div>'+
- '<p>Это бесплатный предпросмотр. Чтобы получить и надеть пять вещей, открой вкладку «Образы» ниже.</p></section>';
- return html.replace('<div class="lc33-tabs">',choose+'<div class="lc33-tabs">');
-};
-document.addEventListener('click',function(e){
- const btn=e.target.closest('[data-lc49-outfit]');
- if(!btn)return;
- const id=btn.dataset.lc49Outfit;
- if(!LC49_OUTFITS.some(o=>o[0]===id))return;
- lc49SelectedOutfit=id;
- lc39Preview=null;
- render();
-});
+/* 53.0 — the redundant preview gallery was removed; use Obrazy tab directly. */
 const lc49Style=document.createElement('style');lc49Style.id='lc49-style';
 lc49Style.textContent=
 '.lc49-picker{margin:10px auto 16px;text-align:center;border:1px solid #6e438d;border-radius:17px;background:#19102caa;padding:10px}'+
@@ -1032,6 +1049,28 @@ lc50Style.textContent=
 '.lc33-figure .lc47-real-avatar{max-height:420px!important}'+
 '@media(min-width:650px){.lc49-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.lc49-grid img{height:190px!important}}';
 document.head.appendChild(lc50Style);
+
+const lc53Style=document.createElement('style');lc53Style.id='lc53-outfit-shop';
+lc53Style.textContent=
+'.lc53-sets{padding:12px 10px!important}'+
+'.lc53-sets .lc39-set-grid{display:grid;grid-template-columns:minmax(0,1fr)!important;gap:16px!important}'+
+'.lc53-card{border-radius:19px!important;padding:14px!important;gap:12px!important}'+
+'.lc53-card .lc50-set-image{height:360px!important;max-height:55vh!important;margin:0 auto!important;background:radial-gradient(ellipse at center,#43286077,transparent 70%)!important}'+
+'.lc53-card .lc39-set-top strong{font-size:17px!important}'+
+'.lc53-card .lc53-pricing{padding:10px 12px;color:#dcd0e9;border-radius:12px;background:#21132e;border:1px solid #71438a;font-size:12px;line-height:1.6}'+
+'.lc53-card .lc53-pricing strong{color:#ffdb8d}'+
+'.lc53-card .lc53-pricing small{display:block;font-size:12px;color:#d6e7ff}'+
+'.lc53-card .lc53-status{color:#b9f1d1;font-size:12px;font-weight:800}'+
+'.lc53-card .lc39-set-actions{display:flex;flex-direction:column;gap:9px;width:100%}'+
+'.lc53-card .lc39-set-actions button{display:block;width:100%;min-height:45px;height:auto!important;max-height:none!important;padding:12px 8px!important;flex:none!important;border-radius:12px;white-space:normal;line-height:1.35;font-size:13px;box-sizing:border-box}'+
+'.lc53-card .lc53-buy{background:linear-gradient(125deg,#9e62dc,#55279c)!important;border-color:#dfb7fc!important}'+
+'.lc53-card .lc53-premium-buy{background:linear-gradient(130deg,#7e477f,#41225c)!important;border-color:#e2a7eb!important}'+
+'.lc53-details{border-top:1px solid #71438b88;padding-top:8px}'+
+'.lc53-details summary{cursor:pointer;color:#dec5ff;font-size:12px;font-weight:800}'+
+'.lc53-details .lc50-piece-list{margin-top:8px}'+
+'.lc39-preview-stage{margin-bottom:12px}';
+document.head.appendChild(lc53Style);
+
 const lc52PriceStyle=document.createElement('style');lc52PriceStyle.textContent='.lc50-set-price-breakdown{color:#ffe1ad!important;font-size:12px!important;line-height:1.5!important;padding:9px 11px;border-radius:10px;background:#2d2045aa;border:1px solid #a475cf66}';document.head.appendChild(lc52PriceStyle);
 
 
