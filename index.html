@@ -4517,9 +4517,9 @@ async function casinoCloudRecoverLocalPendingPlinko(){
   // The server, not a second local payout, calculates the recovery credit.
   const resolved={...fresh(),...settled.save};
   const encoded=JSON.stringify(resolved);
+  if(pendingRaw&&!casinoCloudQuarantinePending('server-settled Plinko pending'))return false;
   localStorage.setItem(STORAGE,encoded);
   if(localStorage.getItem(STORAGE)!==encoded)return false;
-  if(pendingRaw&&!casinoCloudQuarantinePending('server-settled Plinko pending'))return false;
   state=resolved;
   casinoCloudRevision=settled.revision;
   casinoCloudDirty=false;
