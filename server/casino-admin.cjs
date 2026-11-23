@@ -243,6 +243,9 @@ function registerCasinoAdmin(app,pool,requireAuth){
  // Reset only one player's cloud game progress. The reset epoch prevents older
  // device saves from silently restoring the previous cloud progress.
  app.post('/api/casino/admin/reset-player',guard,async(req,res)=>{
+  // Disabled while loss-proof cloud migrations and offsite backups are being verified.
+  // Read-only admin inspection, grants and non-destructive management remain available.
+  return res.status(403).json({error:'PROGRESS_RESET_DISABLED_FOR_DATA_SAFETY'});
   if(!pool)return res.status(503).json({error:'DATABASE_UNAVAILABLE'});
   const vkId=String(req.body?.vkId||'').trim();
   const confirmation=String(req.body?.confirmation||'');
@@ -270,6 +273,9 @@ function registerCasinoAdmin(app,pool,requireAuth){
  // Bulk reset: a single DB transaction resets cloud saves and competitive tables.
  // No action happens until the administrator explicitly confirms in the UI.
  app.post('/api/casino/admin/reset-all',guard,async(req,res)=>{
+  // Disabled while loss-proof cloud migrations and offsite backups are being verified.
+  // Read-only admin inspection, grants and non-destructive management remain available.
+  return res.status(403).json({error:'PROGRESS_RESET_DISABLED_FOR_DATA_SAFETY'});
   if(!pool)return res.status(503).json({error:'DATABASE_UNAVAILABLE'});
   if(req.body?.confirmation!=='RESET ALL CASINO CITY'||req.body?.acknowledge!==true)
    return res.status(400).json({error:'BULK_RESET_CONFIRMATION_REQUIRED'});
