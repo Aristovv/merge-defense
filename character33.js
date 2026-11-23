@@ -829,12 +829,16 @@ function lc55Piece(type,id){
  return '';
 }
 function lc55WearableAvatar(equipped){
- // 55.1 alignment: the photo model sits higher than the first vector pass.
- // Apply per-slot vertical offsets within the same 384 x 704 portrait coordinate system.
- const offsets={pants:-42,jacket:-38,shoes:-50,hat:-48,accessory:-42};
+ // 55.2 — move headwear to the model's actual hairline, not across eyes.
+ // Scale the hat to the photographed head width. Keep other categories unchanged.
+ const offsets={pants:-42,jacket:-38,shoes:-50,hat:-128,accessory:-42};
  const layers=['pants','jacket','shoes','hat','accessory'].map(type=>{
   const id=equipped[type];
-  return id?'<g transform="translate(0 '+offsets[type]+')">'+lc55Piece(type,id)+'</g>':'';
+  if(!id)return '';
+  const transform=type==='hat'
+   ?'translate(29 '+offsets[type]+') scale(.85 1)'
+   :'translate(0 '+offsets[type]+')';
+  return '<g transform="'+transform+'">'+lc55Piece(type,id)+'</g>';
  }).join('');
  return '<svg class="lc47-real-avatar lc55-avatar" viewBox="0 0 384 704" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Персонаж в выбранной одежде">'+
  '<image href="./assets/character44/avatar.png" x="0" y="0" width="384" height="704"/>'+layers+'</svg>';
