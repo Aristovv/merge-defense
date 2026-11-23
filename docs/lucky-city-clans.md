@@ -101,3 +101,9 @@ Before deployment, create a recoverable database backup and verify it. Never pas
 - The construction-permit panel shows all **six** 5-vote milestones individually: HQ 5/10/15 and wall 5/10/15, with completed/next/future status and one permit per level.
 - Coin transfers cannot run while a casino round is active or unfinished. The client identifies an active round and offers to return to it without resetting game state. A stale unfinished server save is never forcibly cleared or paid out: recovery must use the game's existing save-review mechanism. Do not bypass this lock, as Plinko and Crash may have unresolved wagers.
 - A 409 representing an unfinished round is no longer mistaken for a cloud revision conflict. Balance and cloud session stay intact when that guard rejects a deposit.
+
+## Premium expansion: six paid tiers for each building
+- Retain existing levels **5, 10, 15** and add levels **20, 30, 40** for both headquarters and wall.
+- Each of the **12 premium level transitions** consumes one verified construction permit costing **5 VK votes**, so the full premium path is **60 VK votes** (30 per building).
+- Regular transitions continue to use the established higher-cost 13%-growth coin formula. With the six premium transitions excluded from coin charges, full coin totals are **14,542,200** for headquarters and **10,180,000** for wall, combined **24,722,200**.
+- Existing levels, coin balances and purchased permits are not reset and no retroactive charge is made.
