@@ -45,7 +45,7 @@ async function resolveGroup(value){
  const token=process.env.VK_GROUP_SERVICE_TOKEN;
  if(!token)fail('Проверка сообществ VK пока не настроена',503);
  const q=new URLSearchParams({group_ids:code,fields:'photo_200',access_token:token,v:'5.199'});
- const response=await fetch('https://api.vk.com/method/groups.getById?'+q,{signal:AbortSignal.timeout(5000)});
+ const response=await fetch('https://api.vk.com/method/groups.getById',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:q,signal:AbortSignal.timeout(5000)});
  if(!response.ok)fail('VK временно недоступен',503);
  const data=await response.json();
  const group=(Array.isArray(data.response)?data.response:data.response?.groups)?.[0];
