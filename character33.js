@@ -1,7 +1,7 @@
 /* Lucky City 33.0 — Character wardrobe. No clan mechanics, no real-money charges. */
 const LC33_GROUPS=[['hat','Головной убор','♛'],['jacket','Куртка','♧'],['pants','Штаны','▥'],['shoes','Обувь','♢'],['accessory','Аксессуар','✦']];
 const LC33_GOODS=[
- ['cap','hat','Кепка STREET','Обычная',0,'default','#181b3f'],
+ ['cap','hat','Кепка STREET','Редкая',35000,'coin','#181b3f'],
  ['beanie','hat','Вязаная шапка','Обычная',5000,'coin','#72617a'],
  ['bucket','hat','Панама Lucky','Редкая',15000,'coin','#2157ae'],
  ['kitty','hat','Наушники Kitty','Эпическая',490,'premium','#a953ff'],
@@ -9,16 +9,16 @@ const LC33_GOODS=[
  ['cylinder','hat','Цилиндр игрока','Редкая',25000,'coin','#e3e4fc'],
  ['cowboy','hat','Ковбойская шляпа','Эпическая',690,'premium','#7528b7'],
  ['horns','hat','Корона клана','Легендарная',2490,'locked','#efad32'],
- ['varsity','jacket','Куртка Lucky','Обычная',0,'default','#171c36'],
+ ['varsity','jacket','Куртка Lucky','Редкая',45000,'coin','#171c36'],
  ['hoodie','jacket','Неоновая худи','Редкая',12000,'coin','#7325c6'],
  ['goldcoat','jacket','Золотой бомбер','Эпическая',790,'premium','#f3b42a'],
- ['jeans','pants','Тёмные джинсы','Обычная',0,'default','#20223b'],
+ ['jeans','pants','Тёмные джинсы','Редкая',25000,'coin','#20223b'],
  ['cargo','pants','Карго Street','Редкая',9000,'coin','#50407d'],
  ['royalpants','pants','Брюки Royal','Эпическая',690,'premium','#7e3ac0'],
- ['sneakers','shoes','Городские кроссовки','Обычная',0,'default','#f7f3fc'],
+ ['sneakers','shoes','Городские кроссовки','Редкая',30000,'coin','#f7f3fc'],
  ['neonboots','shoes','Неоновые кеды','Редкая',8500,'coin','#18d0fa'],
  ['goldboots','shoes','Золотые ботинки','Легендарная',990,'premium','#f8bd36'],
- ['headphones','accessory','Золотые наушники','Обычная',0,'default','#ffbe39'],
+ ['headphones','accessory','Золотые наушники','Редкая',35000,'coin','#ffbe39'],
  ['glasses','accessory','Очки Street','Редкая',6000,'coin','#5b46cd'],
  ['chain','accessory','Цепь Короля','Эпическая',590,'premium','#f1c655']
 
@@ -102,15 +102,26 @@ for(const g of LC33_GOODS)if(Object.prototype.hasOwnProperty.call(LC35_OLD_PRICE
 const LC35_BY_ID=new Map(LC33_GOODS.map(g=>[g.id,g]));
 
 let lc33Category='hat',lc33Subtab='wardrobe',lc33Selected='cap',lc35Filter='all',lc39Preview=null;
+/* 51.0 — bare avatar is always available without any inventory.
+   The five formerly free starter IDs become paid catalogue items. Old grants
+   of those five (previously issued automatically) are cleared ONCE; all paid
+   purchases, VIP records, other owned items and saved balances stay intact. */
+const LC51_STARTER_IDS=new Set(['cap','varsity','jeans','sneakers','headphones']);
 function lc33State(){
  if(!state.character33||typeof state.character33!=='object'||Array.isArray(state.character33))state.character33={};
  const c=state.character33;
  if(!Array.isArray(c.owned))c.owned=[];
  if(!c.equipped||typeof c.equipped!=='object')c.equipped={};
- const defaults={hat:'cap',jacket:'varsity',pants:'jeans',shoes:'sneakers',accessory:'headphones'};
- for(const [type,id] of Object.entries(defaults)){
-  if(!c.owned.includes(id))c.owned.push(id);
-  if(!LC33_GOODS.some(x=>x.type===type&&x.id===c.equipped[type]&&c.owned.includes(x.id)))c.equipped[type]=id;
+ if(c.starterPaidMigration!==1){
+  c.owned=c.owned.filter(id=>!LC51_STARTER_IDS.has(id));
+  for(const [type,id] of Object.entries(c.equipped)){
+   if(LC51_STARTER_IDS.has(id)||!c.owned.includes(id))delete c.equipped[type];
+  }
+  c.starterPaidMigration=1;
+ }
+ // Never auto-equip or auto-grant a product again.
+ for(const [type,id] of Object.entries(c.equipped)){
+  if(!c.owned.includes(id)||!LC35_BY_ID.has(id)||LC35_BY_ID.get(id).type!==type)delete c.equipped[type];
  }
  return c;
 }
@@ -479,7 +490,7 @@ function lc38Aura(items){
 /* LUCKY CITY 39: complete themed outfits using existing wardrobe items.
    No new payments, no auto-spend, and no mutation of existing item IDs. */
 const LC39_SETS=[
- {id:'street',name:'NEON STREET',description:'Уличный образ как на фото: простая чёрная кепка, тёмный бомбер, карго с фиолетовыми деталями, чёрные кроссовки и серебристая цепь. Кепка STREET — базовая модель из образа; остальные вещи приобретаются за монеты.',tier:'Редкий',accent:'#ab76ff',
+ {id:'street',name:'NEON STREET',description:'Уличный образ как на фото: простая чёрная кепка, тёмный бомбер, карго с фиолетовыми деталями, чёрные кроссовки и серебристая цепь. Все пять вещей, включая кепку STREET, приобретаются за монеты.',tier:'Редкий',accent:'#ab76ff',
   equipped:{hat:'cap',jacket:'jacket-black',pants:'cargo-violet',shoes:'shoes-black',accessory:'chain-silver'},
   legacyEquipped:{hat:'cap-ice',jacket:'jacket-blue',pants:'cargo-navy',shoes:'shoes-ice',accessory:'glasses-cyan'}},
  {id:'sakura',name:'SAKURA NIGHT',description:'Розовая худи, мягкие оттенки и яркие аксессуары.',tier:'Эпический',accent:'#ff91d5',
@@ -790,6 +801,7 @@ function lc33Screen(){
  const view=lc33Subtab==='sets'?lc39SetCards():lc33Subtab==='wardrobe'?
   '<div class="lc33-stage"><aside class="lc33-cats">'+LC33_GROUPS.map(g=>'<button data-lc33-cat="'+g[0]+'" class="'+(lc33Category===g[0]?'active':'')+'">'+g[2]+' '+g[1]+'</button>').join('')+'</aside>'+
   '<div class="lc33-figure"><div class="lc33-city">✧ ✦ ✧</div><div class="lc33-halo"></div><div class="lc33-person">'+lc33Avatar()+'</div></div>'+
+  '<div class="lc51-bare-controls"><button type="button" data-lc51-remove-all="1">Снять всю одежду — базовый персонаж</button><small>Базовый вид доступен бесплатно. Вещи из гардероба продаются за монеты и остаются после покупки.</small></div>'+
   '<div class="lc33-side"><div>🪙 Бонус дохода<b>0% · только стиль</b></div><div>👕 Вещей в коллекции<b>'+c.owned.length+' предметов</b></div><div>👑 Активный образ<b>LUCKY CITY</b></div></div></div>'+
   '<section class="lc33-section"><h2>'+rankEsc(active[2])+' '+rankEsc(active[1])+'</h2><div class="lc35-filters">'+[['all','Все'],['coin','🪙 За монеты'],['premium','💎 Донат']].map(([id,title])=>'<button type="button" data-lc35-filter="'+id+'" class="'+(lc35Filter===id?'selected':'')+'">'+title+'</button>').join('')+'</div><div class="lc35-item-count">Доступно предметов: '+list.length+'</div><div class="lc33-items">'+cards+'</div>'+
   (selected?'<div class="lc33-detail">'+lc34SvgItem(selected)+'<div><strong>'+rankEsc(selected.name)+'</strong><p>'+rankEsc(selected.rarity)+' · '+(selected.payment==='premium'?'Премиальный внешний вид':selected.payment==='coin'?'Покупается за игровые монеты':'Стиль персонажа')+'</p><small>Одежда не влияет на шанс выигрыша</small></div></div>':'')+'</section>':
@@ -801,6 +813,13 @@ function lc33Screen(){
  return '<main class="lc33"><div class="lc33-hero"><h1>ПЕРСОНАЖ</h1></div>'+
  '<div class="lc33-tabs">'+[['wardrobe','♧ Гардероб'],['sets','✦ Образы'],['collection','♛ Коллекция'],['bonuses','✧ Бонусы']].map(([id,name])=>'<button class="'+(lc33Subtab===id?'active':'')+'" data-lc33-tab="'+id+'">'+name+'</button>').join('')+'</div>'+previewStage+view+'</main>';
 }
+document.addEventListener('click',function(e){
+ const control=e.target.closest('[data-lc51-remove-all]');
+ if(!control)return;
+ const c=lc33State();
+ c.equipped={};lc39Preview=null;lc49SelectedOutfit='base';
+ save();render();message('Базовый персонаж: вся одежда снята, купленные вещи сохранены');
+});
 document.addEventListener('click',function(e){
  const button=e.target.closest('[data-lc50-buy]');
  if(!button)return;
@@ -845,7 +864,7 @@ document.addEventListener('click',function(e){
    state.coins-=item.price;c.owned.push(item.id);
   }
  }
- c.equipped[item.type]=item.id;save();render();message('Предмет применён: '+item.name);
+ c.equipped[item.type]=item.id;lc49SelectedOutfit='base';save();render();message('Предмет применён: '+item.name);
 });
 
 
@@ -977,6 +996,14 @@ lc49Style.textContent=
 '.lc49-grid span{font-size:11px;font-weight:800;line-height:1.3;min-height:27px;display:flex;align-items:center;justify-content:center}'+
 '.lc49-picker p{color:#cbb7dc;font-size:11px;line-height:1.5;margin:9px 2px 3px}';
 document.head.appendChild(lc49Style);
+
+const lc51Style=document.createElement('style');lc51Style.id='lc51-base-avatar';
+lc51Style.textContent=
+'.lc51-bare-controls{display:flex;flex-direction:column;gap:7px;align-items:center;justify-content:center;margin:10px auto 14px;text-align:center;padding:5px 10px}'+
+'.lc51-bare-controls button{border:1px solid #b38bff;border-radius:12px;background:linear-gradient(145deg,#6b35ad,#35204e);color:white;font-weight:800;font-size:12px;min-height:40px;max-width:320px;padding:8px 15px}'+
+'.lc51-bare-controls small{font-size:10px;color:#c8b1dd;line-height:1.45;max-width:300px}';
+document.head.appendChild(lc51Style);
+
 
 /* 50.0: larger previews, transparent distinction between ownership and visual sampling */
 const lc50Style=document.createElement('style');lc50Style.id='lc50-sets-style';
