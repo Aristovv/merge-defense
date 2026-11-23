@@ -9,7 +9,7 @@ function clean(s){
  if(!s||typeof s!=='object'||Array.isArray(s))return null;
  for(const k of ['coins','chips','vip','xp','plays','wins','best','earned'])if(!valid(s[k],0,Number.MAX_SAFE_INTEGER))return null;
  if(!valid(s.level,1,500)||s.wins>s.plays||!Array.isArray(s.buildings)||s.buildings.length!==14||s.buildings.some(x=>!valid(x,0,1000)))return null;
- const raw=JSON.stringify(s);if(raw.length>30000)return null;
+ const raw=JSON.stringify(s);if(Buffer.byteLength(raw,'utf8')>90000)return null;
  return JSON.parse(raw);
 }
 // Fail closed when a stale/default client tries to replace established progress.
