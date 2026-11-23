@@ -130,19 +130,15 @@
    const c=data.mine,canEdit=c.role==='owner'||c.role==='officer';
    html+='<div class="lc-clan-head">'+group(c)+'<div class="lc-clan-title">'+esc(c.name)+'</div><p class="lc-clan-note">Участников: '+c.memberCount+'/'+Number(c.memberCapacity||10)+' · Роль: +(c.role==='owner'?'Глава':c.role==='officer'?'Заместитель':'Участник')+'</p><p>🪙 Казна клана: <b>'+Number(c.coins).toLocaleString('ru-RU')+' / '+Number(c.treasuryCapacity).toLocaleString('ru-RU')+'</b></p><button class="btn purple" data-clan="daily">Ежедневно до +500 монет в казну</button></div>';
    html+='<div class="lc-clan-panel"><h3>👥 Вместимость клана · '+Number(c.memberCapacity||10)+'/50</h3>'+
-    '<p class="lc-clan-note">Первые 10 мест бесплатные. Дальше — 8 расширений по 5 мест за голоса VK. Покупка производится главой клана, без списания монет из казны.</p>'+
+    '<p class="lc-clan-note">Первые 10 мест бесплатные. Затем восемь расширений по 5 мест за монеты из казны. Улучшать вместимость может только глава.</p>'+
     '<div class="lc-clan-premium-list">'+
-    (data.seatPrices||[19,29,39,49,59,79,99,129]).map((price,i)=>{
-      const tier=i+1,limit=10+tier*5,owned=Number((data.seatPermits||[]).find(p=>Number(p.tier)===tier)?.balance||0),
-       completed=Number(c.seatTier||0)>=tier,next=Number(c.seatTier||0)===i;
-      return '<div class="lc-clan-premium-row"><span><strong>'+limit+' мест</strong> · +5</span><strong>'+Number(price)+' голосов VK</strong>'+
-       '<small>'+(completed?'Куплено и применено':next?(owned?'Оплачено — готово к активации':'Следующий этап'):'Откроется после предыдущих')+'</small>'+
-       (c.role==='owner'&&next?
-        (owned?'<button class="btn purple" data-clan="expand-seats">Применить пропуск</button>':
-         '<button class="btn purple" data-clan="buy-seats" data-tier="'+tier+'">Купить за '+Number(price)+' голосов</button>'):'')+'</div>';
+    (data.seatPrices||[100000,200000,350000,600000,1000000,1600000,2500000,4000000]).map((price,i)=>{
+      const tier=i+1,limit=10+tier*5,completed=Number(c.seatTier||0)>=tier,next=Number(c.seatTier||0)===i;
+      return '<div class="lc-clan-premium-row"><span><strong>'+limit+' мест</strong> · +5</span><strong>'+Number(price).toLocaleString('ru-RU')+' 🪙</strong>'+
+       '<small>'+(completed?'Улучшено':next?'Следующее расширение':'После предыдущих улучшений')+'</small>'+
+       (c.role==='owner'&&next?'<button class="btn purple" data-clan="expand-seats">Расширить за '+Number(price).toLocaleString('ru-RU')+' 🪙</button>':'')+'</div>';
     }).join('')+'</div>'+
-    '<p class="lc-clan-note">Полное расширение с 10 до 50 мест: 501 голос VK. Вместимость не зависит от штаба и стены.</p>'+
-    '<button class="btn ghost" data-clan="refresh-seats">Проверить оплату</button></div>';
+    '<p class="lc-clan-note">Все расширения до 50 мест обойдутся в 10 350 000 монет. Деньги списываются только из казны, а не с личного баланса. Штаб и стена не изменяются.</p></div>';
    html+='<div class="lc-clan-panel"><h3>Строительные пропуска 🎟️</h3><p class="lc-clan-note">В наличии: <b>'+Number(data?.permits||0)+'</b> шт. Каждый из двенадцати платных этапов стоит <b>5 голосов VK</b> (1 пропуск). За такой уровень монеты из казны не списываются.</p>'+
     '<div class="lc-clan-premium-list">'+[['headquarters','🏠 Штаб'],['wall','🛡️ Стена']].map(([kind,label])=>
       '<div class="lc-clan-premium-group"><strong>'+label+'</strong>'+
@@ -174,7 +170,7 @@
  }
  document.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-clan]');if(!btn||!root()?.contains(btn)||btn.disabled)return;
-  const action=btn.dataset.clan;if(action==='reload'||action==='refresh-permits'||action==='refresh-seats')return load();
+  const action=btn.dataset.clan;if(action==='reload'||action==='refresh-permits')return load();
   if(!launch){notice='Откройте Lucky City через VK';return paint()}
   if(action==='start-create'||action==='refresh-groups')return openCreator();
   if(action==='cancel-create'){creating=false;preview=null;userToken=null;adminGroups=[];notice='';return paint()}
@@ -184,18 +180,6 @@
   if(action==='resume-round'){
    try{window.LuckyClanEconomy?.openRound?.();notice='Открой игровое поле, заверши раунд и повтори взнос';}
    catch(e){notice=e.message||'Не удалось открыть игру'}
-   paint();return;
-  }
-  if(action==='buy-seats'){
-   const tier=Number(btn.dataset.tier);
-   if(!Number.isSafeInteger(tier)||tier<1||tier>8){notice='Некорректный этап расширения';paint();return}
-   btn.disabled=true;btn.textContent='Открываем оплату VK…';
-   try{
-    if(!window.LuckyClanEconomy?.buyClanSeats)throw Error('Оплата пока недоступна');
-    await window.LuckyClanEconomy.buyClanSeats(tier);
-    data=await api();
-    notice='После подтверждения оплаты VK появится кнопка применения пропуска. Если она ещё не появилась — нажмите «Проверить оплату».';
-   }catch(error){notice=error.message||'Не удалось открыть оплату'}
    paint();return;
   }
   if(action==='buy-permit'){
