@@ -38,7 +38,7 @@ function registerCasinoDaily(app,pool,requireAuth){
     giftBestStreak:Math.max(streak,Number(save.giftBestStreak)||0),
     coins:save.coins+coins,chips:save.chips+chips,stamp:Date.now()};
    // Apply the original +15 XP bonus, including the active +50% XP booster.
-   const xpBoost=Number(next.cc14?.boosts?.xp)||0;
+   const xpBoost=Number(next.liveCity14?.boosts?.xp)||0;
    const xpAmount=xpBoost>Date.now()?22:15;
    let level=Number(next.level)||1,experience=Number(next.xp)||0;
    if(level<500){
