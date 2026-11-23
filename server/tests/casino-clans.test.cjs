@@ -23,7 +23,7 @@ test('clan endpoints use device group selection and server-side verified creatio
  assert.equal(typeof routes.get('GET /api/casino/clans'),'function');
  assert.equal(routes.has('POST /api/casino/clans/admin-groups'),false);
  assert.equal(routes.has('GET /api/casino/clans/group'),false);
- for(const url of ['create','join','leave','daily','upgrade','role'])
+ for(const url of ['create','join','leave','daily','deposit','upgrade','role'])
   assert.equal(typeof routes.get('POST /api/casino/clans/'+url),'function');
 });
 test('every clan upgrade level has a distinct SVG scene',()=>{
