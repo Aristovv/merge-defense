@@ -4486,6 +4486,53 @@ async function casinoCloudSettleRecordedPlinko(revision){
   return result;
  }finally{clearTimeout(timer)}
 }
+async function casinoCloudRecoverLocalPendingPlinko(){
+ if(!CASINO_LAUNCH_PARAMS||busy||round||casinoCloudBusy||casinoCloudStarting||
+    state.pendingMiniRound?.kind!=='plinko')return false;
+ const snapshot=casinoStableJSON(state);
+ const localRound=state.pendingMiniRound;
+ try{
+  const remote=await casinoCloudFetch('GET');
+  const remoteRound=remote?.save?.pendingMiniRound;
+  if(remoteRound?.kind!=='plinko'||Number(localRound.stake)!==Number(remoteRound.stake)||
+     Number(localRound.prize)!==Number(remoteRound.prize))return false;
+  // The browser must still show the same pre-payout state that was stored.
+  // Anything else is a real divergence and must not be silently replaced.
+  const baseline=remote.save;
+  const tracked=['coins','chips','earned','best','wins','plays','level','resetEpoch','giftStreak','giftBestStreak'];
+  if(tracked.some(key=>Number(state[key]||0)!==Number(baseline[key]||0))||
+     (state.lastGift||'')!==(baseline.lastGift||'')||
+     (state.buildings||[]).some((v,i)=>Number(v)!==Number(baseline.buildings?.[i]))||
+     (state.character33?.ownedOutfits||[]).some(id=>!baseline.character33?.ownedOutfits?.includes(id)))
+   return false;
+  const pendingRaw=localStorage.getItem(CASINO_PENDING_SAVE_KEY);
+  const localRaw=localStorage.getItem(STORAGE);
+  const key='casino_city_plinko_pending_backup_'+Date.now();
+  const backup=JSON.stringify({vkId:casinoCloudVKId(),local:localRaw,pending:pendingRaw,remote});
+  localStorage.setItem(key,backup);
+  if(localStorage.getItem(key)!==backup)return false;
+  const settled=await casinoCloudSettleRecordedPlinko(Number(remote.revision));
+  if(casinoStableJSON(state)!==snapshot||settled.save.pendingMiniRound)return false;
+  if(!settled.settled&&!settled.alreadySettled)return false;
+  // The server, not a second local payout, calculates the recovery credit.
+  const resolved={...fresh(),...settled.save};
+  const encoded=JSON.stringify(resolved);
+  localStorage.setItem(STORAGE,encoded);
+  if(localStorage.getItem(STORAGE)!==encoded)return false;
+  if(pendingRaw&&!casinoCloudQuarantinePending('server-settled Plinko pending'))return false;
+  state=resolved;
+  casinoCloudRevision=settled.revision;
+  casinoCloudDirty=false;
+  casinoCloudLocalOnly=false;
+  casinoCloudLastIssue='';
+  try{if(localStorage.getItem(CASINO_LOCAL_ONLY_KEY)===casinoCloudVKId())localStorage.removeItem(CASINO_LOCAL_ONLY_KEY)}catch(_){}
+  render();
+  return true;
+ }catch(error){
+  console.warn('Local pending Plinko kept for recovery',error?.message||error);
+  return false;
+ }
+}
 async function casinoCloudReconcilePlinko(knownRemote=null){
  if(!CASINO_LAUNCH_PARAMS||casinoCloudBusy||busy||round||state.pendingMiniRound)return false;
  let remote;
@@ -4567,6 +4614,9 @@ async function casinoCloudReconnectIdentical(){
 async function casinoCloudStart(){
  if(!CASINO_LAUNCH_PARAMS||casinoCloudStarting||casinoCloudRevision!==null)return;
  casinoCloudLocalOnlyStart();
+ if(state.pendingMiniRound?.kind==='plinko'&&!busy){
+  if(await casinoCloudRecoverLocalPendingPlinko())return;
+ }
  if(casinoCloudLocalOnly){
   if(await casinoCloudReconcilePlinko())return;
   return casinoCloudReconnectIdentical();
@@ -5496,6 +5546,7 @@ window.LuckyClanEconomy={
  async deposit(amount){
   if(casinoDailyClaiming||casinoCloudBusy||casinoCloudStarting)throw Error('Дождись завершения сохранения');
   if(!CASINO_LAUNCH_PARAMS)throw Error('Откройте игру из ВКонтакте');
+  if(state.pendingMiniRound?.kind==='plinko'&&!busy)await casinoCloudRecoverLocalPendingPlinko();
   if(casinoCloudLocalOnly||!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1){
    if(casinoCloudLocalOnly){
     if(!await casinoCloudReconcilePlinko())await casinoCloudReconnectIdentical();
