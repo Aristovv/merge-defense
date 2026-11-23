@@ -1014,9 +1014,9 @@ document.addEventListener('click',function(e){
 document.addEventListener('click',function(e){
  const preview=e.target.closest('[data-lc39-preview]');
  if(preview){const set=lc39GetSet(preview.dataset.lc39Preview);if(!set)return;
-  lc39Preview=set;lc49SelectedOutfit=set.id;render();message('Примерка: '+set.name);return}
+  lc39Preview=set;lc45TryOn=null;lc49SelectedOutfit=set.id;render();message('Примерка: '+set.name);return}
  const reset=e.target.closest('[data-lc39-reset]');
- if(reset){lc39Preview=null;lc49SelectedOutfit='base';render();return}
+ if(reset){lc39Preview=null;lc45TryOn=null;lc49SelectedOutfit='base';render();return}
  const wear=e.target.closest('[data-lc39-wear]');
  if(wear){const set=lc39GetSet(wear.dataset.lc39Wear);if(!set)return;
   const c=lc33State(),missing=lc39Missing(set,c);
@@ -1026,7 +1026,7 @@ document.addEventListener('click',function(e){
   save();render();message('Комплект надет: '+set.name);return}
 
  const filter=e.target.closest('[data-lc35-filter]');if(filter){lc35Filter=filter.dataset.lc35Filter;render();return}
- const t=e.target.closest('[data-lc33-tab]');if(t){lc33Subtab=t.dataset.lc33Tab;if(lc33Subtab!=='sets')lc39Preview=null;render();return}
+ const t=e.target.closest('[data-lc33-tab]');if(t){lc33Subtab=t.dataset.lc33Tab;if(lc33Subtab!=='sets')lc39Preview=null;lc45TryOn=null;render();return}
  const g=e.target.closest('[data-lc33-cat]');if(g){lc33Category=g.dataset.lc33Cat;lc35Filter='all';lc33Selected=lc33State().equipped[lc33Category]||LC33_GOODS.find(x=>x.type===lc33Category&&x.payment!=='locked')?.id||'cap';lc33Subtab='wardrobe';render();return}
  const b=e.target.closest('[data-lc33-item]');if(!b)return;
  lc39Preview=null;
