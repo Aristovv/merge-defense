@@ -29,7 +29,9 @@ const ECONOMY_SQL=[
  id BIGSERIAL PRIMARY KEY, clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,
  player_id TEXT NOT NULL, action TEXT NOT NULL, coins BIGINT NOT NULL,
  request_id TEXT UNIQUE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`,
- "CREATE INDEX IF NOT EXISTS lucky_clan_transactions_clan_idx ON lucky_clan_transactions(clan_id,created_at DESC)"
+ "CREATE INDEX IF NOT EXISTS lucky_clan_transactions_clan_idx ON lucky_clan_transactions(clan_id,created_at DESC)",
+ `CREATE TABLE IF NOT EXISTS lucky_clan_permits(
+ vk_id BIGINT PRIMARY KEY, balance INTEGER NOT NULL DEFAULT 0 CHECK(balance>=0))`
 ];
 let initialized;
 const start=pool=>{
@@ -116,9 +118,15 @@ async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
  return rows;
 }
-function upgradeCost(kind,level){return Math.ceil((kind==='headquarters'?3000:2000)*Math.pow(1.13,level-1)/100)*100}
+const PREMIUM_LEVELS={headquarters:[4,7,10,15],wall:[4,7,10]};
+const premiumUpgrade=(kind,nextLevel)=>PREMIUM_LEVELS[kind]?.includes(nextLevel)||false;
+function upgradeCost(kind,level){return Math.ceil((kind==='headquarters'?3000:2000)*Math.pow(1.11,level-1)/100)*100}
 export function registerLuckyClans(app,pool,requireAuth){
- app.get('/api/casino/clans',requireAuth,wrap(async(req,res)=>{await start(pool);res.json({mine:await mine(pool,req.playerId),leaders:await listing(pool)})}));
+ app.get('/api/casino/clans',requireAuth,wrap(async(req,res)=>{
+  await start(pool);
+  const p=await pool.query('SELECT balance FROM lucky_clan_permits WHERE vk_id=$1',[String(req.playerId).replace(/^vk:/,'')]);
+  res.json({mine:await mine(pool,req.playerId),leaders:await listing(pool),permits:Number(p.rows[0]?.balance||0),premiumLevels:PREMIUM_LEVELS});
+ }));
  app.post('/api/casino/clans/create',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   const group=await verifiedAdminGroup(req.playerId,req.body?.groupId,req.body?.communityToken);
@@ -215,20 +223,36 @@ export function registerLuckyClans(app,pool,requireAuth){
   res.json({ok:true,...result});
  }));
  app.post('/api/casino/clans/upgrade',requireAuth,wrap(async(req,res)=>{
-  await start(pool);const kind=req.body?.kind;
+  await start(pool);
+  const kind=req.body?.kind;
   if(!['headquarters','wall'].includes(kind))fail('Неизвестное улучшение');
   const result=await tx(pool,async c=>{
+   // Preserve the lock order with player deposits and payment receipts.
+   const vk=String(req.playerId).replace(/^vk:/,'');
+   const saved=await c.query('SELECT vk_id FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vk]);
+   if(!saved.rowCount)fail('Облако игрока не найдено',409);
    const m=await c.query('SELECT clan_id,role FROM lucky_clan_members WHERE player_id=$1',[req.playerId]);
    if(!m.rowCount||!['owner','officer'].includes(m.rows[0].role))fail('Недостаточно прав',403);
    const row=await c.query('SELECT * FROM lucky_clans WHERE id=$1 FOR UPDATE',[m.rows[0].clan_id]);
-   const clan=row.rows[0];if(!clan)fail('Клан не найден',404);
-   const level=clan[kind];if(level>=50)fail('Максимальный уровень');
+   const clan=row.rows[0];
+   if(!clan)fail('Клан не найден',404);
+   const level=Number(clan[kind]);
+   if(level>=50)fail('Максимальный уровень');
+   if(premiumUpgrade(kind,level+1)){
+    const balance=await c.query('SELECT balance FROM lucky_clan_permits WHERE vk_id=$1 FOR UPDATE',[vk]);
+    if(!balance.rowCount||Number(balance.rows[0].balance)<1)fail('Для этого уровня требуется строительный пропуск за 5 голосов VK',402);
+    await c.query('UPDATE lucky_clan_permits SET balance=balance-1 WHERE vk_id=$1',[vk]);
+    await c.query('UPDATE lucky_clans SET '+kind+'='+kind+'+1 WHERE id=$1',[clan.id]);
+    await c.query('INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins) VALUES($1,$2,$3,0)',[clan.id,req.playerId,kind]);
+    return {level:level+1,cost:0,premium:true};
+   }
    const cost=upgradeCost(kind,level);
    if(Number(clan.coins)<cost)fail('В казне недостаточно монет');
    await c.query('UPDATE lucky_clans SET '+kind+'='+kind+'+1,coins=coins-$1 WHERE id=$2',[cost,clan.id]);
    await c.query('INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins) VALUES($1,$2,$3,$4)',[clan.id,req.playerId,kind,-cost]);
-   return {level:level+1,cost};
-  });res.json({ok:true,...result});
+   return {level:level+1,cost,premium:false};
+  });
+  res.json({ok:true,...result});
  }));
  app.post('/api/casino/clans/role',requireAuth,wrap(async(req,res)=>{
   await start(pool);const target=req.body?.playerId,role=req.body?.role;
