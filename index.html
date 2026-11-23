@@ -4357,6 +4357,15 @@ document.addEventListener('visibilitychange',()=>{
 /* Lucky City cloud save v18.2: local-first, server revision guarded. */
 let casinoCloudRevision=null,casinoCloudDirty=false,casinoCloudBusy=false,casinoCloudTimer=null,casinoCloudStarting=false;
 const CASINO_PENDING_SAVE_KEY='casino_city_pending_save_v1';
+function casinoStableJSON(value){
+ const ordered=(x)=>{
+  if(Array.isArray(x))return x.map(ordered);
+  if(x&&typeof x==='object')return Object.fromEntries(Object.keys(x).sort().map(key=>[key,ordered(x[key])]));
+  return x;
+ };
+ return JSON.stringify(ordered(value));
+}
+
 function casinoCloudVKId(){
  try{return String(new URLSearchParams(CASINO_LAUNCH_PARAMS||'').get('vk_user_id')||'')}catch(_){return ''}
 }
@@ -4407,7 +4416,7 @@ async function casinoCloudStart(){
   if(pending){
    let localRaw=null;
    try{localRaw=JSON.parse(localStorage.getItem(STORAGE)||'null')}catch(_){}
-   if(JSON.stringify(localRaw)!==JSON.stringify(pending.save)){
+   if(casinoStableJSON(localRaw)!==casinoStableJSON(pending.save)){
     casinoCloudBackup('Pending cloud write differs from local state');
     casinoCloudPreserveRemote(result,'pending state mismatch');
     casinoCloudNotice('Обнаружены несогласованные локальные изменения. Выбери восстановление вручную.');
@@ -4416,7 +4425,7 @@ async function casinoCloudStart(){
    if(Number(result.revision)!==pending.revision){
     // A successful prior PUT may have reached the server before a client crash.
     // If the payload is identical there is nothing left to upload.
-    if(result.save&&JSON.stringify(result.save)===JSON.stringify(pending.save)){
+    if(result.save&&casinoStableJSON(result.save)===casinoStableJSON(pending.save)){
      casinoCloudPendingClear();
     }else{
      casinoCloudBackup('Cloud advanced while local save was pending');
