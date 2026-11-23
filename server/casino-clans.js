@@ -45,8 +45,12 @@ async function userVkRequest(method,params,token){
  if(!response.ok)fail('VK временно недоступен',503);
  const json=await response.json();
  if(json.error){
-  if([5,7,15,27].includes(Number(json.error.error_code)))fail('Не удалось подтвердить доступ к группам VK. Разрешите доступ заново',403);
-  fail('Ошибка VK API: '+String(json.error.error_code||'unknown'),502);
+  // Preserve the method and numeric VK error code for troubleshooting.
+  // Never log or return access_token or the potentially sensitive VK error message.
+  const code=Number(json.error.error_code)||0;
+  const known={5:'Токен VK отклонён или истёк',7:'Недостаточно прав для метода VK',15:'Доступ к данным ограничен',27:'Неподходящий тип токена VK',28:'Метод недоступен сервисному ключу'};
+  const detail=known[code]||'VK отклонил запрос';
+  fail(detail+' ('+method+', код '+code+')',[5,7,15,27,28].includes(code)?403:502);
  }
  return json.response;
 }
