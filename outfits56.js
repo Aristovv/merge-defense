@@ -43,7 +43,7 @@ function lc56State(){
 }
 function lc56Img(id,name){
  const o=LC56_MAP.get(id);
- return '<img loading="lazy" alt="'+rankEsc(name)+'" src="./assets/character44/'+(o?.image||'avatar.png')+'" onerror="this.onerror=null;this.src=\'./assets/character44/avatar.png\'">';
+ return '<img loading="lazy" alt="'+rankEsc(name)+'" src="./assets/character44/'+(o?.image||'avatar.png')+'?v=56.1.16" onerror="this.onerror=null;this.src=\'./assets/character44/avatar.png\'">';
 }
 function lc56Price(o){return fmt(o.price)+(o.currency==='votes'?' голосов VK':' 🪙')}
 function lc56Tile(o,c){
