@@ -4494,13 +4494,29 @@ async function casinoCloudRecoverLocalPendingPlinko(){
  try{
   const remote=await casinoCloudFetch('GET');
   const remoteRound=remote?.save?.pendingMiniRound;
-  if(remoteRound?.kind!=='plinko'||Number(localRound.stake)!==Number(remoteRound.stake)||
-     Number(localRound.prize)!==Number(remoteRound.prize))return false;
+  const pendingOnServer=remoteRound?.kind==='plinko'&&
+   Number(localRound.stake)===Number(remoteRound.stake)&&
+   Number(localRound.prize)===Number(remoteRound.prize);
+  // After a lost response, the server may already have settled this round.
+  // Match the exact recorded payout and progress, never apply it again.
+  const alreadyCredited=!remoteRound&&remote?.save&&
+   Number(remote.save.plays)===Number(state.plays)&&
+   Number(remote.save.chips)===Number(state.chips)+Number(localRound.prize)&&
+   Number(remote.save.earned)===Number(state.earned)+Number(localRound.prize)&&
+   Number(remote.save.best)===Math.max(Number(state.best)||0,Number(localRound.prize));
+  if(!pendingOnServer&&!alreadyCredited)return false;
   // The browser must still show the same pre-payout state that was stored.
   // Anything else is a real divergence and must not be silently replaced.
   const baseline=remote.save;
   const tracked=['coins','chips','earned','best','wins','plays','level','resetEpoch','giftStreak','giftBestStreak'];
-  if(tracked.some(key=>Number(state[key]||0)!==Number(baseline[key]||0))||
+  if(tracked.some(key=>{
+   const local=Number(state[key]||0),cloud=Number(baseline[key]||0);
+   if(alreadyCredited&&key==='chips'||alreadyCredited&&key==='earned')
+    return cloud!==local+Number(localRound.prize);
+   if(alreadyCredited&&key==='best')
+    return cloud!==Math.max(local,Number(localRound.prize));
+   return cloud!==local;
+  })||
      (state.lastGift||'')!==(baseline.lastGift||'')||
      (state.buildings||[]).some((v,i)=>Number(v)!==Number(baseline.buildings?.[i]))||
      (state.character33?.ownedOutfits||[]).some(id=>!baseline.character33?.ownedOutfits?.includes(id)))
@@ -4511,7 +4527,8 @@ async function casinoCloudRecoverLocalPendingPlinko(){
   const backup=JSON.stringify({vkId:casinoCloudVKId(),local:localRaw,pending:pendingRaw,remote});
   localStorage.setItem(key,backup);
   if(localStorage.getItem(key)!==backup)return false;
-  const settled=await casinoCloudSettleRecordedPlinko(Number(remote.revision));
+  const settled=pendingOnServer?await casinoCloudSettleRecordedPlinko(Number(remote.revision)):
+   {ok:true,alreadySettled:true,save:remote.save,revision:Number(remote.revision)};
   if(casinoStableJSON(state)!==snapshot||settled.save.pendingMiniRound)return false;
   if(!settled.settled&&!settled.alreadySettled)return false;
   // The server, not a second local payout, calculates the recovery credit.
