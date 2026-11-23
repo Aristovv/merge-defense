@@ -41,12 +41,12 @@ test('every clan upgrade level has a distinct SVG scene',()=>{
 
 test('50-level coin prices and 5-vote milestones are stable',async()=>{
  const {upgradeCost,PREMIUM_LEVELS}=await import('../casino-clans.js');
- assert.deepEqual([...PREMIUM_LEVELS.headquarters],[4,7,10,15]);
- assert.deepEqual([...PREMIUM_LEVELS.wall],[4,7,10]);
- assert.equal(upgradeCost('headquarters',1),3000);
- assert.equal(upgradeCost('wall',1),2000);
- assert.equal(upgradeCost('headquarters',49),449400);
- assert.equal(upgradeCost('wall',49),299600);
+ assert.deepEqual([...PREMIUM_LEVELS.headquarters],[5,10,15]);
+ assert.deepEqual([...PREMIUM_LEVELS.wall],[5,10,15]);
+ assert.equal(upgradeCost('headquarters',1),5000);
+ assert.equal(upgradeCost('wall',1),3500);
+ assert.equal(upgradeCost('headquarters',49),1765000);
+ assert.equal(upgradeCost('wall',49),1235500);
  for(const kind of ['headquarters','wall']){
   const regular=[];
   for(let level=1;level<50;level++){
@@ -55,7 +55,7 @@ test('50-level coin prices and 5-vote milestones are stable',async()=>{
    if(level>1)assert.ok(cost>=upgradeCost(kind,level-1));
    if(!PREMIUM_LEVELS[kind].includes(level+1))regular.push(cost);
   }
-  assert.equal(regular.reduce((a,b)=>a+b,0),kind==='headquarters'?4482400:2996900);
+  assert.equal(regular.reduce((a,b)=>a+b,0),kind==='headquarters'?15260600:10682900);
  }
 });
 test('5-vote clan construction permit uses signed payment product catalog',()=>{
