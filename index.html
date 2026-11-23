@@ -4356,6 +4356,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 /* Lucky City cloud save v18.2: local-first, server revision guarded. */
 let casinoCloudRevision=null,casinoCloudDirty=false,casinoCloudBusy=false,casinoCloudTimer=null,casinoCloudStarting=false;
+let casinoCloudRetryMs=2000;
 const CASINO_PENDING_SAVE_KEY='casino_city_pending_save_v1';
 function casinoStableJSON(value){
  const ordered=(x)=>{
@@ -4520,13 +4521,14 @@ async function casinoDonationPullOwnRewards(){
  return {ok:true,boost:Number(remote.donationIncomeBoost?.percent)||0,coins:remote.coins,chips:remote.chips};
 }
 
-function casinoCloudSchedule(){if(casinoCloudRevision===null||casinoCloudBusy)return;clearTimeout(casinoCloudTimer);casinoCloudTimer=setTimeout(casinoCloudUpload,2000)}
+function casinoCloudSchedule(){if(casinoCloudRevision===null||casinoCloudBusy)return;clearTimeout(casinoCloudTimer);casinoCloudTimer=setTimeout(casinoCloudUpload,casinoCloudRetryMs)}
 async function casinoCloudUpload(){
  if(casinoCloudBusy||casinoCloudRevision===null||!casinoCloudDirty)return;
  casinoCloudBusy=true;const snapshot=JSON.stringify(state),revision=casinoCloudRevision;
  try{
   const result=await casinoCloudFetch('PUT',{revision,save:JSON.parse(snapshot)});
   casinoCloudRevision=result.revision;casinoCloudDirty=JSON.stringify(state)!==snapshot;
+  casinoCloudRetryMs=2000;
   if(casinoCloudDirty)casinoCloudPendingWrite(casinoCloudRevision);
   else casinoCloudPendingClear();
   try{localStorage.setItem('casino_city_last_cloud_revision',String(casinoCloudRevision))}catch(_){}
@@ -4537,7 +4539,14 @@ async function casinoCloudUpload(){
    // The next startup fetch can capture the remote copy; do not guess its contents.
    casinoCloudRevision=null;
    casinoCloudNotice('Облачное сохранение изменилось. Локальный прогресс сохранён отдельно; перезапусти игру для проверки.');
-  }else console.warn('Cloud upload failed',error.message);
+  }else if([400,401,403,413].includes(error.status)){
+   casinoCloudBackup('Cloud save rejected with HTTP '+error.status);
+   casinoCloudRevision=null;
+   casinoCloudNotice('Облако отклонило сохранение (HTTP '+error.status+'). Прогресс сохранён локально, запись остановлена для проверки.');
+  }else{
+   console.warn('Cloud upload failed',error.message);
+   casinoCloudRetryMs=Math.min(60000,Math.round(casinoCloudRetryMs*1.8));
+  }
  }finally{casinoCloudBusy=false;if(casinoCloudDirty&&casinoCloudRevision!==null)casinoCloudSchedule()}
 }
 function save(){
