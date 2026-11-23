@@ -195,6 +195,8 @@ export function registerLuckyClans(app,pool,requireAuth){
     return {alreadyProcessed:true,revision:Number(current.rows[0].revision),save:current.rows[0].save};
    }
    if(Number(current.rows[0].revision)!==revision)fail('Сохранение изменилось — перезайди в игру',409);
+   const daily=await c.query("SELECT COALESCE(SUM(coins),0)::bigint AS total FROM lucky_clan_transactions WHERE player_id=$1 AND action='deposit' AND (created_at AT TIME ZONE 'UTC')::date=(NOW() AT TIME ZONE 'UTC')::date",[req.playerId]);
+   if(Number(daily.rows[0].total)+amount>100000)fail('Лимит взносов: 100 000 монет в сутки');
    const save=current.rows[0].save;
    if(save.pendingMiniRound)fail('Сначала закончи мини-игру',409);
    if(!Number.isSafeInteger(save.coins)||save.coins<amount)fail('Недостаточно личных монет');
