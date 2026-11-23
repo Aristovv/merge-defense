@@ -4473,6 +4473,139 @@ function casinoCloudRetryStart(){
  casinoCloudStartRetryTimer=setTimeout(()=>casinoCloudStart(),casinoCloudStartRetryMs);
  casinoCloudStartRetryMs=Math.min(60000,Math.round(casinoCloudStartRetryMs*1.7));
 }
+async function casinoCloudSettleRecordedPlinko(revision){
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+ try{
+  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/rounds/settle-plinko',{
+   method:'POST',headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS,'Content-Type':'application/json'},
+   body:JSON.stringify({revision}),cache:'no-store',signal:controller.signal
+  });
+  const result=await response.json().catch(()=>null);
+  if(!response.ok||!result?.ok||!Number.isSafeInteger(result.revision)||!result.save)
+   throw Error('SETTLE_FAILED_'+response.status);
+  return result;
+ }finally{clearTimeout(timer)}
+}
+async function casinoCloudRecoverLocalPendingPlinko(){
+ if(!CASINO_LAUNCH_PARAMS||busy||round||casinoCloudBusy||casinoCloudStarting||
+    state.pendingMiniRound?.kind!=='plinko')return false;
+ const snapshot=casinoStableJSON(state);
+ const localRound=state.pendingMiniRound;
+ try{
+  const remote=await casinoCloudFetch('GET');
+  const remoteRound=remote?.save?.pendingMiniRound;
+  const pendingOnServer=remoteRound?.kind==='plinko'&&
+   Number(localRound.stake)===Number(remoteRound.stake)&&
+   Number(localRound.prize)===Number(remoteRound.prize);
+  // After a lost response, the server may already have settled this round.
+  // Match the exact recorded payout and progress, never apply it again.
+  const alreadyCredited=!remoteRound&&remote?.save&&
+   Number(remote.save.plays)===Number(state.plays)&&
+   Number(remote.save.chips)===Number(state.chips)+Number(localRound.prize)&&
+   Number(remote.save.earned)===Number(state.earned)+Number(localRound.prize)&&
+   Number(remote.save.best)===Math.max(Number(state.best)||0,Number(localRound.prize));
+  if(!pendingOnServer&&!alreadyCredited)return false;
+  // The browser must still show the same pre-payout state that was stored.
+  // Anything else is a real divergence and must not be silently replaced.
+  const baseline=remote.save;
+  const tracked=['coins','chips','earned','best','wins','plays','level','resetEpoch','giftStreak','giftBestStreak'];
+  if(tracked.some(key=>{
+   const local=Number(state[key]||0),cloud=Number(baseline[key]||0);
+   if(alreadyCredited&&key==='chips'||alreadyCredited&&key==='earned')
+    return cloud!==local+Number(localRound.prize);
+   if(alreadyCredited&&key==='best')
+    return cloud!==Math.max(local,Number(localRound.prize));
+   return cloud!==local;
+  })||
+     (state.lastGift||'')!==(baseline.lastGift||'')||
+     (state.buildings||[]).some((v,i)=>Number(v)!==Number(baseline.buildings?.[i]))||
+     (state.character33?.ownedOutfits||[]).some(id=>!baseline.character33?.ownedOutfits?.includes(id)))
+   return false;
+  const pendingRaw=localStorage.getItem(CASINO_PENDING_SAVE_KEY);
+  const localRaw=localStorage.getItem(STORAGE);
+  const key='casino_city_plinko_pending_backup_'+Date.now();
+  const backup=JSON.stringify({vkId:casinoCloudVKId(),local:localRaw,pending:pendingRaw,remote});
+  localStorage.setItem(key,backup);
+  if(localStorage.getItem(key)!==backup)return false;
+  const settled=pendingOnServer?await casinoCloudSettleRecordedPlinko(Number(remote.revision)):
+   {ok:true,alreadySettled:true,save:remote.save,revision:Number(remote.revision)};
+  if(casinoStableJSON(state)!==snapshot||settled.save.pendingMiniRound)return false;
+  if(!settled.settled&&!settled.alreadySettled)return false;
+  // The server, not a second local payout, calculates the recovery credit.
+  const resolved={...fresh(),...settled.save};
+  const encoded=JSON.stringify(resolved);
+  if(pendingRaw&&!casinoCloudQuarantinePending('server-settled Plinko pending'))return false;
+  localStorage.setItem(STORAGE,encoded);
+  if(localStorage.getItem(STORAGE)!==encoded)return false;
+  state=resolved;
+  casinoCloudRevision=settled.revision;
+  casinoCloudDirty=false;
+  casinoCloudLocalOnly=false;
+  casinoCloudLastIssue='';
+  try{if(localStorage.getItem(CASINO_LOCAL_ONLY_KEY)===casinoCloudVKId())localStorage.removeItem(CASINO_LOCAL_ONLY_KEY)}catch(_){}
+  render();
+  return true;
+ }catch(error){
+  console.warn('Local pending Plinko kept for recovery',error?.message||error);
+  return false;
+ }
+}
+async function casinoCloudReconcilePlinko(knownRemote=null){
+ if(!CASINO_LAUNCH_PARAMS||casinoCloudBusy||busy||round||state.pendingMiniRound)return false;
+ let remote;
+ try{
+  remote=knownRemote||await casinoCloudFetch('GET');
+  if(remote?.save?.pendingMiniRound?.kind!=='plinko')return false;
+  const pending=remote.save.pendingMiniRound,prize=Number(pending.prize);
+  if(!Number.isSafeInteger(prize)||prize<0||!Number.isSafeInteger(Number(pending.stake))||
+     Number(pending.stake)<=0)return false;
+  // Client must already have completed the round locally. No payout is
+  // granted on-device during this reconciliation.
+  if((Number(state.resetEpoch)||0)!==(Number(remote.save.resetEpoch)||0)||
+     Number(state.chips)<Number(remote.save.chips)+prize||
+     Number(state.earned)<Number(remote.save.earned)+prize||
+     Number(state.plays)<Number(remote.save.plays)||
+     Number(state.level)<Number(remote.save.level)||
+     Number(state.best)<Math.max(Number(remote.save.best)||0,prize))
+   return false;
+  const before=casinoStableJSON(state);
+  // Preserve the local profile, pending write and remote before settlement.
+  const localRaw=localStorage.getItem(STORAGE),pendingRaw=localStorage.getItem(CASINO_PENDING_SAVE_KEY);
+  const backupKey='casino_city_plinko_reconcile_backup_'+Date.now();
+  localStorage.setItem(backupKey,JSON.stringify({vkId:casinoCloudVKId(),local:localRaw,pending:pendingRaw,remote}));
+  if(!localStorage.getItem(backupKey))return false;
+  const settled=await casinoCloudSettleRecordedPlinko(Number(remote.revision));
+  if(settled.save.pendingMiniRound||casinoStableJSON(state)!==before)return false;
+  // Never overwrite server-side purchases or daily rewards with an older view.
+  const beforeEpoch=Number(settled.save.resetEpoch)||0;
+  if(beforeEpoch!==(Number(state.resetEpoch)||0)||
+     (settled.save.lastGift||'')!==(state.lastGift||'')||
+     Number(settled.save.giftBestStreak||0)>Number(state.giftBestStreak||0)||
+     Number(state.earned)<Number(settled.save.earned)||
+     Number(state.chips)<Number(settled.save.chips))return false;
+  for(const key of ['nicks','frames','titles','badges','backgrounds','effects','themes']){
+   const owned=settled.save.donationInventory?.[key]||[];
+   if(owned.some(id=>!Array.isArray(state.donationInventory?.[key])||
+      !state.donationInventory[key].includes(id)))return false;
+  }
+  if((settled.save.character33?.ownedOutfits||[]).some(id=>
+     !Array.isArray(state.character33?.ownedOutfits)||!state.character33.ownedOutfits.includes(id)))return false;
+  if(pendingRaw&&!casinoCloudQuarantinePending('settled Plinko'))return false;
+  casinoCloudRevision=settled.revision;
+  casinoCloudLocalOnly=false;
+  try{if(localStorage.getItem(CASINO_LOCAL_ONLY_KEY)===casinoCloudVKId())localStorage.removeItem(CASINO_LOCAL_ONLY_KEY)}catch(_){}
+  casinoCloudDirty=true;
+  if(!casinoCloudPendingWrite(settled.revision)){casinoCloudRevision=null;return false}
+  await casinoCloudUpload();
+  if(casinoCloudRevision===null||casinoCloudDirty)return false;
+  casinoCloudLastIssue='';
+  render();
+  return true;
+ }catch(error){
+  console.warn('Plinko recovery safely paused',error?.message||error);
+  return false;
+ }
+}
 async function casinoCloudReconnectIdentical(){
  // Safe automatic reconnection: never accept a newer/different cloud copy here.
  // Local-only progress is not silently sent to the server.
@@ -4498,7 +4631,13 @@ async function casinoCloudReconnectIdentical(){
 async function casinoCloudStart(){
  if(!CASINO_LAUNCH_PARAMS||casinoCloudStarting||casinoCloudRevision!==null)return;
  casinoCloudLocalOnlyStart();
- if(casinoCloudLocalOnly)return casinoCloudReconnectIdentical();
+ if(state.pendingMiniRound?.kind==='plinko'&&!busy){
+  if(await casinoCloudRecoverLocalPendingPlinko())return;
+ }
+ if(casinoCloudLocalOnly){
+  if(await casinoCloudReconcilePlinko())return;
+  return casinoCloudReconnectIdentical();
+ }
  casinoCloudStarting=true;
  const startingSnapshot=JSON.stringify(state);
  try{
@@ -4585,6 +4724,9 @@ async function casinoCloudStart(){
   }
   if(result.save){
    if(!Number.isSafeInteger(Number(result.revision))||Number(result.revision)<1)throw Error('INVALID_CLOUD_REVISION');
+   if(result.save.pendingMiniRound?.kind==='plinko'&&!state.pendingMiniRound){
+    if(await casinoCloudReconcilePlinko(result))return;
+   }
    if(result.save.pendingMiniRound&&['plinko','crash'].includes(result.save.pendingMiniRound.kind)&&!state.pendingMiniRound){
     casinoCloudBackup('Cloud contains an unfinished round');
     casinoCloudPreserveRemote(result,'unfinished round');
@@ -5178,7 +5320,7 @@ function plinkoPlay(){
  casinoNormalizeBet();
  const count=plinkoCount,stake=bet,total=stake*count;
  if(!Number.isSafeInteger(total)||state.chips<total)return message('Недостаточно фишек на '+count+' шариков');
- busy=true;roundBet=stake;casinoCurrentStake=total;state.chips-=total;state.plays++;recordCasinoQuestEvent('plays',1);xp(4);save();
+ busy=true;roundBet=stake;casinoCurrentStake=total;state.chips-=total;state.plays++;recordCasinoQuestEvent('plays',1);
  plinkoHits=[];plinkoLastSector=-1;
  const table=PLINKO_PAYTABLES[plinkoRisk],board=$('plinko-board'),bins=$('plinko-bins'),hits=$('plinko-hits');
  const width=board?.clientWidth||320,center=width/2,step=width/15,duration=3000,launchGap=180,pegs=board?Array.from(board.querySelectorAll('.plinko-peg')):[],binEls=bins?Array.from(bins.querySelectorAll('span')):[],boardHeight=board?.clientHeight||305,boardRect=board?.getBoundingClientRect();
@@ -5187,7 +5329,8 @@ function plinkoPlay(){
   for(let i=0;i<12;i++){index+=rand(2);path.push(index)}
   return {index,path,prize:Math.floor(stake*table[index])};
  });
- state.pendingMiniRound={kind:'plinko',stake:total,prize:results.reduce((sum,item)=>sum+item.prize,0)};save();
+ // Persist stake debit and deterministic outcome together; never save a wager without its recovery record.
+ state.pendingMiniRound={kind:'plinko',stake:total,prize:results.reduce((sum,item)=>sum+item.prize,0)};xp(4);
  let completed=0,earned=0;
  if(hits)hits.textContent='Запущено: '+count+' · Приземлилось: 0/'+count;
  results.forEach((result,n)=>{
@@ -5421,9 +5564,11 @@ window.LuckyClanEconomy={
  async deposit(amount){
   if(casinoDailyClaiming||casinoCloudBusy||casinoCloudStarting)throw Error('Дождись завершения сохранения');
   if(!CASINO_LAUNCH_PARAMS)throw Error('Откройте игру из ВКонтакте');
+  if(state.pendingMiniRound?.kind==='plinko'&&!busy)await casinoCloudRecoverLocalPendingPlinko();
   if(casinoCloudLocalOnly||!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1){
-   if(casinoCloudLocalOnly)await casinoCloudReconnectIdentical();
-   else await casinoCloudStart();
+   if(casinoCloudLocalOnly){
+    if(!await casinoCloudReconcilePlinko())await casinoCloudReconnectIdentical();
+   }else await casinoCloudStart();
    if(casinoCloudLocalOnly||!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1)
     throw Error('Локальная и облачная копии требуют сверки. Откройте «Персонаж» → «Проверить облачную копию». Перевод не выполнен.');
   }
@@ -5437,6 +5582,17 @@ window.LuckyClanEconomy={
   }
   if(casinoCloudBusy||casinoCloudDirty||casinoCloudPendingRead()||casinoCloudRevision===null)
    throw Error('Сначала заверши облачную синхронизацию');
+  // The cloud may retain an unfinished Plinko round even after the phone
+  // already finished its animation. Verify and settle before a clan transfer.
+  const remotePreflight=await casinoCloudFetch('GET');
+  if(remotePreflight?.save?.pendingMiniRound?.kind==='plinko'){
+   if(!await casinoCloudReconcilePlinko(remotePreflight))
+    throw Error('Результат Plinko требует сверки; перевод не выполнен.');
+  }else if(remotePreflight?.save?.pendingMiniRound)
+   throw Error('Незавершённый раунд требует восстановления; перевод не выполнен.');
+  if(!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1||
+      Number(remotePreflight?.revision)>casinoCloudRevision)
+   throw Error('Версия облачного сохранения изменилась; перевод не выполнен.');
   const revision=casinoCloudRevision;
   const requestId='clan-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2).padEnd(18,'0');
   let response;
