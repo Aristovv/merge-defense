@@ -50,6 +50,25 @@ function regression(previous,next){
  }
  return null;
 }
+// Settle the already recorded Plinko outcome, never draw a new result.
+// The stake was debited when pendingMiniRound was written to the cloud.
+// A row lock plus clearing the pending marker make the payout exactly-once.
+function settleRecordedPlinko(save){
+ const pending=save?.pendingMiniRound;
+ if(!pending||pending.kind!=='plinko')return null;
+ const stake=Number(pending.stake),prize=Number(pending.prize);
+ if(!valid(stake,1,1_000_000_000_000)||!valid(prize,0,1_000_000_000_000)||
+    !valid(save.chips,0,Number.MAX_SAFE_INTEGER-prize)||
+    !valid(save.earned,0,Number.MAX_SAFE_INTEGER-prize)||
+    !valid(save.best,0,Number.MAX_SAFE_INTEGER))
+  return null;
+ const next={...save,pendingMiniRound:null,chips:save.chips+prize,
+  earned:save.earned+prize,best:Math.max(save.best,prize),
+  stamp:Date.now()};
+ // No guessed wins, quest rewards, coins or repeat stake debit.
+ // Ordinary local completion may contribute additional metadata on its next save.
+ return next;
+}
 function id(req){const n=String(req.playerId||'').replace(/^vk:/,'');return /^[1-9][0-9]{0,18}$/.test(n)?n:null}
 function registerCasinoSaves(app,pool,requireAuth){
  app.get('/api/casino/save',requireAuth,async(req,res)=>{
@@ -58,6 +77,37 @@ function registerCasinoSaves(app,pool,requireAuth){
    res.set('Cache-Control','no-store');res.json(q.rows[0]?{save:q.rows[0].save,revision:Number(q.rows[0].revision)}:{save:null,revision:0});
   }catch(e){console.error('casino save read',e.code||e.message);res.status(503).json({error:'SAVE_UNAVAILABLE'})}
  });
+ app.post('/api/casino/rounds/settle-plinko',requireAuth,async(req,res)=>{
+  const vk=id(req);
+  if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
+  let client;
+  try{
+   await ensure(pool);
+   client=await pool.connect();
+   await client.query('BEGIN');
+   const q=await client.query('SELECT save,revision::text AS revision FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vk]);
+   if(!q.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'SAVE_NOT_FOUND'})}
+   const saved=q.rows[0].save;
+   const next=settleRecordedPlinko(saved);
+   if(!next){
+    await client.query('COMMIT');
+    // No payout on a repeated request. Never clear an unrecognized pending round.
+    if(saved.pendingMiniRound)return res.status(409).json({error:'ROUND_NOT_SETTLEABLE'});
+    return res.json({ok:true,alreadySettled:true,save:saved,revision:Number(q.rows[0].revision)});
+   }
+   const updated=await client.query(
+    'UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1 RETURNING revision::text AS revision',
+    [vk,JSON.stringify(next)]);
+   await client.query('COMMIT');
+   res.set('Cache-Control','no-store');
+   return res.json({ok:true,settled:true,save:next,revision:Number(updated.rows[0].revision)});
+  }catch(e){
+   if(client)await client.query('ROLLBACK').catch(()=>{});
+   console.error('plinko settlement',e.code||e.message);
+   return res.status(503).json({error:'SETTLEMENT_UNAVAILABLE'});
+  }finally{if(client)client.release()}
+ });
+
  app.put('/api/casino/save',requireAuth,async(req,res)=>{
   const save=clean(req.body?.save),revision=req.body?.revision;
   if(!save||!valid(revision,0,Number.MAX_SAFE_INTEGER))return res.status(400).json({error:'INVALID_SAVE'});
@@ -91,4 +141,4 @@ function registerCasinoSaves(app,pool,requireAuth){
   }catch(e){console.error('casino save write',e.code||e.message);res.status(503).json({error:'SAVE_UNAVAILABLE'})}
  });
 }
-module.exports={registerCasinoSaves,regression,clean};
+module.exports={registerCasinoSaves,regression,clean,settleRecordedPlinko};
