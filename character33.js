@@ -524,7 +524,8 @@ function lc39SetCards(){
   const offer=lc50SetOffer(set,c),on=lc39IsWearing(set,c),preview=lc39Preview?.id===set.id;
   const pieces=Object.values(set.equipped).map(id=>{
    const g=LC35_BY_ID.get(id),owned=c.owned.includes(id);
-   return '<li class="'+(owned?'owned':'')+'">'+lc505RealThumb(set.id,g?.type||'',true)+'<span>'+(owned?'✓ ':'◇ ')+rankEsc(g?.name||id)+
+   const preview=(g?.type==='accessory'?'<span class="lc506-accessory-icon">'+lc43ItemIcon(g)+'</span>':lc505RealThumb(set.id,g?.type||'',true));
+   return '<li class="'+(owned?'owned':'')+'">'+preview+'<span>'+(owned?'✓ ':'◇ ')+rankEsc(g?.name||id)+
    (owned?' · куплено':g?.payment==='coin'?' · '+fmt(g.price)+' 🪙':g?.payment==='premium'?' · '+g.price+' гол.':' · недоступно')+'</span></li>';
   }).join('');
   let buy='';
@@ -791,7 +792,7 @@ function lc505RealThumb(setId,type,small=false){
 function lc505ItemPreview(g){
  if(!g)return '';
  const set=LC39_SETS.find(set=>set.equipped[g.type]===g.id);
- return set?lc505RealThumb(set.id,g.type):lc43ItemIcon(g);
+ return set&&g.type!=='accessory'?lc505RealThumb(set.id,g.type):lc43ItemIcon(g);
 }
 
 function lc33Screen(){
@@ -1031,7 +1032,12 @@ lc505Style.textContent=
 '.lc505-jacket{background-position:center 29%!important}'+
 '.lc505-pants{background-position:center 68%!important}'+
 '.lc505-shoes{background-position:center 100%!important}'+
-'.lc505-accessory{background-position:center 38%!important}';
+'.lc505-hat.lc505-small{background-size:680% auto!important;background-position:center 0%!important}'+
+'.lc505-jacket.lc505-small{background-size:310% auto!important;background-position:center 28%!important}'+
+'.lc505-pants.lc505-small{background-size:300% auto!important;background-position:center 67%!important}'+
+'.lc505-shoes.lc505-small{background-size:380% auto!important;background-position:center 100%!important}'+
+'.lc506-accessory-icon{display:flex;align-items:center;justify-content:center;min-width:46px;width:46px;height:48px;border-radius:8px;background:#21152e;box-shadow:inset 0 0 0 1px #ffffff30;overflow:hidden}'+
+'.lc506-accessory-icon svg{width:44px!important;height:44px!important;min-height:0!important;max-width:44px!important;max-height:44px!important}';
 document.head.appendChild(lc505Style);
 
 
