@@ -68,11 +68,21 @@ async function serviceVK(method,params){
  }
  return json.response;
 }
-async function verifiedAdminGroup(playerId,groupId,communityToken){
+function verifiedCommunityLaunch(req,groupId){
+ // requireAuth has already verified the HMAC signature for ALL vk_* launch fields,
+ // including vk_group_id and vk_viewer_group_role.
+ const raw=req.header('X-VK-Launch-Params');
+ if(typeof raw!=='string')return false;
+ const params=new URLSearchParams(raw);
+ return Number(params.get('vk_group_id'))===Number(groupId)&&
+  ['admin','creator'].includes(String(params.get('vk_viewer_group_role')||'').toLowerCase());
+}
+async function verifiedAdminGroup(playerId,groupId,communityToken,verifiedLaunch){
  const requested=Number(groupId);
  if(!validId(requested))fail('Выберите группу из списка');
- if(typeof communityToken!=='string'||communityToken.length<15||communityToken.length>4096)
-  fail('Для создания клана подтвердите управление группой через VK',403);
+ if(!verifiedLaunch){
+  if(typeof communityToken!=='string'||communityToken.length<15||communityToken.length>4096)
+   fail('VK не подтвердил права. Подключите приложение к своей группе и откройте игру из неё, либо разрешите доступ к группе.',403);
  // VK provides this group-specific token only after an administrator approves it
  // in the native app. Verify it on a group-specific privileged read-only API.
  // Do not store or log the token or the returned confirmation code.
@@ -96,6 +106,7 @@ async function verifiedAdminGroup(playerId,groupId,communityToken){
  const confirmation=typeof result.response==='string'?result.response:result.response?.code;
  if(typeof confirmation!=='string'||confirmation.length<5)
   fail('VK не подтвердил полномочия сообщества',403);
+ }
  const raw=await serviceVK('groups.getById',{group_ids:String(requested),fields:'photo_200'});
  const group=(Array.isArray(raw)?raw:raw?.groups)?.[0];
  if(!group||Number(group.id)!==requested||!group.name||!group.photo_200||Number(group.is_closed)===2)
@@ -132,7 +143,7 @@ export function registerLuckyClans(app,pool,requireAuth){
  }));
  app.post('/api/casino/clans/create',requireAuth,wrap(async(req,res)=>{
   await start(pool);
-  const group=await verifiedAdminGroup(req.playerId,req.body?.groupId,req.body?.communityToken);
+  const group=await verifiedAdminGroup(req.playerId,req.body?.groupId,req.body?.communityToken,verifiedCommunityLaunch(req,req.body?.groupId));
   const result=await tx(pool,async c=>{
    const existing=await c.query('SELECT 1 FROM lucky_clan_members WHERE player_id=$1',[req.playerId]);
    if(existing.rowCount)fail('Вы уже состоите в клане');
