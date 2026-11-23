@@ -55,33 +55,6 @@
   return Number(params.get('vk_group_id'))===Number(groupId)&&
     ['admin','creator'].includes(String(params.get('vk_viewer_group_role')||'').toLowerCase());
  }
- async function getCommunityProof(groupId){
-  if(!window.vkBridge?.send)throw Error('Подтвердите группу внутри приложения VK');
-  const appId=Number(new URLSearchParams(launch).get('vk_app_id'));
-  if(!Number.isSafeInteger(appId)||appId<=0)throw Error('VK не предоставил ID приложения');
-  const bridge=window.vkBridge;
-  const names=['VKWebAppCommunityAccessToken','VKWebAppCommunityToken','VKWebAppGetCommunityAuthToken','VKWebAppGetCommunityToken'];
-  const supported=names.filter(name=>typeof bridge.supports!=='function'||bridge.supports(name));
-  if(!supported.length)throw Error('Текущая версия VK не поддерживает подтверждение управления группой');
-  let lastError;
-  for(const method of supported){
-   try{
-    const result=await bridge.send(method,{app_id:appId,group_id:Number(groupId),scope:'manage'});
-    const token=result?.access_token;
-    if(typeof token==='string'&&token.length>=15)return token;
-    lastError=Error('VK не выдал разрешение на управление группой');
-   }catch(e){
-    lastError=e;
-    // If VK explicitly refuses access, never skip to another authorization surface.
-    if(/denied|cancel|access|permission|отказ|отмен/i.test(String(e?.message||'')))break;
-   }
-  }
-  const errorCode=String(lastError?.error_data?.error_code??lastError?.error_data?.error_reason??lastError?.code??'');
-  const hint=/denied|access|permission|отказ/i.test(String(lastError?.message||''))?
-   'VK отказал в выдаче ключа сообщества. Нужна роль администратора или владельца, а не редактора. Возможно, сначала потребуется добавить Lucky City в приложения сообщества.':
-   'VK не выдал доступ к сообществу. Убедитесь, что вы вошли нужным аккаунтом и управляете этой группой.';
-  throw Error(hint+(errorCode?' (код VK: '+errorCode+')':''));
- }
  async function installIntoCommunity(){
   if(!window.vkBridge?.send)throw Error('Добавление доступно только внутри VK');
   const id=Number(preview?.groupId);
@@ -211,13 +184,14 @@
   if(action==='create'){
    btn.textContent='Подтверждаем управление группой…';notice='';
    const result=document.getElementById('lc-clan-create-result');
-   if(result)result.textContent='VK подтвердит права через подписанный запуск из сообщества либо запросит разрешение на управление.';
+   if(result)result.textContent='Проверяем права администратора через VK API.';
   }
   try{
    // The native VK client issues a group-scoped token only to an authorized admin.
    // This short-lived proof is submitted once via HTTPS and never stored locally.
-   const proof=action==='create'?(signedCommunityRole(preview.groupId)?null:await getCommunityProof(preview.groupId)):null;
-   const body=action==='create'?{groupId:preview?.groupId,communityToken:proof}:action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind,expectedLevel:Number(data?.mine?.[btn.dataset.kind])}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:{};
+   const proof=action==='create'?(signedCommunityRole(preview.groupId)?null:userToken):null;
+   if(action==='create'&&!signedCommunityRole(preview.groupId)&&!proof)throw Error('VK не выдал разрешение на просмотр управляемых сообществ. Обновите список групп.');
+   const body=action==='create'?{groupId:preview?.groupId,vkUserToken:proof}:action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind,expectedLevel:Number(data?.mine?.[btn.dataset.kind])}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:{};
    await api('/'+action,body);preview=null;userToken=null;creating=false;adminGroups=[];data=await api();notice='Успешно';rankings=data.leaders;paintTop();
   }catch(err){notice=err.message||'Ошибка сервера'}finally{
    paint();
