@@ -115,3 +115,30 @@ test('member roster lists lifetime contribution and keeps owner-only removal UI'
  assert.match(client,/c\.role==='owner'&&m\.role!=='owner'/);
  assert.match(client,/window\.confirm\('Исключить участника/);
 });
+
+test('clan begins with 10 seats and has eight expensive treasury-coin upgrades to 50',async()=>{
+ const {CLAN_SEAT_PRICES,CLAN_SEAT_BASE,clanSeatCapacity}=await import('../casino-clans.js');
+ assert.equal(CLAN_SEAT_BASE,10);
+ assert.deepEqual([...CLAN_SEAT_PRICES],[100000,200000,350000,600000,1000000,1600000,2500000,4000000]);
+ assert.equal(CLAN_SEAT_PRICES.reduce((a,b)=>a+b,0),10350000);
+ for(let tier=0;tier<=8;tier++)assert.equal(clanSeatCapacity(tier),10+tier*5);
+ assert.equal(clanSeatCapacity(9),50);
+});
+test('seat expansions debit only the clan treasury atomically, never VK payments or player balances',()=>{
+ const server=fs.readFileSync(path.join(__dirname,'../casino-clans.js'),'utf8');
+ const client=fs.readFileSync(path.join(__dirname,'../../clans.js'),'utf8');
+ const payments=fs.readFileSync(path.join(__dirname,'../casino-payments.cjs'),'utf8');
+ const start=server.indexOf("app.post('/api/casino/clans/expand-seats'");
+ const end=server.indexOf("app.post('/api/casino/clans/role'",start);
+ const block=server.slice(start,end);
+ assert.ok(start>0&&end>start);
+ assert.match(block,/role='owner'/);
+ assert.match(block,/FOR UPDATE/);
+ assert.match(block,/coins=coins-\$2/);
+ assert.match(block,/seat_tier=\$4 AND coins>=\$2/);
+ assert.match(block,/CLAN_SEAT_PRICES\[tier-1\]/);
+ assert.doesNotMatch(block,/casino_city_saves|lucky_clan_seat_permits/);
+ assert.doesNotMatch(payments,/clan_seats_1/);
+ assert.match(client,/data-clan="expand-seats"/);
+ assert.doesNotMatch(client,/data-clan="buy-seats"/);
+});

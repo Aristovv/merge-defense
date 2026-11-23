@@ -34,7 +34,8 @@ const ECONOMY_SQL=[
  vk_id BIGINT PRIMARY KEY, balance INTEGER NOT NULL DEFAULT 0 CHECK(balance>=0))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_daily_claims(
  vk_id BIGINT NOT NULL, claim_day DATE NOT NULL, clan_id BIGINT NOT NULL,
- PRIMARY KEY(vk_id,claim_day))`
+ PRIMARY KEY(vk_id,claim_day))`,
+ "ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS seat_tier SMALLINT NOT NULL DEFAULT 0 CHECK(seat_tier BETWEEN 0 AND 8)"
 ];
 let initialized;
 const start=pool=>{
@@ -121,7 +122,7 @@ async function tx(pool,fn){
  catch(e){await client.query('ROLLBACK').catch(()=>{});throw e}
  finally{client.release()}
 }
-const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.coins,(50000+c.headquarters*c.headquarters*20000)::bigint AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
+const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.coins,c.seat_tier AS "seatTier",(10+c.seat_tier*5)::int AS "memberCapacity",(50000+c.headquarters*c.headquarters*20000)::bigint AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
 async function mine(pool,playerId){
  const {rows}=await pool.query(`SELECT ${clanFields},m.role,m.last_claim AS "lastClaim" FROM lucky_clans c JOIN lucky_clan_members m ON m.clan_id=c.id WHERE m.player_id=$1`,[playerId]);
  if(!rows[0])return null;
@@ -142,6 +143,9 @@ async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
  return rows;
 }
+export const CLAN_SEAT_PRICES=Object.freeze([100000,200000,350000,600000,1000000,1600000,2500000,4000000]);
+export const CLAN_SEAT_BASE=10;
+export const clanSeatCapacity=tier=>CLAN_SEAT_BASE+Math.min(8,Math.max(0,Number(tier)||0))*5;
 export const PREMIUM_LEVELS=Object.freeze({headquarters:Object.freeze([5,10,15,20,30,40]),wall:Object.freeze([5,10,15,20,30,40])});
 const premiumUpgrade=(kind,nextLevel)=>PREMIUM_LEVELS[kind]?.includes(nextLevel)||false;
 export function upgradeCost(kind,level){return Math.ceil((kind==='headquarters'?5000:3500)*Math.pow(1.13,level-1)/100)*100}
@@ -149,7 +153,8 @@ export function registerLuckyClans(app,pool,requireAuth){
  app.get('/api/casino/clans',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   const p=await pool.query('SELECT balance FROM lucky_clan_permits WHERE vk_id=$1',[String(req.playerId).replace(/^vk:/,'')]);
-  res.json({mine:await mine(pool,req.playerId),leaders:await listing(pool),permits:Number(p.rows[0]?.balance||0),premiumLevels:PREMIUM_LEVELS});
+  res.json({mine:await mine(pool,req.playerId),leaders:await listing(pool),permits:Number(p.rows[0]?.balance||0),premiumLevels:PREMIUM_LEVELS,
+   seatPrices:CLAN_SEAT_PRICES,baseMemberCapacity:CLAN_SEAT_BASE});
  }));
  app.post('/api/casino/clans/create',requireAuth,wrap(async(req,res)=>{
   await start(pool);
@@ -167,10 +172,10 @@ export function registerLuckyClans(app,pool,requireAuth){
  app.post('/api/casino/clans/join',requireAuth,wrap(async(req,res)=>{
   await start(pool);if(!validId(req.body?.id))fail('Некорректный клан');
   await tx(pool,async c=>{
-   const found=await c.query('SELECT id FROM lucky_clans WHERE id=$1 FOR UPDATE',[req.body.id]);
+   const found=await c.query('SELECT id,seat_tier FROM lucky_clans WHERE id=$1 FOR UPDATE',[req.body.id]);
    if(!found.rowCount)fail('Клан не найден',404);
    const count=await c.query('SELECT COUNT(*)::int AS n FROM lucky_clan_members WHERE clan_id=$1',[req.body.id]);
-   if(count.rows[0].n>=30)fail('Клан заполнен');
+   if(count.rows[0].n>=clanSeatCapacity(found.rows[0].seat_tier))fail('В клане нет свободных мест. Глава может расширить вместимость до 50.');
    const added=await c.query("INSERT INTO lucky_clan_members(player_id,clan_id,role) VALUES($1,$2,'member') ON CONFLICT(player_id) DO NOTHING RETURNING player_id",[req.playerId,req.body.id]);
    if(!added.rowCount)fail('Вы уже состоите в клане');
   });res.json({ok:true});
@@ -302,6 +307,29 @@ export function registerLuckyClans(app,pool,requireAuth){
    if(!removed.rowCount)fail('Участник больше не состоит в клане',409);
   });
   res.json({ok:true});
+ }));
+ app.post('/api/casino/clans/expand-seats',requireAuth,wrap(async(req,res)=>{
+  await start(pool);
+  const expectedTier=req.body?.expectedTier;
+  if(!Number.isSafeInteger(expectedTier)||expectedTier<0||expectedTier>=8)
+   fail('Некорректный этап расширения',400);
+  const result=await tx(pool,async c=>{
+   const own=await c.query("SELECT clan_id FROM lucky_clan_members WHERE player_id=$1 AND role='owner'",[req.playerId]);
+   if(!own.rowCount)fail('Расширять клан может только глава',403);
+   const clan=await c.query('SELECT id,seat_tier,coins FROM lucky_clans WHERE id=$1 FOR UPDATE',[own.rows[0].clan_id]);
+   if(!clan.rowCount)fail('Клан не найден',404);
+   if(Number(clan.rows[0].seat_tier)!==expectedTier)
+    fail('Вместимость клана уже изменилась. Обновите страницу.',409);
+   const tier=expectedTier+1,cost=CLAN_SEAT_PRICES[tier-1];
+   if(Number(clan.rows[0].coins)<cost)
+    fail('Недостаточно монет в казне. Для '+clanSeatCapacity(tier)+' мест нужно '+cost.toLocaleString('ru-RU')+' монет.');
+   const changed=await c.query('UPDATE lucky_clans SET seat_tier=$1,coins=coins-$2 WHERE id=$3 AND seat_tier=$4 AND coins>=$2 RETURNING seat_tier',
+    [tier,cost,clan.rows[0].id,expectedTier]);
+   if(!changed.rowCount)fail('Казна или вместимость изменились. Обновите клан.',409);
+   await c.query("INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins) VALUES($1,$2,'seats',$3)",[clan.rows[0].id,req.playerId,-cost]);
+   return {tier,capacity:clanSeatCapacity(tier)};
+  });
+  res.json({ok:true,...result});
  }));
  app.post('/api/casino/clans/role',requireAuth,wrap(async(req,res)=>{
   await start(pool);const target=req.body?.playerId,role=req.body?.role;
