@@ -479,8 +479,9 @@ function lc38Aura(items){
 /* LUCKY CITY 39: complete themed outfits using existing wardrobe items.
    No new payments, no auto-spend, and no mutation of existing item IDs. */
 const LC39_SETS=[
- {id:'street',name:'NEON STREET',description:'Уличный стиль: кепка, бомбер и светящиеся кеды.',tier:'Редкий',accent:'#65e7ff',
-  equipped:{hat:'cap-ice',jacket:'jacket-blue',pants:'cargo-navy',shoes:'shoes-ice',accessory:'glasses-cyan'}},
+ {id:'street',name:'NEON STREET',description:'Чёрный бомбер, кепка Noir, фиолетовые карго и городские кроссовки.',tier:'Редкий',accent:'#ab76ff',
+  equipped:{hat:'cap-noir',jacket:'jacket-black',pants:'cargo-violet',shoes:'shoes-black',accessory:'chain-silver'},
+  legacyEquipped:{hat:'cap-ice',jacket:'jacket-blue',pants:'cargo-navy',shoes:'shoes-ice',accessory:'glasses-cyan'}},
  {id:'sakura',name:'SAKURA NIGHT',description:'Розовая худи, мягкие оттенки и яркие аксессуары.',tier:'Эпический',accent:'#ff91d5',
   equipped:{hat:'beanie-rose',jacket:'hoodie-rose',pants:'pants-white',shoes:'shoes-rose',accessory:'chain-silver'}},
  {id:'phantom',name:'DARK PHANTOM',description:'Тёмный силуэт, закрытая шляпа и карго Abyss.',tier:'Мифический',accent:'#a9a4ff',
@@ -491,13 +492,24 @@ const LC39_SETS=[
   equipped:{hat:'beanie-night',jacket:'hoodie-cosmos',pants:'pants-galaxy',shoes:'shoes-diamond',accessory:'phones-diamond'}}
 ];
 function lc39GetSet(id){return LC39_SETS.find(x=>x.id===id)||null;}
-function lc39Missing(set,c=lc33State()){return Object.values(set.equipped).filter(id=>!c.owned.includes(id));}
+/* Preserve players who already completed the original 48-50 NEON STREET. */
+function lc503LegacyComplete(set,c=lc33State()){
+ return !!set.legacyEquipped&&Object.values(set.legacyEquipped).every(id=>c.owned.includes(id));
+}
+function lc503Matches(gear,equipped){
+ return Object.entries(gear).every(([key,id])=>equipped[key]===id);
+}
+function lc39Missing(set,c=lc33State()){
+ return lc503LegacyComplete(set,c)?[]:Object.values(set.equipped).filter(id=>!c.owned.includes(id));
+}
 function lc39CurrentEquipped(){return lc39Preview?.equipped||lc33State().equipped;}
-function lc39IsWearing(set,c=lc33State()){return Object.entries(set.equipped).every(([key,id])=>c.equipped[key]===id);}
+function lc39IsWearing(set,c=lc33State()){
+ return lc503Matches(set.equipped,c.equipped)||(!!set.legacyEquipped&&lc503Matches(set.legacyEquipped,c.equipped));
+}
 /* 50.0: bundle offers use the existing item catalogue and owned IDs.
    Premium items are NEVER granted through a coin bundle. */
 function lc50SetOffer(set,c=lc33State()){
- const missing=Object.values(set.equipped).filter(id=>!c.owned.includes(id));
+ const missing=lc39Missing(set,c);
  const coinItems=missing.map(id=>LC35_BY_ID.get(id)).filter(g=>g&&g.payment==='coin');
  const premiumItems=missing.map(id=>LC35_BY_ID.get(id)).filter(g=>g&&g.payment==='premium');
  const unavailable=missing.filter(id=>{const g=LC35_BY_ID.get(id);return !g||!['coin','premium'].includes(g.payment)});
@@ -511,7 +523,7 @@ function lc39SetCards(){
  '<div class="lc39-set-grid">'+LC39_SETS.map(set=>{
   const offer=lc50SetOffer(set,c),on=lc39IsWearing(set,c),preview=lc39Preview?.id===set.id;
   const pieces=Object.values(set.equipped).map(id=>{
-   const g=LC35_BY_ID.get(id),owned=c.owned.includes(id);
+   const g=LC35_BY_ID.get(id),owned=c.owned.includes(id)||lc503LegacyComplete(set,c);
    return '<li class="'+(owned?'owned':'')+'">'+(owned?'✓ ':'◇ ')+rankEsc(g?.name||id)+
    (owned?' · есть':g?.payment==='coin'?' · '+fmt(g.price)+' 🪙':g?.payment==='premium'?' · '+g.price+' гол.':' · недоступно')+'</li>';
   }).join('');
@@ -524,7 +536,7 @@ function lc39SetCards(){
    '<div class="lc39-set-top"><strong>'+set.name+'</strong><small>'+set.tier+'</small></div>'+
    '<img class="lc50-set-image" src="./assets/character44/'+files[set.id]+'" alt="'+set.name+'" loading="lazy">'+
    '<p>'+set.description+'</p>'+
-   '<p class="lc39-set-status">'+(on?'✓ Надето':offer.missing.length?'Собрано '+(5-offer.missing.length)+' из 5':'✓ Полный комплект в коллекции')+'</p>'+
+   '<p class="lc39-set-status">'+(on?'✓ Надето':lc503LegacyComplete(set,c)?'✓ Доступ по оригинальному STREET':offer.missing.length?'Собрано '+(5-offer.missing.length)+' из 5':'✓ Полный комплект в коллекции')+'</p>'+
    '<ul class="lc50-piece-list">'+pieces+'</ul>'+premiumNote+
    '<div class="lc39-set-actions"><button type="button" data-lc39-preview="'+set.id+'">Примерить</button>'+
    buy+'<button type="button" data-lc39-wear="'+set.id+'" '+(offer.missing.length||on?'disabled':'')+'>'+(on?'✓ Надето':'Надеть комплект')+'</button></div>'+
@@ -813,7 +825,8 @@ document.addEventListener('click',function(e){
  if(wear){const set=lc39GetSet(wear.dataset.lc39Wear);if(!set)return;
   const c=lc33State(),missing=lc39Missing(set,c);
   if(missing.length){message('Для комплекта нужны все пять предметов');return}
-  c.equipped={...c.equipped,...set.equipped};lc39Preview=null;lc49SelectedOutfit=set.id;
+  const chosen=lc503LegacyComplete(set,c)&&!Object.values(set.equipped).every(id=>c.owned.includes(id))?set.legacyEquipped:set.equipped;
+  c.equipped={...c.equipped,...chosen};lc39Preview=null;lc49SelectedOutfit=set.id;
   save();render();message('Комплект надет: '+set.name);return}
 
  const filter=e.target.closest('[data-lc35-filter]');if(filter){lc35Filter=filter.dataset.lc35Filter;render();return}
