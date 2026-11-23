@@ -109,7 +109,8 @@ async function mine(pool,playerId){
  const {rows}=await pool.query(`SELECT ${clanFields},m.role,m.last_claim AS "lastClaim" FROM lucky_clans c JOIN lucky_clan_members m ON m.clan_id=c.id WHERE m.player_id=$1`,[playerId]);
  if(!rows[0])return null;
  const members=await pool.query('SELECT player_id AS "playerId",role,joined_at AS "joinedAt" FROM lucky_clan_members WHERE clan_id=$1 ORDER BY joined_at LIMIT 50',[rows[0].id]);
- return {...rows[0],members:members.rows};
+ const log=await pool.query('SELECT action,coins,player_id AS "playerId",created_at AS "createdAt" FROM lucky_clan_transactions WHERE clan_id=$1 ORDER BY created_at DESC,id DESC LIMIT 25',[rows[0].id]);
+ return {...rows[0],members:members.rows,history:log.rows};
 }
 async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
@@ -176,6 +177,40 @@ export function registerLuckyClans(app,pool,requireAuth){
    await c.query("INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins) VALUES($1,$2,'daily',$3)",[m.rows[0].clan_id,req.playerId,reward]);
    return {reward};
   });res.json({ok:true,...result});
+ }));
+
+ app.post('/api/casino/clans/deposit',requireAuth,wrap(async(req,res)=>{
+  await start(pool);
+  const amount=req.body?.amount,revision=req.body?.revision,key=req.body?.requestId;
+  if(!Number.isSafeInteger(amount)||amount<100||amount>1000000||amount%100!==0)fail('Взнос от 100 до 1 000 000 монет, шаг 100');
+  if(!Number.isSafeInteger(revision)||revision<1)fail('Облако не подтверждено');
+  if(typeof key!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(key))fail('Неверный идентификатор операции');
+  const result=await tx(pool,async c=>{
+   const vk=String(req.playerId).replace(/^vk:/,'');
+   const current=await c.query('SELECT save,revision::text AS revision FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vk]);
+   if(!current.rowCount)fail('Сохранение игрока не найдено',404);
+   const prev=await c.query('SELECT player_id,coins FROM lucky_clan_transactions WHERE request_id=$1',[key]);
+   if(prev.rowCount){
+    if(prev.rows[0].player_id!==req.playerId||Number(prev.rows[0].coins)!==amount)fail('Номер операции уже использован',409);
+    return {alreadyProcessed:true,revision:Number(current.rows[0].revision),save:current.rows[0].save};
+   }
+   if(Number(current.rows[0].revision)!==revision)fail('Сохранение изменилось — перезайди в игру',409);
+   const save=current.rows[0].save;
+   if(save.pendingMiniRound)fail('Сначала закончи мини-игру',409);
+   if(!Number.isSafeInteger(save.coins)||save.coins<amount)fail('Недостаточно личных монет');
+   const member=await c.query('SELECT clan_id FROM lucky_clan_members WHERE player_id=$1',[req.playerId]);
+   if(!member.rowCount)fail('Сначала вступите в клан',403);
+   const clan=await c.query('SELECT coins,headquarters FROM lucky_clans WHERE id=$1 FOR UPDATE',[member.rows[0].clan_id]);
+   if(!clan.rowCount)fail('Клан не найден',404);
+   const cap=50000+clan.rows[0].headquarters**2*20000;
+   if(Number(clan.rows[0].coins)+amount>cap)fail('В казне недостаточно свободного места');
+   const next={...save,coins:save.coins-amount,stamp:Date.now()};
+   await c.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vk,JSON.stringify(next)]);
+   await c.query('UPDATE lucky_clans SET coins=coins+$1 WHERE id=$2',[amount,member.rows[0].clan_id]);
+   await c.query("INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins,request_id) VALUES($1,$2,'deposit',$3,$4)",[member.rows[0].clan_id,req.playerId,amount,key]);
+   return {revision:revision+1,save:next};
+  });
+  res.json({ok:true,...result});
  }));
  app.post('/api/casino/clans/upgrade',requireAuth,wrap(async(req,res)=>{
   await start(pool);const kind=req.body?.kind;
