@@ -68,7 +68,7 @@ async function serviceVK(method,params){
  }
  return json.response;
 }
-function verifiedCommunityLaunch(req,groupId){
+export function verifiedCommunityLaunch(req,groupId){
  // requireAuth has already verified the HMAC signature for ALL vk_* launch fields,
  // including vk_group_id and vk_viewer_group_role.
  const raw=req.header('X-VK-Launch-Params');
