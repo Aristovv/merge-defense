@@ -24,7 +24,7 @@ const origin=process.env.CLIENT_ORIGIN||'https://merge-defense.onrender.com';
 const casinoOrigins=new Set([origin,'https://merge-defense.onrender.com','https://merge.89-23-115-251.sslip.io']);
 app.use(cors({origin:(requestOrigin,callback)=>callback(null,!requestOrigin||casinoOrigins.has(requestOrigin)),methods:['GET','POST','PUT'],allowedHeaders:['Content-Type','X-VK-Launch-Params']}));
 app.use('/api',rateLimit({windowMs:60_000,limit:80,standardHeaders:'draft-7',legacyHeaders:false}));
-const pool=process.env.DATABASE_URL?new pg.Pool({connectionString:process.env.DATABASE_URL,ssl:process.env.DB_SSL==='disable'?false:{rejectUnauthorized:true},max:5,connectionTimeoutMillis:4000}):null;
+const pool=process.env.DATABASE_URL?new pg.Pool({connectionString:process.env.DATABASE_URL,ssl:process.env.DB_SSL==='disable'?false:{rejectUnauthorized:true},max:5,connectionTimeoutMillis:10000,idleTimeoutMillis:30000,keepAlive:true}):null;
 const secret=process.env.VK_APP_SECRET||'';
 
 function vkIdentity(raw) {
@@ -57,6 +57,17 @@ function requireAuth(req,res,next) {
 }
 app.post('/api/vk/payments/callback',vkPaymentsCallback(pool));
 app.get('/health',(_req,res)=>res.json({ok:true,service:'merge-defense-api',databaseConfigured:!!pool,vkAuthConfigured:!!secret}));
+app.get('/health/db',async(_req,res)=>{
+ res.set('Cache-Control','no-store');
+ if(!pool)return res.status(503).json({ok:false,database:'unconfigured'});
+ try{
+  await pool.query({text:'SELECT 1',query_timeout:5000});
+  return res.json({ok:true,database:'connected'});
+ }catch(error){
+  console.error('Casino database readiness failed:',error.code||error.message);
+  return res.status(503).json({ok:false,database:'unavailable'});
+ }
+});
 app.get('/api/me',requireAuth,async(req,res)=>{
  if(!pool)return res.status(503).json({error:'DATABASE_NOT_CONFIGURED'});
  try {
