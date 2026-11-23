@@ -128,7 +128,7 @@
   if(!data)html+='<div class="lc-clan-panel">'+(loading?'Загрузка кланов…':'Не удалось загрузить кланы. <button class="btn ghost" data-clan="reload">Повторить</button>')+'</div>';
   else if(data.mine){
    const c=data.mine,canEdit=c.role==='owner'||c.role==='officer';
-   html+='<div class="lc-clan-head">'+group(c)+'<div class="lc-clan-title">'+esc(c.name)+'</div><p class="lc-clan-note">Участников: '+c.memberCount+'/'+Number(c.memberCapacity||10)+' · Роль: +(c.role==='owner'?'Глава':c.role==='officer'?'Заместитель':'Участник')+'</p><p>🪙 Казна клана: <b>'+Number(c.coins).toLocaleString('ru-RU')+' / '+Number(c.treasuryCapacity).toLocaleString('ru-RU')+'</b></p><button class="btn purple" data-clan="daily">Ежедневно до +500 монет в казну</button></div>';
+   html+='<div class="lc-clan-head">'+group(c)+'<div class="lc-clan-title">'+esc(c.name)+'</div><p class="lc-clan-note">Участников: '+c.memberCount+'/'+Number(c.memberCapacity||10)+' · Роль: '+(c.role==='owner'?'Глава':c.role==='officer'?'Заместитель':'Участник')+'</p><p>🪙 Казна клана: <b>'+Number(c.coins).toLocaleString('ru-RU')+' / '+Number(c.treasuryCapacity).toLocaleString('ru-RU')+'</b></p><button class="btn purple" data-clan="daily">Ежедневно до +500 монет в казну</button></div>';
    html+='<div class="lc-clan-panel"><h3>👥 Вместимость клана · '+Number(c.memberCapacity||10)+'/50</h3>'+
     '<p class="lc-clan-note">Первые 10 мест бесплатные. Затем восемь расширений по 5 мест за монеты из казны. Улучшать вместимость может только глава.</p>'+
     '<div class="lc-clan-premium-list">'+
