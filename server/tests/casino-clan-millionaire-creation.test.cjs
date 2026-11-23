@@ -52,3 +52,18 @@ test('clan UI first uses Millionaire token path and falls back to VK community p
  assert.match(server,/await verifyUserAdminGroup\(req\.playerId/);
  assert.doesNotMatch(server,/claim===true/);
 });
+
+test('VK group signed launches skip unnecessary native dialogs and provide recovery link',()=>{
+ const client=fs.readFileSync(path.join(__dirname,'../../clans.js'),'utf8');
+ const start=client.indexOf("if(action==='create'){\n    const groupId=Number(preview.groupId);");
+ const end=client.indexOf("}else{\n    const body=action==='join'",start);
+ assert.ok(start>0&&end>start);
+ const flow=client.slice(start,end);
+ assert.match(flow,/if\(signedCommunityRole\(groupId\)\)/);
+ assert.match(flow,/await api\('\/create',\{groupId\}\)/);
+ assert.match(flow,/await api\('\/create',\{groupId,userVKToken:userToken\}\)/);
+ assert.match(flow,/await getCommunityProof\(groupId\)/);
+ assert.doesNotMatch(flow,/await installIntoCommunity\(\)/);
+ assert.match(client,/Открыть сообщество VK/);
+ assert.match(client,/rel="noopener noreferrer"/);
+});

@@ -190,7 +190,7 @@
     (c.role==='owner'&&m.role!=='owner'?'<div style="display:flex;flex-wrap:wrap;gap:5px"><button class="btn ghost" data-clan="role" data-user="'+esc(m.playerId)+'" data-role="'+(m.role==='officer'?'member':'officer')+'">'+(m.role==='officer'?'Снять роль':'В заместители')+'</button><button class="btn ghost" data-clan="kick" data-user="'+esc(m.playerId)+'">Исключить</button></div>':'')+'</div>').join('')+'</div>';
    html+='<div class="lc-clan-panel"><button class="btn ghost" data-clan="leave">Покинуть клан</button><p class="lc-clan-note">Если глава уходит, управление автоматически передаётся другому участнику. Пустой клан закрывается.</p></div>';
   }else{
-   html+='<div class="lc-clan-panel"><h3>Создать свой клан</h3><p class="lc-clan-note">Бесплатно. Название и аватарка автоматически берутся из сообщества VK, где вы являетесь администратором.</p>'+(creating?'<h3>Выберите свою группу VK</h3><p class="lc-clan-note">Показываются только сообщества, где у вас есть права администратора.</p>'+(adminGroups.length?adminGroups.map(g=>'<button class="lc-clan-select '+(preview?.groupId===g.groupId?'is-selected':'')+'" data-clan="select-group" data-id="'+g.groupId+'"><img class="lc-clan-img" src="'+esc(g.avatar)+'" alt=""><span><strong>'+esc(g.name)+'</strong><small>Сообщество VK · '+g.groupId+'</small></span></button>').join(''):'<p class="lc-clan-note">Нет доступных групп. Проверьте права администратора и разрешение VK.</p>')+(preview?'<div class="lc-clan-group" style="margin:12px 0">'+group(preview)+'</div><div id="lc-clan-create-result" role="status" aria-live="polite">'+(notice?'<p class="lc-clan-error">'+esc(notice)+'</p>':'')+'</div><button class="btn purple" data-clan="create">Создать клан бесплатно</button><div class="lc-clan-note" style="margin-top:12px">Если VK отказывает в разрешении: подключите Lucky City к группе, затем запустите игру непосредственно из этой группы. Подписанный VK запуск подтвердит роль администратора без выдачи широкого ключа управления.</div><button class="btn ghost" data-clan="install-community">Подключить Lucky City к группе VK</button>':'')+'<div style="margin-top:12px"><button class="btn ghost" data-clan="refresh-groups">Обновить список</button> <button class="btn ghost" data-clan="cancel-create">Назад</button></div>':'<button class="btn purple" data-clan="start-create">Создать клан</button>')+'</div>';
+   html+='<div class="lc-clan-panel"><h3>Создать свой клан</h3><p class="lc-clan-note">Бесплатно. Название и аватарка автоматически берутся из сообщества VK, где вы являетесь администратором.</p>'+(creating?'<h3>Выберите свою группу VK</h3><p class="lc-clan-note">Показываются только сообщества, где у вас есть права администратора.</p>'+(adminGroups.length?adminGroups.map(g=>'<button class="lc-clan-select '+(preview?.groupId===g.groupId?'is-selected':'')+'" data-clan="select-group" data-id="'+g.groupId+'"><img class="lc-clan-img" src="'+esc(g.avatar)+'" alt=""><span><strong>'+esc(g.name)+'</strong><small>Сообщество VK · '+g.groupId+'</small></span></button>').join(''):'<p class="lc-clan-note">Нет доступных групп. Проверьте права администратора и разрешение VK.</p>')+(preview?'<div class="lc-clan-group" style="margin:12px 0">'+group(preview)+'</div><div id="lc-clan-create-result" role="status" aria-live="polite">'+(notice?'<p class="lc-clan-error">'+esc(notice)+'</p>':'')+'</div><button class="btn purple" data-clan="create">Создать клан бесплатно</button><div class="lc-clan-note" style="margin-top:12px">Если VK отказывает в разрешении: подключите Lucky City к группе, затем запустите игру непосредственно из этой группы. Подписанный VK запуск подтвердит роль администратора без выдачи широкого ключа управления.</div><a class="btn ghost" href="https://vk.com/club'+Number(preview.groupId)+'" target="_blank" rel="noopener noreferrer" style="display:inline-block;text-decoration:none;margin:8px 4px 0 0">Открыть сообщество VK</a> <button class="btn ghost" data-clan="install-community">Подключить Lucky City к группе VK</button>':'')+'<div style="margin-top:12px"><button class="btn ghost" data-clan="refresh-groups">Обновить список</button> <button class="btn ghost" data-clan="cancel-create">Назад</button></div>':'<button class="btn purple" data-clan="start-create">Создать клан</button>')+'</div>';
    html+='<div class="sectionhead"><h2>Присоединиться к клану</h2></div>'+(data.leaders||[]).slice(0,20).map(c=>'<div class="lc-clan-rank"><img src="'+esc(c.avatar)+'" alt=""><div><strong>'+esc(c.name)+'</strong><small>'+c.memberCount+'/'+Number(c.memberCapacity||10)+' участников · Штаб '+c.headquarters+'</small></div><button class="btn ghost" data-clan="join" data-id="'+c.id+'">Вступить</button></div>').join('') ;
   }
   html+='</div>';
@@ -377,36 +377,30 @@
    if(result)result.textContent='Проверяем права администратора через VK API.';
   }
   try{
-   // Match the working Millionaire path: verify the group using the same
-   // VK user token that populated the administrator's community list.
-   // Some user tokens are IP-bound, so fall back to a group-scoped token.
+   // Signed VK group launch is independently verified by requireAuth.
+   // Avoid native permission prompts when this proof is already available.
    if(action==='create'){
     const groupId=Number(preview.groupId);
-    let useCommunityProof=!userToken;
-    if(userToken){
+    if(signedCommunityRole(groupId)){
+     await api('/create',{groupId});
+    }else{
+     // Millionaire's first path: the admin group token already obtained
+     // on the same device, verified by the server against the VK account.
+     if(!userToken)throw Error('Для создания клана откройте Lucky City из меню выбранной группы VK.');
      try{
       await api('/create',{groupId,userVKToken:userToken});
      }catch(error){
       if(error.message!=='VK_USER_TOKEN_NEEDS_COMMUNITY')throw error;
-      useCommunityProof=true;
-     }
-    }
-    if(useCommunityProof){
-     let proof=null;
-     try{proof=await getCommunityProof(groupId)}
-     catch(error){
-      if(!signedCommunityRole(groupId)){
-       // Millionaire's second path: connect the mini app to the selected
-       // VK community, then request its group-scoped token again.
-       try{
-        await installIntoCommunity();
-        proof=await getCommunityProof(groupId);
-       }catch(installError){
-        throw Error('VK не подтвердил управление сообществом. Добавьте Lucky City в выбранную группу или откройте игру из её меню. '+(installError.message||error.message||''));
-       }
+      // VK often binds user access tokens to the requesting IP. Request one
+      // group token, but NEVER open AddToCommunity automatically: on mobile
+      // that may fail with the generic "Ошибка загрузки" overlay.
+      let proof;
+      try{proof=await getCommunityProof(groupId)}
+      catch(bridgeError){
+       throw Error('VK не выдал разрешение на группу «'+preview.name+'». Откройте Lucky City из меню этого сообщества либо подключите игру к группе вручную.');
       }
+      await api('/create',{groupId,communityToken:proof});
      }
-     await api('/create',{groupId,communityToken:proof});
     }
    }else{
     const body=action==='join'?{id:Number(btn.dataset.id)}:action==='upgrade'?{kind:btn.dataset.kind,expectedLevel:Number(data?.mine?.[btn.dataset.kind])}:action==='role'?{playerId:btn.dataset.user,role:btn.dataset.role}:action==='kick'?{playerId:btn.dataset.user}:action==='expand-seats'?{expectedTier:Number(data?.mine?.seatTier||0)}:{};
