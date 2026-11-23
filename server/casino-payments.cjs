@@ -19,6 +19,13 @@ for(const [id,type,name,price] of wardrobeProducts){goods['character_'+id]={id:+
 // A single verified purchase grants one server-owned clan construction permit.
  // It is not credited into an editable browser cloud snapshot.
 goods.clan_build_permit={id:++n,price:5,name:'Строительный пропуск для клана',clanPermit:1};
+// Seat expansion belongs to the purchasing leader; it is never placed into
+// client-controlled saves, and each tier's voucher is distinct.
+const clanSeatPrices=[19,29,39,49,59,79,99,129];
+clanSeatPrices.forEach((price,i)=>{
+ const tier=i+1;
+ goods['clan_seats_'+tier]={id:++n,price,name:'Клан: '+(10+tier*5)+' мест',clanSeatTier:tier};
+});
 const byId=new Map(Object.entries(goods).map(([key,item])=>[String(item.id),{key,...item}]));
 const error=(code,msg)=>({error:{error_code:code,error_msg:msg,critical:true}});
 const ready=pool=>!!pool&&process.env.LUCKY_VK_PAYMENTS_ENABLED==='1'&&!!process.env.VK_PAYMENTS_SECRET;
@@ -91,12 +98,17 @@ function registerCasinoPayments(app,pool){
    const q=await client.query('SELECT save FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vkId]);
    if(!q.rowCount){await client.query('ROLLBACK');return res.json(error(22,'Open game before purchase'))}
    const save=q.rows[0].save;
-   if(!item.clanPermit)apply(save,item);
-   else await client.query(`CREATE TABLE IF NOT EXISTS lucky_clan_permits(
+   if(!item.clanPermit&&!item.clanSeatTier)apply(save,item);
+   else if(item.clanPermit)await client.query(`CREATE TABLE IF NOT EXISTS lucky_clan_permits(
       vk_id BIGINT PRIMARY KEY, balance INTEGER NOT NULL DEFAULT 0 CHECK(balance>=0))`);
+   else await client.query(`CREATE TABLE IF NOT EXISTS lucky_clan_seat_permits(
+      vk_id BIGINT NOT NULL,tier SMALLINT NOT NULL CHECK(tier BETWEEN 1 AND 8),
+      balance INTEGER NOT NULL DEFAULT 0 CHECK(balance>=0),PRIMARY KEY(vk_id,tier))`);
    const receipt=await client.query('INSERT INTO public.casino_city_paid_orders(provider,order_id,target_vk_id,item_key) VALUES($1,$2,$3,$4) RETURNING app_order_id::text AS id',[provider,order,vkId,item.key]);
    if(item.clanPermit){
     await client.query('INSERT INTO lucky_clan_permits(vk_id,balance) VALUES($1,1) ON CONFLICT(vk_id) DO UPDATE SET balance=lucky_clan_permits.balance+1',[vkId]);
+   }else if(item.clanSeatTier){
+    await client.query('INSERT INTO lucky_clan_seat_permits(vk_id,tier,balance) VALUES($1,$2,1) ON CONFLICT(vk_id,tier) DO UPDATE SET balance=lucky_clan_seat_permits.balance+1',[vkId,item.clanSeatTier]);
    }else{
     await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vkId,JSON.stringify(save)]);
    }
