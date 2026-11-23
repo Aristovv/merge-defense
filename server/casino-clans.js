@@ -33,26 +33,6 @@ function err(res,e){
 }
 const fail=(message,status=400)=>{let e=new Error(message);e.status=status;throw e};
 const validId=x=>Number.isSafeInteger(Number(x))&&Number(x)>0;
-const safeGroup=x=>{
- if(typeof x!=='string'||x.length>200)fail('Укажите ссылку на сообщество VK');
- const raw=x.trim();
- const match=raw.match(/^(?:https?:\/\/(?:m\.)?vk\.(?:com|ru)\/)?(club[1-9]\d*|public[1-9]\d*|[a-zA-Z][a-zA-Z0-9_.]{2,})\/?$/);
- if(!match)fail('Укажите vk.com/название или vk.com/club123');
- return match[1];
-};
-async function resolveGroup(value){
- const code=safeGroup(value);
- const token=process.env.VK_GROUP_SERVICE_TOKEN;
- if(!token)fail('Проверка сообществ VK пока не настроена',503);
- const q=new URLSearchParams({group_ids:code,fields:'photo_200',access_token:token,v:'5.199'});
- const response=await fetch('https://api.vk.com/method/groups.getById',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:q,signal:AbortSignal.timeout(5000)});
- if(!response.ok)fail('VK временно недоступен',503);
- const data=await response.json();
- const group=(Array.isArray(data.response)?data.response:data.response?.groups)?.[0];
- if(!group||!validId(group.id)||!group.name||!group.photo_200||group.is_closed===2)fail('Публичное сообщество не найдено');
- return {groupId:Number(group.id),name:String(group.name).slice(0,100),avatar:String(group.photo_200)};
-}
-
 /* The group list is obtained using the player's own VK OAuth token.
  * Never accept a group ID from the browser without re-verifying administrator rights.
  * Do not store user tokens, return them, or put them in URLs. */
@@ -106,7 +86,6 @@ async function listing(pool){
 function upgradeCost(level){return Math.ceil(100*Math.pow(1.12,level-1))}
 export function registerLuckyClans(app,pool,requireAuth){
  app.get('/api/casino/clans',requireAuth,wrap(async(req,res)=>{await start(pool);res.json({mine:await mine(pool,req.playerId),leaders:await listing(pool)})}));
- app.get('/api/casino/clans/group',requireAuth,wrap(async(req,res)=>{const group=await resolveGroup(req.query.url);res.json({group})}));
  app.post('/api/casino/clans/admin-groups',requireAuth,wrap(async(req,res)=>{
   const groups=await adminGroups(req.playerId,req.body?.userToken);
   res.json({groups});
