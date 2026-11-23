@@ -152,7 +152,7 @@
    const amount=Number(document.getElementById('lc-deposit-amount')?.value);
    if(!Number.isSafeInteger(amount)||amount<100||amount>1000000||amount%100!==0){notice='Укажи сумму от 100 до 1 000 000 монет, кратную 100';return paint()}
    btn.disabled=true;btn.textContent='Переводим монеты…';
-   try{await window.LuckyClanEconomy?.deposit(amount);data=await api();notice='Монеты зачислены в казну'}catch(e){notice=e.message||'Перевод не подтверждён'}
+   try{if(!window.LuckyClanEconomy?.deposit)throw Error('Переводы ещё не подключены. Перезагрузи игру');await window.LuckyClanEconomy.deposit(amount);data=await api();notice='Монеты зачислены в казну'}catch(e){notice=e.message||'Перевод не подтверждён'}
    paint();return;
   }
   if(action==='create'&&!preview){notice='Сначала выберите группу VK';paint();return}
