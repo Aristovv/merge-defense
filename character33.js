@@ -494,26 +494,46 @@ function lc39GetSet(id){return LC39_SETS.find(x=>x.id===id)||null;}
 function lc39Missing(set,c=lc33State()){return Object.values(set.equipped).filter(id=>!c.owned.includes(id));}
 function lc39CurrentEquipped(){return lc39Preview?.equipped||lc33State().equipped;}
 function lc39IsWearing(set,c=lc33State()){return Object.entries(set.equipped).every(([key,id])=>c.equipped[key]===id);}
+/* 50.0: bundle offers use the existing item catalogue and owned IDs.
+   Premium items are NEVER granted through a coin bundle. */
+function lc50SetOffer(set,c=lc33State()){
+ const missing=Object.values(set.equipped).filter(id=>!c.owned.includes(id));
+ const coinItems=missing.map(id=>LC35_BY_ID.get(id)).filter(g=>g&&g.payment==='coin');
+ const premiumItems=missing.map(id=>LC35_BY_ID.get(id)).filter(g=>g&&g.payment==='premium');
+ const unavailable=missing.filter(id=>{const g=LC35_BY_ID.get(id);return !g||!['coin','premium'].includes(g.payment)});
+ return {missing,coinItems,premiumItems,unavailable,total:coinItems.reduce((n,g)=>n+g.price,0)};
+}
 function lc39SetCards(){
  const c=lc33State();
- return '<section class="lc39-sets"><h2>✦ Коллекционные образы</h2><p class="subline">Примеряй готовые комплекты из пяти вещей. Купленные предметы сохраняются; просмотр не списывает монеты.</p>'+
+ const files={street:'outfit-street.png',sakura:'outfit-sakura.png',phantom:'outfit-phantom.png',emperor:'outfit-emperor.png',galaxy:'outfit-galaxy.png'};
+ return '<section class="lc39-sets lc50-bundles"><h2>✦ Коллекционные комплекты</h2>'+
+ '<p class="subline">Каждый комплект содержит пять определённых вещей. Покупаются только отсутствующие предметы; уже приобретённые не оплачиваются повторно.</p>'+
  '<div class="lc39-set-grid">'+LC39_SETS.map(set=>{
-  const missing=lc39Missing(set,c),isOn=lc39IsWearing(set,c),preview=lc39Preview?.id===set.id;
-  const price=missing.reduce((sum,id)=>{const g=LC35_BY_ID.get(id);return sum+(g?.payment==='coin'?g.price:0)},0);
-  const premium=missing.some(id=>LC35_BY_ID.get(id)?.payment==='premium');
-  const chips=Object.values(set.equipped).map(id=>{
-    const g=LC35_BY_ID.get(id);return '<span title="'+rankEsc(g?.name||id)+'">'+lc34SvgItem(g)+'</span>';
+  const offer=lc50SetOffer(set,c),on=lc39IsWearing(set,c),preview=lc39Preview?.id===set.id;
+  const pieces=Object.values(set.equipped).map(id=>{
+   const g=LC35_BY_ID.get(id),owned=c.owned.includes(id);
+   return '<li class="'+(owned?'owned':'')+'">'+(owned?'✓ ':'◇ ')+rankEsc(g?.name||id)+
+   (owned?' · есть':g?.payment==='coin'?' · '+fmt(g.price)+' 🪙':g?.payment==='premium'?' · '+g.price+' гол.':' · недоступно')+'</li>';
   }).join('');
-  return '<article class="lc39-set-card'+(preview?' preview':'')+(isOn?' worn':'')+'" style="--set-glow:'+set.accent+'"><div class="lc39-set-top"><strong>'+set.name+'</strong><small>'+set.tier+'</small></div>'+
-   '<div class="lc40-set-visual">'+lc40Emblem(set)+'<div class="lc39-mini-items">'+chips+'</div></div><p>'+set.description+'</p>'+
-   '<p class="lc39-set-status">'+(isOn?'✓ Сейчас надет':missing.length?'Есть '+(5-missing.length)+' из 5 предметов':'✓ Все 5 предметов в коллекции')+'</p>'+
-   (missing.length?'<p class="lc39-set-price">Не хватает: '+missing.map(id=>rankEsc(LC35_BY_ID.get(id)?.name||id)).join(', ')+(price?' · '+fmt(price)+' 🪙':'')+(premium?' · есть донатные вещи':'')+'</p>':'')+
-   '<div class="lc39-set-actions"><button type="button" data-lc39-preview="'+set.id+'">'+(preview?'В примерочной':'Примерить')+'</button>'+
-   '<button type="button" data-lc39-wear="'+set.id+'" '+(missing.length||isOn?'disabled':'')+'>'+(isOn?'✓ Надето':'Надеть комплект')+'</button></div></article>';
+  let buy='';
+  if(offer.coinItems.length&&!offer.unavailable.length){
+   buy='<button type="button" data-lc50-buy="'+set.id+'">Купить '+offer.coinItems.length+' вещ. · '+fmt(offer.total)+' 🪙</button>';
+  }
+  const premiumNote=offer.premiumItems.length?'<p class="lc50-premium-note">💎 Донатные вещи приобретаются отдельно в гардеробе через VK: '+offer.premiumItems.map(g=>rankEsc(g.name)+' ('+g.price+' гол.)').join(', ')+'</p>':'';
+  return '<article class="lc39-set-card lc50-set-card'+(preview?' preview':'')+(on?' worn':'')+'" style="--set-glow:'+set.accent+'">'+
+   '<div class="lc39-set-top"><strong>'+set.name+'</strong><small>'+set.tier+'</small></div>'+
+   '<img class="lc50-set-image" src="./assets/character44/'+files[set.id]+'" alt="'+set.name+'" loading="lazy">'+
+   '<p>'+set.description+'</p>'+
+   '<p class="lc39-set-status">'+(on?'✓ Надето':offer.missing.length?'Собрано '+(5-offer.missing.length)+' из 5':'✓ Полный комплект в коллекции')+'</p>'+
+   '<ul class="lc50-piece-list">'+pieces+'</ul>'+premiumNote+
+   '<div class="lc39-set-actions"><button type="button" data-lc39-preview="'+set.id+'">Примерить</button>'+
+   buy+'<button type="button" data-lc39-wear="'+set.id+'" '+(offer.missing.length||on?'disabled':'')+'>'+(on?'✓ Надето':'Надеть комплект')+'</button></div>'+
+   '</article>';
  }).join('')+'</div>'+
  (lc39Preview?'<button type="button" class="lc39-reset" data-lc39-reset="1">Вернуться к своему персонажу</button>':'')+
  '</section>';
 }
+
 /* Lucky City 40: hand-crafted, set-specific couture elements.
    Render exclusively as inline SVG to avoid Safari's external SVG <use> regressions. */
 function lc40FullSet(equipped){
@@ -769,6 +789,20 @@ function lc33Screen(){
  '<div class="lc33-tabs">'+[['wardrobe','♧ Гардероб'],['sets','✦ Образы'],['collection','♛ Коллекция'],['bonuses','✧ Бонусы']].map(([id,name])=>'<button class="'+(lc33Subtab===id?'active':'')+'" data-lc33-tab="'+id+'">'+name+'</button>').join('')+'</div>'+previewStage+view+'</main>';
 }
 document.addEventListener('click',function(e){
+ const button=e.target.closest('[data-lc50-buy]');
+ if(!button)return;
+ const set=lc39GetSet(button.dataset.lc50Buy);
+ if(!set)return;
+ const c=lc33State(),offer=lc50SetOffer(set,c);
+ if(offer.unavailable.length||!offer.coinItems.length)return;
+ if(!Number.isFinite(state.coins)||state.coins<offer.total){message('Недостаточно монет для комплекта');return}
+ // Atomic in the existing local game-save flow: charge the exact missing coin items once.
+ state.coins-=offer.total;
+ for(const g of offer.coinItems)if(!c.owned.includes(g.id))c.owned.push(g.id);
+ save();render();
+ message('Куплено вещей: '+offer.coinItems.length+' — '+set.name+(offer.premiumItems.length?'. Донатную вещь купи отдельно.':''));
+});
+document.addEventListener('click',function(e){
  const preview=e.target.closest('[data-lc39-preview]');
  if(preview){const set=lc39GetSet(preview.dataset.lc39Preview);if(!set)return;
   lc39Preview=set;render();message('Примерка: '+set.name);return}
@@ -778,7 +812,7 @@ document.addEventListener('click',function(e){
  if(wear){const set=lc39GetSet(wear.dataset.lc39Wear);if(!set)return;
   const c=lc33State(),missing=lc39Missing(set,c);
   if(missing.length){message('Для комплекта нужны все пять предметов');return}
-  c.equipped={...c.equipped,...set.equipped};lc39Preview=null;
+  c.equipped={...c.equipped,...set.equipped};lc39Preview=null;lc49SelectedOutfit=set.id;
   save();render();message('Комплект надет: '+set.name);return}
 
  const filter=e.target.closest('[data-lc35-filter]');if(filter){lc35Filter=filter.dataset.lc35Filter;render();return}
@@ -904,9 +938,9 @@ lc33Screen=function(){
   '<button type="button" data-lc49-outfit="'+id+'" class="'+(lc49SelectedOutfit===id?'active':'')+'" aria-pressed="'+(lc49SelectedOutfit===id?'true':'false')+'">'+
   '<img alt="" loading="lazy" src="./assets/character44/'+file+'" onerror="this.style.visibility=\'hidden\'">'+
   '<span>'+title+'</span></button>').join('');
- const choose='<section class="lc49-picker"><div class="lc49-title">Реалистичные образы · 49.0</div>'+
+ const choose='<section class="lc49-picker"><div class="lc49-title">Реалистичные образы · 50.0</div>'+
  '<div class="lc49-grid">'+buttons+'</div>'+
- '<p>Предпросмотр внешности — бесплатно. Выбор картинки не покупает и не надевает вещи. Коллекция и купленные предметы сохраняются.</p></section>';
+ '<p>Это бесплатный предпросмотр. Чтобы получить и надеть пять вещей, открой вкладку «Образы» ниже.</p></section>';
  return html.replace('<div class="lc33-tabs">',choose+'<div class="lc33-tabs">');
 };
 document.addEventListener('click',function(e){
@@ -924,10 +958,29 @@ lc49Style.textContent=
 '.lc49-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}'+
 '.lc49-grid button{min-width:0;border-radius:12px;border:1px solid #7e4cac;background:linear-gradient(160deg,#34204b,#160d25);color:white;padding:5px;display:flex;flex-direction:column;align-items:center;cursor:pointer}'+
 '.lc49-grid button.active{border-color:#e3b5ff;box-shadow:0 0 0 2px #a95aff77,0 0 16px #a75aff55}'+
-'.lc49-grid img{width:100%;height:95px;object-fit:contain}'+
-'.lc49-grid span{font-size:10px;font-weight:800;line-height:1.3;min-height:27px;display:flex;align-items:center;justify-content:center}'+
+'.lc49-grid img{width:100%;height:135px;object-fit:contain}'+
+'.lc49-grid span{font-size:11px;font-weight:800;line-height:1.3;min-height:27px;display:flex;align-items:center;justify-content:center}'+
 '.lc49-picker p{color:#cbb7dc;font-size:11px;line-height:1.5;margin:9px 2px 3px}';
 document.head.appendChild(lc49Style);
+
+/* 50.0: larger previews, transparent distinction between ownership and visual sampling */
+const lc50Style=document.createElement('style');lc50Style.id='lc50-sets-style';
+lc50Style.textContent=
+'.lc50-set-card{overflow:hidden;padding:12px!important}'+
+'.lc50-set-image{display:block;height:220px;max-width:100%;width:100%;object-fit:contain;margin:8px auto;border-radius:12px;background:radial-gradient(ellipse,#39245166,transparent 70%)}'+
+'.lc50-piece-list{padding:7px 9px;list-style:none;margin:8px 0;display:grid;gap:5px;text-align:left;border:1px solid #6b477e88;border-radius:10px;background:#140e2588}'+
+'.lc50-piece-list li{font-size:11px;color:#ebdcfc;line-height:1.4;overflow-wrap:anywhere}'+
+'.lc50-piece-list li.owned{color:#a8e6cf}'+
+'.lc50-premium-note{font-size:11px;color:#e9c6fc;line-height:1.4}'+
+'.lc50-set-card .lc39-set-actions{display:flex;flex-wrap:wrap;gap:7px}'+
+'.lc50-set-card .lc39-set-actions button{flex:1 1 100%;min-height:39px;white-space:normal}'+
+'.lc49-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}'+
+'.lc49-grid img{height:165px!important}'+
+'.lc49-picker{margin-bottom:12px!important}'+
+'.lc33-figure .lc47-real-avatar{max-height:420px!important}'+
+'@media(min-width:650px){.lc49-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.lc49-grid img{height:190px!important}}';
+document.head.appendChild(lc50Style);
+
 
 /* 47.0 Realistic-only viewport, no duplicate 44-46 photo panel. */
 const lc47Style=document.createElement('style');lc47Style.id='lc47-realistic-character';lc47Style.textContent=
