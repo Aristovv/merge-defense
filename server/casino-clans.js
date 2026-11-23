@@ -116,7 +116,7 @@ async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
  return rows;
 }
-function upgradeCost(kind,level){return Math.ceil((kind==='headquarters'?3000:2000)*Math.pow(1.17,level-1)/100)*100}
+function upgradeCost(kind,level){return Math.ceil((kind==='headquarters'?3000:2000)*Math.pow(1.13,level-1)/100)*100}
 export function registerLuckyClans(app,pool,requireAuth){
  app.get('/api/casino/clans',requireAuth,wrap(async(req,res)=>{await start(pool);res.json({mine:await mine(pool,req.playerId),leaders:await listing(pool)})}));
  app.post('/api/casino/clans/create',requireAuth,wrap(async(req,res)=>{
