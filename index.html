@@ -4368,6 +4368,30 @@ function casinoStableJSON(value){
  return JSON.stringify(ordered(value));
 }
 
+// A bootstrap-only profile is not evidence of real progress. Do not allow it
+// to block an already established server profile after a webview restart.
+function casinoCloudIsStarterProfile(p){
+ if(!p||typeof p!=='object')return false;
+ return Number(p.coins)===2500&&Number(p.chips)===1200&&Number(p.vip||0)===0&&
+  Number(p.level||1)===1&&Number(p.plays||0)===0&&Number(p.wins||0)===0&&
+  Number(p.earned||0)===0&&Number(p.giftBestStreak||0)===0&&!p.lastGift&&
+  Array.isArray(p.buildings)&&p.buildings.length===14&&p.buildings[0]===1&&
+  p.buildings.slice(1).every(n=>Number(n)===0)&&
+  !p.pendingMiniRound&&
+  (!Array.isArray(p.character33?.ownedOutfits)||p.character33.ownedOutfits.length===0);
+}
+function casinoCloudQuarantinePending(reason){
+ try{
+  const current=localStorage.getItem(CASINO_PENDING_SAVE_KEY);
+  if(!current)return false;
+  const key='casino_city_pending_backup_'+Date.now();
+  localStorage.setItem(key,current);
+  if(localStorage.getItem(key)!==current)throw Error('BACKUP_VERIFY_FAILED');
+  casinoCloudPendingClear();
+  console.warn('Lucky City pending save archived:',reason);
+  return true;
+ }catch(error){console.error('Pending archive failed',error);return false}
+}
 function casinoCloudVKId(){
  try{return String(new URLSearchParams(CASINO_LAUNCH_PARAMS||'').get('vk_user_id')||'')}catch(_){return ''}
 }
@@ -4424,6 +4448,16 @@ async function casinoCloudStart(){
   const result=await casinoCloudFetch('GET');
   // Resume a verified unacknowledged write after app termination. Do not guess
   // when another device or admin has already advanced the server revision.
+  const unreviewed=casinoCloudPendingRead();
+  // An old local-only starter profile can survive an earlier recovery. It must
+  // never block loading a nonempty authenticated cloud account.
+  if(unreviewed&&casinoCloudIsStarterProfile(unreviewed.save)&&
+     casinoCloudIsStarterProfile(state)&&result.save&&!casinoCloudIsStarterProfile(result.save)){
+   if(!casinoCloudQuarantinePending('stale starter profile vs established cloud')){
+    casinoCloudNotice('Не удалось архивировать старую локальную копию; восстановление остановлено.');
+    return;
+   }
+  }
   const pending=casinoCloudPendingRead();
   if(pending){
    let localRaw=null;
