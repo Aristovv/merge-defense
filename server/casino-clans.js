@@ -103,7 +103,7 @@ async function communityGroupLookup(token,params){
  if(data?.error)fail('VK не подтвердил ключ сообщества (код '+Number(data.error.error_code||0)+')',403);
  return data.response;
 }
-async function verifiedAdminGroup(playerId,groupId,communityToken,verifiedLaunch){
+export async function verifiedAdminGroup(playerId,groupId,communityToken,verifiedLaunch){
  const requested=Number(groupId);
  if(!validId(requested))fail('Выберите группу из списка');
  const token=typeof communityToken==='string'&&communityToken.length>=15&&communityToken.length<=4096?
