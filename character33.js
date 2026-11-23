@@ -691,11 +691,20 @@ function lc42AvatarBase(equipped){
  return H.join('');
 }
 
-let lc48StreetPreview=false;
+/* 49.0 — five separate realistic fashion previews; no ownership changes. */
+let lc49SelectedOutfit='base';
+const LC49_OUTFITS=[
+ ['base','Базовый','avatar.png'],
+ ['street','NEON STREET','outfit-street.png'],
+ ['sakura','SAKURA NIGHT','outfit-sakura.png'],
+ ['phantom','DARK PHANTOM','outfit-phantom.png'],
+ ['emperor','GOLDEN EMPEROR','outfit-emperor.png'],
+ ['galaxy','COSMIC LEGEND','outfit-galaxy.png']
+];
 function lc33Avatar(){
- // Realistic-only avatar. The experimental outfit image is a visual preview, not the player's owned equipment.
- const src=lc48StreetPreview?'./assets/character44/outfit-street.png':'./assets/character44/avatar.png';
- return '<img class="lc47-real-avatar" src="'+src+'" alt="Фотореалистичный персонаж Lucky City" draggable="false" onerror="if(this.src.includes(\'outfit-street.png\')){this.onerror=null;this.src=\'./assets/character44/avatar.png\'}">';
+ const outfit=LC49_OUTFITS.find(o=>o[0]===lc49SelectedOutfit)||LC49_OUTFITS[0];
+ const src='./assets/character44/'+outfit[2];
+ return '<img class="lc47-real-avatar" src="'+src+'" alt="Реалистичный персонаж: '+outfit[1]+'" draggable="false" onerror="this.onerror=null;this.src=\'./assets/character44/avatar.png\'">';
 }
 
 /* 43.0: recognizable material patches and seams, painted inside each thumbnail.
@@ -887,29 +896,38 @@ document.head.appendChild(lc46Styles);
 })();
 
 
-/* Lucky City 48.0: optional fully rendered outfit. It does not change ownership,
-   purchased item IDs, worn items, wallets, server state, or paid content. */
-const lc48Screen=lc33Screen;
+/* 49.0: previews are not purchases or equipped inventory. */
+const lc49BaseScreen=lc33Screen;
 lc33Screen=function(){
- const html=lc48Screen();
- const chooser='<div class="lc48-chooser"><button type="button" data-lc48-outfit="'+(lc48StreetPreview?'off':'street')+'">'+
- (lc48StreetPreview?'Вернуть базовый внешний вид':'Посмотреть реалистичный образ STREET')+
- '</button><small>Визуальная демонстрация, не покупка и не экипировка. Одежда игрока не меняется.</small></div>';
- return html.replace('<div class="lc33-tabs">',chooser+'<div class="lc33-tabs">');
+ const html=lc49BaseScreen();
+ const buttons=LC49_OUTFITS.map(([id,title,file])=>
+  '<button type="button" data-lc49-outfit="'+id+'" class="'+(lc49SelectedOutfit===id?'active':'')+'" aria-pressed="'+(lc49SelectedOutfit===id?'true':'false')+'">'+
+  '<img alt="" loading="lazy" src="./assets/character44/'+file+'" onerror="this.style.visibility=\'hidden\'">'+
+  '<span>'+title+'</span></button>').join('');
+ const choose='<section class="lc49-picker"><div class="lc49-title">Реалистичные образы · 49.0</div>'+
+ '<div class="lc49-grid">'+buttons+'</div>'+
+ '<p>Предпросмотр внешности — бесплатно. Выбор картинки не покупает и не надевает вещи. Коллекция и купленные предметы сохраняются.</p></section>';
+ return html.replace('<div class="lc33-tabs">',choose+'<div class="lc33-tabs">');
 };
-document.addEventListener('click',function(event){
- const control=event.target.closest('[data-lc48-outfit]');
- if(!control)return;
- lc48StreetPreview=control.dataset.lc48Outfit==='street';
+document.addEventListener('click',function(e){
+ const btn=e.target.closest('[data-lc49-outfit]');
+ if(!btn)return;
+ const id=btn.dataset.lc49Outfit;
+ if(!LC49_OUTFITS.some(o=>o[0]===id))return;
+ lc49SelectedOutfit=id;
  render();
 });
-const lc48Css=document.createElement('style');lc48Css.id='lc48-visual-outfits';
-lc48Css.textContent='.lc48-chooser{display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px auto 13px;padding:0 8px}'+
-'.lc48-chooser button{border:1px solid #9f62e6;border-radius:13px;background:linear-gradient(130deg,#893dc8,#3b206b);color:white;font-weight:800;padding:10px 13px;cursor:pointer}'+
-'.lc48-chooser small{max-width:300px;color:#cab8df;text-align:center;font-size:10px;line-height:1.4}'+
-'.lc33-figure .lc47-real-avatar{max-height:390px!important;filter:drop-shadow(0 12px 18px #09041a99)}'+
-'.lc33-person{min-height:335px}';
-document.head.appendChild(lc48Css);
+const lc49Style=document.createElement('style');lc49Style.id='lc49-style';
+lc49Style.textContent=
+'.lc49-picker{margin:10px auto 16px;text-align:center;border:1px solid #6e438d;border-radius:17px;background:#19102caa;padding:10px}'+
+'.lc49-title{font-weight:900;font-size:15px;margin:3px 0 10px;color:#f1d4ff}'+
+'.lc49-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}'+
+'.lc49-grid button{min-width:0;border-radius:12px;border:1px solid #7e4cac;background:linear-gradient(160deg,#34204b,#160d25);color:white;padding:5px;display:flex;flex-direction:column;align-items:center;cursor:pointer}'+
+'.lc49-grid button.active{border-color:#e3b5ff;box-shadow:0 0 0 2px #a95aff77,0 0 16px #a75aff55}'+
+'.lc49-grid img{width:100%;height:95px;object-fit:contain}'+
+'.lc49-grid span{font-size:10px;font-weight:800;line-height:1.3;min-height:27px;display:flex;align-items:center;justify-content:center}'+
+'.lc49-picker p{color:#cbb7dc;font-size:11px;line-height:1.5;margin:9px 2px 3px}';
+document.head.appendChild(lc49Style);
 
 /* 47.0 Realistic-only viewport, no duplicate 44-46 photo panel. */
 const lc47Style=document.createElement('style');lc47Style.id='lc47-realistic-character';lc47Style.textContent=
