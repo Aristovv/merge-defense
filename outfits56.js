@@ -7,22 +7,22 @@ const LC56=[
  ['phantom','DARK PHANTOM',5875000,'coin','outfit-phantom.png','Мифический'],
  ['emperor','GOLDEN EMPEROR',21000000,'coin','outfit-emperor.png','Мифический'],
  ['galaxy','COSMIC LEGEND',5970000,'coin','outfit-galaxy.png','Мифический'],
- ['street-black','STREET BLACK',50000,'coin',null,'Обычный'],
- ['urban-basic','URBAN BASIC',85000,'coin',null,'Обычный'],
- ['neon-casual','NEON CASUAL',120000,'coin',null,'Обычный'],
- ['city-rookie','CITY ROOKIE',180000,'coin',null,'Необычный'],
- ['sport-night','SPORT NIGHT',250000,'coin',null,'Необычный'],
- ['cyber-smoke','CYBER SMOKE',1200000,'coin',null,'Редкий'],
- ['midnight-racer','MIDNIGHT RACER',1850000,'coin',null,'Эпический'],
- ['violet-drip','VIOLET DRIP',2600000,'coin',null,'Эпический'],
- ['royal-eclipse','ROYAL ECLIPSE',12500000,'coin',null,'Легендарный'],
- ['diamond-syndicate','DIAMOND SYNDICATE',18000000,'coin',null,'Легендарный'],
- ['shadow-king','SHADOW KING',25000000,'coin',null,'Легендарный'],
- ['galaxy-supreme','GALAXY SUPREME',19,'votes',null,'Легендарный'],
- ['obsidian-crown','OBSIDIAN CROWN',39,'votes',null,'Легендарный'],
- ['inferno-elite','INFERNO ELITE',59,'votes',null,'Легендарный'],
- ['crystal-monarch','CRYSTAL MONARCH',79,'votes',null,'Легендарный'],
- ['lucky-city-vip','LUCKY CITY VIP',109,'votes',null,'Эксклюзивный']
+ ['street-black','STREET BLACK',50000,'coin','street-black.png','Обычный'],
+ ['urban-basic','URBAN BASIC',85000,'coin','urban-basic.png','Обычный'],
+ ['neon-casual','NEON CASUAL',120000,'coin','neon-casual.png','Обычный'],
+ ['city-rookie','CITY ROOKIE',180000,'coin','city-rookie.png','Необычный'],
+ ['sport-night','SPORT NIGHT',250000,'coin','sport-night.png','Необычный'],
+ ['cyber-smoke','CYBER SMOKE',1200000,'coin','cyber-smoke.png','Редкий'],
+ ['midnight-racer','MIDNIGHT RACER',1850000,'coin','midnight-racer.png','Эпический'],
+ ['violet-drip','VIOLET DRIP',2600000,'coin','violet-drip.png','Эпический'],
+ ['royal-eclipse','ROYAL ECLIPSE',12500000,'coin','royal-eclipse.png','Легендарный'],
+ ['diamond-syndicate','DIAMOND SYNDICATE',18000000,'coin','diamond-syndicate.png','Легендарный'],
+ ['shadow-king','SHADOW KING',25000000,'coin','shadow-king.png','Легендарный'],
+ ['galaxy-supreme','GALAXY SUPREME',19,'votes','galaxy-supreme.png','Легендарный'],
+ ['obsidian-crown','OBSIDIAN CROWN',39,'votes','obsidian-crown.png','Легендарный'],
+ ['inferno-elite','INFERNO ELITE',59,'votes','inferno-elite.png','Легендарный'],
+ ['crystal-monarch','CRYSTAL MONARCH',79,'votes','crystal-monarch.png','Легендарный'],
+ ['lucky-city-vip','LUCKY CITY VIP',109,'votes','lucky-city-vip.png','Эксклюзивный']
 ].map(([id,name,price,currency,image,rarity])=>({id,name,price,currency,image,rarity}));
 const LC56_MAP=new Map(LC56.map(o=>[o.id,o]));
 let lc56Tab='shop',lc56Preview=null,lc56Buying=false;
@@ -53,6 +53,7 @@ function lc56Tile(o,c){
  '<div class="lc56-price">'+(owned?'✓ Куплен':lc56Price(o))+'</div>'+
  '<div class="lc56-actions"><button data-lc56-preview="'+o.id+'">Примерить</button>'+
  (owned?'<button data-lc56-wear="'+o.id+'" '+(active?'disabled':'')+'>'+(active?'✓ Надето':'Надеть')+'</button>':
+ o.currency==='votes'?'<button disabled title="Оплата голосами пока не подключена">Оплата скоро</button>':
  '<button class="lc56-buy" data-lc56-buy="'+o.id+'">Купить</button>')+'</div></article>';
 }
 function lc56Pending(o){
@@ -67,14 +68,14 @@ function lc56Screen(){
  const gallery=lc56Tab==='shop'?
  '<section class="lc56-section"><h2>Готовые образы</h2><p>Примерь и купи цельный образ — без отдельных вещей.</p>'+
  '<div class="lc56-gallery">'+ready.map(o=>lc56Tile(o,c)).join('')+'</div>'+
- '<h2>Новые образы</h2><p>Цены утверждены. Покупки откроются после добавления уникальных реалистичных фотографий и, для доната, товаров VK.</p>'+
+ '<h2>Новые образы</h2><p>Изображения обновлены. Покупки за голоса откроются после проверки серверной оплаты VK.</p>'+
  '<div class="lc56-upcoming-list">'+planned.map(lc56Pending).join('')+'</div></section>':
  lc56Tab==='collection'?
  '<section class="lc56-section"><h2>Моя коллекция</h2><p>Готовых образов: '+owned.length+'. Старая одежда и донатные покупки сохранены в данных игрока.</p>'+
  '<button class="lc56-base" data-lc56-base>Базовый персонаж — бесплатно</button>'+
  '<div class="lc56-gallery">'+(owned.length?owned.map(o=>lc56Tile(o,c)).join(''):'<p>Пока нет купленных образов</p>')+'</div></section>':
  '<section class="lc56-section"><h2>О системе</h2><p>Отдельные вещи больше не продаются в интерфейсе. Базовый вид бесплатный. Купленные ранее предметы в сохранении остаются.</p>'+
- '<p>Донатные образы: 19, 39, 59, 79 и 109 голосов VK. Они станут доступны после подготовки собственных изображений и серверной регистрации товаров.</p></section>';
+ '<p>Донатные образы: 19, 39, 59, 79 и 109 голосов VK. Их можно примерять; покупка откроется после подключения и проверки серверной оплаты.</p></section>';
  return '<main class="lc56-root"><h1>ПЕРСОНАЖ</h1>'+
  '<nav class="lc56-tabs">'+[['shop','Образы'],['collection','Коллекция'],['info','Информация']].map(([key,label])=>
  '<button data-lc56-tab="'+key+'" class="'+(lc56Tab===key?'active':'')+'">'+label+'</button>').join('')+'</nav>'+
