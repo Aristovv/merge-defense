@@ -146,6 +146,23 @@ function clanChallenge(playerId,groupId,bucket){
  if(!secret)fail('Проверка сообщества не настроена',503);
  return 'LC-'+createHmac('sha256',secret).update(JSON.stringify(['clan-description-v1',String(playerId),Number(groupId),bucket])).digest('hex').slice(0,32);
 }
+export async function verifyServiceAdmin(playerId,groupId){
+ const uid=String(playerId).replace(/^vk:/,'');
+ const id=Number(groupId);
+ if(!validId(uid)||!validId(id))return null;
+ // Require an explicit role for this exact user from VK, not public metadata.
+ try{
+  for(let offset=0;offset<5000;offset+=100){
+   const result=await serviceVK('groups.getMembers',{group_id:String(id),filter:'managers',count:'100',offset:String(offset)});
+   const items=Array.isArray(result?.items)?result.items:[];
+   if(items.some(m=>String(m?.id)===uid&&['administrator','creator'].includes(m.role))){
+    return cleanVKGroup(await serviceVK('groups.getById',{group_ids:String(id),fields:'photo_200'}),id);
+   }
+   if(items.length<100)break;
+  }
+ }catch(e){console.info('[clans-vk] automatic role lookup unavailable')}
+ return null;
+}
 export async function verifyDescriptionProof(playerId,groupId){
  const id=Number(groupId);
  if(!validId(id))fail('Выберите сообщество VK');
@@ -349,7 +366,9 @@ export function registerLuckyClans(app,pool,requireAuth){
   }));
   await start(pool);
   req.clanCreateStage='vk-group-verification';
-  const group=req.body?.descriptionProof===true?
+  const group=req.body?.automaticProof===true?
+   (await verifyServiceAdmin(req.playerId,req.body?.groupId)||fail('VK_AUTO_PROOF_UNAVAILABLE',409)):
+   req.body?.descriptionProof===true?
    await verifyDescriptionProof(req.playerId,req.body?.groupId):
    typeof req.body?.userVKToken==='string'?
    await verifyUserAdminGroup(req.playerId,req.body?.groupId,req.body.userVKToken):
