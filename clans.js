@@ -321,7 +321,9 @@
    try{
     preview=await api('/lookup',{community:value});
     if(!adminGroups.some(g=>g.groupId===preview.groupId))adminGroups.push(preview);
-    const challenge=await api('/challenge',{groupId:preview.groupId});
+    notice='Сообщество найдено. Нажмите «Создать клан бесплатно» для автоматической проверки.';
+    return paint();
+        const challenge=await api('/challenge',{groupId:preview.groupId});
     sessionStorage.setItem('lc-clan-proof:'+preview.groupId,challenge.code);
     notice='Добавьте код '+challenge.code+' в описание сообщества VK, сохраните и нажмите «Создать клан бесплатно». После создания удалите код.';
    }catch(e){notice=e.message||'Не удалось найти сообщество'}
@@ -407,16 +409,19 @@
     }else{
      // Millionaire's first path: the admin group token already obtained
      // on the same device, verified by the server against the VK account.
-     if(!userToken)throw Error('Не получено разрешение VK на группы. Нажмите «Обновить список» и разрешите доступ к сообществам.');
+
      try{
+      if(!userToken)throw Error('VK_USER_TOKEN_NEEDS_COMMUNITY');
       await api('/create',{groupId,userVKToken:userToken});
      }catch(error){
       if(error.message!=='VK_USER_TOKEN_NEEDS_COMMUNITY')throw error;
+      try{await api('/create',{groupId,automaticProof:true});}catch(autoError){
+      if(autoError.message!=='VK_AUTO_PROOF_UNAVAILABLE')throw autoError;
       const challenge=await api('/challenge',{groupId});
       sessionStorage.setItem('lc-clan-proof:'+groupId,challenge.code);
       notice='VK ограничил проверку по IP. Скопируйте код '+challenge.code+' в описание выбранного сообщества, сохраните его и снова нажмите «Создать клан бесплатно». После создания код можно удалить.';
       return;
-
+      }
      }
     }
    }else{
