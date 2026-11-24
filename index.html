@@ -6963,7 +6963,39 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&casinoClo
 window.addEventListener('pagehide',()=>{if(casinoCloudRevision!==null||casinoCloudLocalOnly)try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}});
 setInterval(()=>{if(tab==='city'||tab==='profile'){let gained=collectPassive();if(gained&&tab==='city')render()}},30000);
 render();
+let casinoAutoRecoveryBusy=false;
+
+async function casinoAutoRecoverEconomy(){
+ if(!casinoServerEconomy||!CASINO_LAUNCH_PARAMS||
+ !navigator.onLine||document.hidden||
+ casinoAutoRecoveryBusy||casinoCloudBusy||
+ casinoEconomyActionBusy||casinoCardRequestBusy||
+ casinoDailyClaiming||busy||round)return;
+
+ casinoAutoRecoveryBusy=true;
+ try{
+  const id=casinoCloudVKId();
+  if(!id)return;
+  if(localStorage.getItem('casino_card_pending_'+id))return;
+  const key='casino_economy_pending_'+id;
+  const pending=JSON.parse(localStorage.getItem(key)||'null');
+  if(pending){
+   await casinoRunEconomyAction(pending.action,pending.args);
+  }
+ }catch(e){
+  console.warn('Economy recovery:',e.message);
+ }finally{
+  casinoAutoRecoveryBusy=false;
+ }
+}
+
+window.addEventListener('online',casinoAutoRecoverEconomy);
+document.addEventListener('visibilitychange',casinoAutoRecoverEconomy);
+setInterval(casinoAutoRecoverEconomy,15000);
+
 casinoCloudStart().then(()=>{
+ void casinoAutoRecoverEconomy();
+
  if(casinoServerEconomy){
   void (async()=>{
    const key='casino_card_pending_'+casinoCloudVKId();
