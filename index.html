@@ -5263,7 +5263,27 @@ function slotOutcome(game,grid){
 const SLOT_REEL_WEIGHTS=[[5,15,15,15,14,14,6,4],[18,17,15,14,11,9,6,4],[10,15,14,13,13,13,6,4],[9,15,14,15,15,13,6,4],[13,14,13,12,12,13,6,4],[17,16,13,12,12,11,6,4]];
 function slotRandomSymbol(game){const weights=SLOT_REEL_WEIGHTS[game]||SLOT_REEL_WEIGHTS[0];let pick=rand(weights.reduce((a,b)=>a+b,0));for(let i=0;i<weights.length;i++){pick-=weights[i];if(pick<0)return i}return weights.length-1}
 let casinoSlotRoundSequence=0,casinoSlotSettledSequence=0;
-function playSlot(){if(busy||round)return;const index=selected,free=!!(slotBonus&&slotBonus.game===index&&slotBonus.left>0);if(slotBonus&&slotBonus.left>0&&!free)return message('Сначала используй бесплатные вращения в автомате '+SLOT_THEMES[slotBonus.game].name);if(!free&&!startCost())return;if(free){
+async function casinoPlayServerSlot(){
+ if(busy||round||casinoEconomyActionBusy)return;
+ const game=selected,bonus=state.slotBonus,freeSpin=!!(bonus&&bonus.game===game&&bonus.left>0);
+ if(bonus?.left>0&&!freeSpin)return message('Сначала используй бесплатные вращения в другом автомате');
+ casinoNormalizeBet();
+ const wager=freeSpin?bonus.bet:bet;
+ const result=await casinoRunEconomyAction('play_round',freeSpin?{game,freeSpin:true}:{game,stake:wager,freeSpin:false});
+ if(!result)return;
+ slotBonus=state.slotBonus||null;
+ const d=result.details;
+ if(!d||!Array.isArray(d.grid))return;
+ const feature=freeSpin?'Бесплатное вращение':slotBonus?.left>0?'Бесплатных вращений: '+slotBonus.left:'';
+ lastSlotResult={game,grid:d.grid,stake:result.stake,bet:wager,payout:result.payout,lines:d.lines||[],lineMatches:d.lineMatches||{},bonusCells:slotBonusCells(game,d.grid,feature),feature};
+ slotSelectedPayline=null;slotLastWins=result.payout;
+ if(tab==='game'&&selected===game){
+  render();
+  const output=$('game-result');
+  if(output)output.textContent=result.description+' · Выплата: '+fmt(result.payout)+' фишек'+(feature?' · '+feature:'');
+ }
+}
+function playSlot(){if(busy||round)return;if(casinoServerEconomy){void casinoPlayServerSlot();return;}const index=selected,free=!!(slotBonus&&slotBonus.game===index&&slotBonus.left>0);if(slotBonus&&slotBonus.left>0&&!free)return message('Сначала используй бесплатные вращения в автомате '+SLOT_THEMES[slotBonus.game].name);if(!free&&!startCost())return;if(free){
  roundBet=slotBonus.bet;casinoCurrentStake=0;
  // Persist a recoverable in-flight free spin before animation begins.
  state.slotFreeSpinInProgress={game:index,bet:slotBonus.bet};
