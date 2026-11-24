@@ -146,6 +146,8 @@
   }
   paint();
  }
+ let duelState=null,duelClan=null,duelLoading=false,duelError='';
+ async function loadDuel(){if(duelLoading||!data?.mine)return;const id=String(data.mine.id);duelLoading=true;duelError='';duelClan=id;duelState=null;paint();try{const result=await api('/duel');if(String(data?.mine?.id)===id)duelState=result}catch(e){duelError=e.message}finally{duelLoading=false;paint()}}
  async function load(){
   if(loading)return;
   loading=true;notice='';
@@ -169,6 +171,11 @@
    const clanMeter=(label,value,max)=>{const v=Number(value),m=Number(max),pct=Number.isFinite(v)&&Number.isFinite(m)&&m>0?Math.max(0,Math.min(100,Math.round(v/m*100))):0;return '<div style="margin:12px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px"><strong>'+esc(label)+'</strong><span>'+fmtProgress(value)+' / '+fmtProgress(max)+' · '+pct+'%</span></div><div role="progressbar" aria-label="'+esc(label)+'" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100" style="height:9px;margin-top:6px;border-radius:9px;background:#171126;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#7543c9,#d3a0ff);border-radius:9px"></div></div></div>'};
    html+='<div class="lc-clan-panel"><h3>✦ Прогресс моего клана</h3>'+clanMeter('Казна',c.coins,c.treasuryCapacity)+clanMeter('Участники',c.memberCount,c.memberCapacity||10)+clanMeter('Штаб',c.headquarters,50)+clanMeter('Стена',c.wall,50)+'<a class="btn ghost" style="display:block;text-align:center;text-decoration:none;margin-top:12px" href="https://vk.com/club'+Number(c.groupId)+'" target="_blank" rel="noopener noreferrer">Сообщество клана ↗</a></div>';
    if(c.levelBonus){const bonus=c.levelBonus,level=Number(bonus.level)||1,pct=Number(bonus.percent)||0;html+='<div class="lc-clan-panel"><h3>✦ Бонус развития клана</h3><p>Ежедневный бесплатный взнос: <b>'+fmtProgress(bonus.dailyReward)+' 🪙</b> на участника</p>'+clanMeter('Усиление взноса',pct,50)+'<p class="lc-clan-note">'+(pct>=50?'Максимальный бонус достигнут.':'Следующие +5% на уровне '+(6+5*Math.floor((level-1)/5))+'.')+' Бонус начисляется в общую казну, не на личный баланс. Действует лимит вместимости казны.</p></div>';}
+   const duel=duelClan===String(c.id)?duelState?.duel:null;
+   const mySide=duel&&String(duel.clanA)===String(c.id);
+   html+='<div class="lc-clan-panel"><h3>⚔️ Клановая битва недели</h3><p class="lc-clan-note">Соперник из той же лиги. 10 очков за ежедневное задание, 40 за еженедельное. Без ставок и денежных призов.</p>'+
+    (duel?'<p class="lc-clan-note">'+esc(duel.start)+' — '+esc(duel.end)+' UTC</p><div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;text-align:center;align-items:center"><div><strong>'+esc(mySide?duel.nameA:duel.nameB)+'</strong><h2>'+fmtProgress(mySide?duel.pointsA:duel.pointsB)+'</h2></div><b>VS</b><div><strong>'+esc(mySide?duel.nameB:duel.nameA)+'</strong><h2>'+fmtProgress(mySide?duel.pointsB:duel.pointsA)+'</h2></div></div>':duelLoading?'Загрузка…':duelError?'<p class="lc-clan-error">'+esc(duelError)+'</p>':duelState&&duelClan===String(c.id)?'<p class="lc-clan-note">Пока нет свободного соперника.</p>':'')+
+    '<button class="btn purple" data-clan="duel" '+(duelLoading?'disabled':'')+'>Открыть / обновить битву</button></div>';
    const activity=c.activity;
    if(activity&&c.missionTargets){
     if(c.missionXp!==undefined){const xp=Math.max(0,Number(c.missionXp)||0),lv=1+Math.floor(xp/1000);html+='<div class="lc-clan-panel"><h3>⭐ Уровень клана '+lv+'</h3><p class="lc-clan-note">Всего опыта: '+fmtProgress(xp)+' XP. Каждые 1 000 XP — новый уровень. Личные балансы не меняются.</p>'+clanMeter('До следующего уровня',xp%1000,1000)+'<p class="lc-clan-note">Ежедневные задания: '+fmtProgress(c.missionRewards?.dailyClaims??100)+' и '+fmtProgress(c.missionRewards?.dailyDeposits??150)+' XP. Еженедельные: '+fmtProgress(c.missionRewards?.weeklyDeposits??500)+' и '+fmtProgress(c.missionRewards?.weeklyUpgrades??400)+' XP.</p><button class="btn purple" data-clan="mission-rewards">Получить опыт за задания</button></div>';}
@@ -344,6 +351,7 @@
  document.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-clan]');if(!btn||!root()?.contains(btn)||btn.disabled)return;
   const action=btn.dataset.clan;if(action==='reload'||action==='refresh-permits')return load();
+  if(action==='duel')return loadDuel();
   if(action==='mission-rewards'){btn.disabled=true;try{const result=await api('/mission-rewards',{});await load();notice=Number(result.xp)>0?'Клан получил '+Number(result.xp)+' XP':'Нет новых выполненных заданий';}catch(e){notice=e.message}finally{btn.disabled=false;paint()}return;}
   if(!launch){notice='Откройте Lucky City через VK';return paint()}
   if(action==='start-create'||action==='refresh-groups')return openCreator();
