@@ -4930,7 +4930,7 @@ const CASINO_MILESTONES=[
 ];
 function nextMilestoneAfter(level){return CASINO_MILESTONES.find(m=>m[0]>level)||null}
 // Explicit test-only switch; never enabled in the production branch.
-const casinoServerEconomy=new URLSearchParams(location.search).get('test_server_economy')==='1';
+const casinoServerEconomy=true;
 let casinoEconomyActionBusy=false;
 async function casinoRunEconomyAction(action,args={}){
  if(casinoEconomyActionBusy||casinoDailyClaiming||busy||round)return null;
