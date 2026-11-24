@@ -326,6 +326,14 @@ export function registerLuckyClans(app,pool,requireAuth){
    stats:totals.rows[0]||{},communityUrl:'https://vk.com/club'+String(clan.groupId)},
    premiumLevels:PREMIUM_LEVELS,seatPrices:CLAN_SEAT_PRICES});
  }));
+ app.post('/api/casino/clans/lookup',requireAuth,wrap(async(req,res)=>{
+  const name=String(req.body?.community||'').trim();
+  if(!/^[a-zA-Z0-9_.]{1,100}$/.test(name))fail('Введите ссылку или ID сообщества VK');
+  const raw=await serviceVK('groups.getById',{group_ids:name,fields:'photo_200'});
+  const group=(Array.isArray(raw)?raw:raw?.groups)?.[0];
+  if(!validId(group?.id))fail('Сообщество не найдено',404);
+  res.json(cleanVKGroup(raw,Number(group.id)));
+ }));
  app.post('/api/casino/clans/challenge',requireAuth,wrap(async(req,res)=>{
   const groupId=Number(req.body?.groupId);
   if(!validId(groupId))fail('Выберите сообщество VK');
