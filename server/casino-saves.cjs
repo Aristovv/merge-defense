@@ -41,6 +41,7 @@ async function ensure(pool){
    if(process.env.CASINO_AUTHORITATIVE_ECONOMY==='1')await pool.query(`CREATE TABLE IF NOT EXISTS public.casino_economy_receipts(
     vk_id BIGINT NOT NULL,request_id TEXT NOT NULL,signature TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY(vk_id,request_id))`);
+   if(process.env.CASINO_AUTHORITATIVE_ECONOMY==='1')await pool.query(`ALTER TABLE public.casino_economy_receipts ADD COLUMN IF NOT EXISTS result JSONB NOT NULL DEFAULT '{}'::jsonb`);
   })().catch(error=>{ready=null;throw error});
  }
  await ready;
@@ -172,13 +173,14 @@ function registerCasinoSaves(app,pool,requireAuth){
  // Opt-in only: the legacy client still writes snapshots until migration is complete.
  app.post('/api/casino/economy/action',requireAuth,async(req,res)=>{
   if(process.env.CASINO_AUTHORITATIVE_ECONOMY!=='1')return res.status(503).json({error:'ECONOMY_NOT_ENABLED'});
-  const vk=id(req),{action,revision,requestId,index,level}=req.body||{};
+  const vk=id(req),{action,revision,requestId,index,level,game,stake,count=1,risk=0,guess}=req.body||{};
   if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
-  if(!['collect_income','upgrade_building','claim_milestone'].includes(action)||
+  if(!['collect_income','upgrade_building','claim_milestone','play_round'].includes(action)||
      !valid(revision,1,Number.MAX_SAFE_INTEGER)||typeof requestId!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(requestId)||
      (action==='upgrade_building'&&!valid(index,0,13))||
-     (action==='claim_milestone'&&!valid(level,1,500)))return res.status(400).json({error:'INVALID_ACTION'});
-  const signature=JSON.stringify([action,action==='upgrade_building'?index:action==='claim_milestone'?level:null]);
+     (action==='claim_milestone'&&!valid(level,1,500))||
+     (action==='play_round'&&(![12,14,15].includes(game)||!valid(stake,25,100000)||stake%5!==0)))return res.status(400).json({error:'INVALID_ACTION'});
+  const signature=JSON.stringify([action,action==='upgrade_building'?index:action==='claim_milestone'?level:action==='play_round'?[game,stake,count,risk,guess??null]:null]);
   let client;
   try{
    await ensure(pool);
@@ -188,11 +190,12 @@ function registerCasinoSaves(app,pool,requireAuth){
    const q=await client.query('SELECT save,revision::text AS revision FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vk]);
    if(!q.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'SAVE_NOT_FOUND'})}
    const current=q.rows[0],currentRevision=Number(current.revision);
-   const old=await client.query('SELECT signature FROM public.casino_economy_receipts WHERE vk_id=$1 AND request_id=$2',[vk,requestId]);
+   const old=await client.query('SELECT signature,result FROM public.casino_economy_receipts WHERE vk_id=$1 AND request_id=$2',[vk,requestId]);
    if(old.rowCount){
     await client.query('COMMIT');
     if(old.rows[0].signature!==signature)return res.status(409).json({error:'REQUEST_ID_REUSED'});
-    return res.json({ok:true,alreadyProcessed:true,save:current.save,revision:currentRevision});
+    res.set('Cache-Control','no-store');
+    return res.json({...old.rows[0].result,ok:true,alreadyProcessed:true,save:current.save,revision:currentRevision});
    }
    if(currentRevision!==revision||current.save.pendingMiniRound){
     await client.query('ROLLBACK');
@@ -203,16 +206,18 @@ function registerCasinoSaves(app,pool,requireAuth){
     const now=Date.now();
     result=action==='collect_income'?economy.collectIncome(current.save,now):
       action==='upgrade_building'?economy.upgradeBuilding(current.save,index,now):
-      economy.claimMilestone(current.save,level);
+      action==='claim_milestone'?economy.claimMilestone(current.save,level):
+      require('./casino-authoritative-outcomes.cjs').resolveRound(current.save,{game,stake,count,risk,guess},now);
     if(!clean(result.save))throw Error('INVALID_RESULT');
    }catch(e){
     await client.query('ROLLBACK');
-    const known=['INSUFFICIENT_COINS','MILESTONE_NOT_REACHED','BUILDING_LEVEL_LIMIT','BUILDING_COST_LIMIT','BALANCE_LIMIT','INVALID_INCOME_TIME','INVALID_BUILDING','INVALID_RESULT'];
+    const known=['INSUFFICIENT_COINS','MILESTONE_NOT_REACHED','BUILDING_LEVEL_LIMIT','BUILDING_COST_LIMIT','BALANCE_LIMIT','INVALID_INCOME_TIME','INVALID_BUILDING','INVALID_RESULT','INVALID_STAKE','INVALID_PLINKO','INVALID_GUESS','INSUFFICIENT_CHIPS','ROUND_PENDING','UNSUPPORTED_GAME'];
     return res.status(422).json({error:known.includes(e.message)?e.message:'ACTION_REJECTED'});
    }
    const next={...result.save,stamp:Date.now()};
    const updated=await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1 RETURNING revision::text AS revision',[vk,JSON.stringify(next)]);
-   await client.query('INSERT INTO public.casino_economy_receipts(vk_id,request_id,signature) VALUES($1,$2,$3)',[vk,requestId,signature]);
+   const {save:_receiptSave,...receipt}=result;
+   await client.query('INSERT INTO public.casino_economy_receipts(vk_id,request_id,signature,result) VALUES($1,$2,$3,$4::jsonb)',[vk,requestId,signature,JSON.stringify(receipt)]);
    await client.query('COMMIT');
    res.set('Cache-Control','no-store');
    return res.json({...result,ok:true,save:next,revision:Number(updated.rows[0].revision)});
