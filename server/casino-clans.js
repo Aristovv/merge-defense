@@ -286,6 +286,12 @@ export async function vkMemberProfiles(members,token=process.env.VK_GROUP_SERVIC
 }
 const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.coins,c.seat_tier AS "seatTier",(10+c.seat_tier*5)::int AS "memberCapacity",(50000+c.headquarters*c.headquarters*20000)::bigint AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
 // Fixed targets per UTC period. Existing rewards retain their original keys.
+// Capped rewards keep high-income clans from gaining unlimited XP.
+export function clanMissionRewards(targets){
+ const scale=(value,base)=>Math.max(1,Math.min(3,1+Math.log10(Math.max(1,Number(value)/base))));
+ const round=(base,factor)=>Math.round(base*factor/25)*25;
+ return {dailyClaims:round(100,scale(targets.dailyParticipants,3)),dailyDeposits:round(150,scale(targets.dailyCoins,10000)),weeklyDeposits:round(500,scale(targets.weeklyCoins,50000)),weeklyUpgrades:400};
+}
 async function missionTargets(pool,id){
  const incomes=await pool.query(`SELECT s.save->'buildings' AS buildings FROM lucky_clan_members m LEFT JOIN public.casino_city_saves s ON s.vk_id::text=regexp_replace(m.player_id,'^vk:','') WHERE m.clan_id=$1`,[id]);
  const totalIncome=Math.ceil(incomes.rows.reduce((sum,row)=>sum+clanIncome(row),0));
@@ -344,7 +350,7 @@ async function mine(pool,playerId){
  const rewards=await pool.query(`SELECT COALESCE(SUM(xp),0)::bigint AS xp FROM lucky_clan_mission_rewards WHERE clan_id=$1`,[rows[0].id]);
  const own=await pool.query(`SELECT s.save->'buildings' AS buildings FROM public.casino_city_saves s WHERE s.vk_id=$1`,[String(playerId).replace(/^vk:/,'')]);
  const depositLimit=clanDepositLimit(own.rows[0]);
- return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,activity:activity.rows[0]||{},missionTargets:targets,depositLimit,missionXp:Number(rewards.rows[0]?.xp||0)};
+ return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,activity:activity.rows[0]||{},missionTargets:targets,missionRewards:clanMissionRewards(targets),depositLimit,missionXp:Number(rewards.rows[0]?.xp||0)};
 }
 async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
@@ -473,6 +479,7 @@ export function registerLuckyClans(app,pool,requireAuth){
    if(!member.rowCount)fail('Сначала вступите в клан',403);
    const id=member.rows[0].clan_id;
    const targets=await missionTargets(c,id);
+   const rewards=clanMissionRewards(targets);
    const result=await c.query(`WITH periods AS (
     SELECT date_trunc('day',NOW() AT TIME ZONE 'UTC') AS d,date_trunc('week',NOW() AT TIME ZONE 'UTC') AS w
    ), totals AS (
@@ -485,15 +492,15 @@ export function registerLuckyClans(app,pool,requireAuth){
     FROM lucky_clan_transactions CROSS JOIN periods p WHERE clan_id=$1 AND created_at >= (p.w AT TIME ZONE 'UTC')
    ), eligible AS (
     SELECT v.mission,v.period_start,v.xp FROM totals t CROSS JOIN periods p CROSS JOIN LATERAL (VALUES
-      ('daily_claims',p.d::date,100,t.daily_claims >= $2),
-      ('daily_deposits',p.d::date,150,t.daily_deposits >= $3 AND t.daily_contributors >= $2),
-      ('weekly_deposits',p.w::date,500,t.weekly_deposits >= $4 AND t.weekly_contributors >= $5),
-      ('weekly_upgrades',p.w::date,400,t.weekly_upgrades>=3)
+      ('daily_claims',p.d::date,$6::int,t.daily_claims >= $2),
+      ('daily_deposits',p.d::date,$7::int,t.daily_deposits >= $3 AND t.daily_contributors >= $2),
+      ('weekly_deposits',p.w::date,$8::int,t.weekly_deposits >= $4 AND t.weekly_contributors >= $5),
+      ('weekly_upgrades',p.w::date,$9::int,t.weekly_upgrades>=3)
     ) v(mission,period_start,xp,done) WHERE v.done
    )
    INSERT INTO lucky_clan_mission_rewards(clan_id,mission,period_start,xp)
    SELECT $1,mission,period_start,xp FROM eligible ORDER BY mission
-   ON CONFLICT DO NOTHING RETURNING xp`,[id,targets.dailyParticipants,targets.dailyCoins,targets.weeklyCoins,targets.weeklyParticipants]);
+   ON CONFLICT DO NOTHING RETURNING xp`,[id,targets.dailyParticipants,targets.dailyCoins,targets.weeklyCoins,targets.weeklyParticipants,rewards.dailyClaims,rewards.dailyDeposits,rewards.weeklyDeposits,rewards.weeklyUpgrades]);
    return {xp:result.rows.reduce((n,row)=>n+Number(row.xp),0)};
   });res.json({ok:true,...result});
  }));
