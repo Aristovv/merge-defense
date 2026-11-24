@@ -406,20 +406,26 @@ async function seasonListing(pool){
   return {...season,leagues,previousWinners:archive.rows};
  });
 }
-// Pair clans of the same locked seasonal league by building development.
+// Pair unmatched clans within the same locked seasonal league and roster-size band.
 async function clanDuels(pool,playerId){
  await seasonListing(pool);
  const season=clanSeasonWindow();
  return tx(pool,async c=>{
   await c.query("SELECT pg_advisory_xact_lock(74826532)");
   const week=(await c.query("SELECT date_trunc('week',NOW() AT TIME ZONE 'UTC')::date::text AS week")).rows[0].week;
-  await c.query(`WITH candidates AS (
-   SELECT e.clan_id,e.name,e.league,ROW_NUMBER() OVER(PARTITION BY e.league ORDER BY cl.headquarters+cl.wall,e.clan_id) AS n
+  await c.query(`WITH eligible AS (
+   SELECT e.clan_id,e.name,e.league,cl.headquarters+cl.wall AS development,
+    (SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=e.clan_id) AS members
    FROM lucky_clan_season_entries e JOIN lucky_clans cl ON cl.id=e.clan_id
    WHERE e.season=$1 AND NOT EXISTS(SELECT 1 FROM lucky_clan_weekly_duels d WHERE d.week_start=$2::date AND (d.clan_a=e.clan_id OR d.clan_b=e.clan_id))
+  ), grouped AS (
+   SELECT *,CASE WHEN members<=3 THEN 1 WHEN members<=10 THEN 2 WHEN members<=20 THEN 3 WHEN members<=35 THEN 4 ELSE 5 END AS size_band
+   FROM eligible WHERE members>0
+  ), candidates AS (
+   SELECT *,ROW_NUMBER() OVER(PARTITION BY league,size_band ORDER BY members,development,clan_id) AS n FROM grouped
   )
   INSERT INTO lucky_clan_weekly_duels(week_start,clan_a,clan_b,league,name_a,name_b)
-  SELECT $2::date,a.clan_id,b.clan_id,a.league,a.name,b.name FROM candidates a JOIN candidates b ON a.league=b.league AND b.n=a.n+1 WHERE MOD(a.n,2)=1
+  SELECT $2::date,a.clan_id,b.clan_id,a.league,a.name,b.name FROM candidates a JOIN candidates b ON a.league=b.league AND a.size_band=b.size_band AND b.n=a.n+1 WHERE MOD(a.n,2)=1
   ON CONFLICT DO NOTHING`,[season.number,week]);
   const {rows}=await c.query(`SELECT d.week_start::text AS "start",(d.week_start+7)::text AS "end",
   d.clan_a AS "clanA",d.clan_b AS "clanB",d.name_a AS "nameA",d.name_b AS "nameB",d.league,
