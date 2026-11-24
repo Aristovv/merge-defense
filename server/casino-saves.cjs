@@ -196,10 +196,10 @@ function registerCasinoSaves(app,pool,requireAuth){
  // Test-only card round API. All writes share the same player row lock.
  app.post('/api/casino/rounds/card-action',requireAuth,async(req,res)=>{
   if(process.env.CASINO_AUTHORITATIVE_ECONOMY!=='1')return res.status(503).json({error:'ECONOMY_NOT_ENABLED'});
-  const vk=id(req),{action,revision,requestId,game,stake,roundId,version,held,high}=req.body||{};
+  const vk=id(req),{action,revision,requestId,game,stake,roundId,version,held,high,autoTarget=null}=req.body||{};
   if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
-  if(!['start','hit','stand','draw','guess'].includes(action)||!valid(revision,1,Number.MAX_SAFE_INTEGER)||typeof requestId!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(requestId))return res.status(400).json({error:'INVALID_ACTION'});
-  const signature=JSON.stringify(['card',action,game??null,stake??null,roundId??null,version??null,held??null,high??null]);
+  if(!['start','hit','stand','draw','guess','status','cashout'].includes(action)||!valid(revision,1,Number.MAX_SAFE_INTEGER)||typeof requestId!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(requestId))return res.status(400).json({error:'INVALID_ACTION'});
+  const signature=JSON.stringify(['card',action,game??null,stake??null,roundId??null,version??null,held??null,high??null,autoTarget]);
   let client;
   try{
    await ensure(pool);client=await pool.connect();await client.query('BEGIN');
@@ -219,9 +219,10 @@ function registerCasinoSaves(app,pool,requireAuth){
    if(action==='start'){
     if(active.rowCount||current.save.pendingMiniRound)throw Error('ROUND_PENDING');
     const max=Math.min(100000,500+Math.floor(require('./casino-authoritative-economy.cjs').hourlyRate(current.save)/1000)*100);
-    if(![8,9,11].includes(game)||!valid(stake,25,max)||stake%5)throw Error('INVALID_STAKE');
+    if(![8,9,11,13].includes(game)||!valid(stake,25,max)||stake%5)throw Error('INVALID_STAKE');
     if(current.save.chips<stake)throw Error('INSUFFICIENT_CHIPS');
-    const started=cards.startRound(game,stake);
+    const crash=require('./casino-authoritative-crash.cjs');
+    const started=game===13?(()=>{const p=crash.startCrash(stake,autoTarget,now);return {done:false,privateRound:p,view:crash.viewCrash(p)}})():cards.startRound(game,stake);
     if(started.done){
      next=account.applyCompletedRound(current.save,{game,stake,payout:started.payout,description:'Blackjack',now});
      const u=await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1 RETURNING revision::text AS revision',[vk,JSON.stringify(next)]);
@@ -240,10 +241,14 @@ function registerCasinoSaves(app,pool,requireAuth){
     if(p.game===8)outcome=cards.advanceBlackjack(p,action,version);
     else if(p.game===9&&action==='draw')outcome=cards.advancePoker(p,held,version);
     else if(p.game===11&&action==='guess')outcome=cards.advanceHiLo(p,high,version);
+    else if(p.game===13&&version===p.version){
+     outcome=require('./casino-authoritative-crash.cjs').settleCrash(p,action,now);
+     if(!outcome.done){await client.query('COMMIT');res.set('Cache-Control','no-store');return res.json({ok:true,done:false,round:{...outcome.view,id:roundId},revision:rev,save:current.save});}
+    }
     else throw Error('INVALID_ROUND_ACTION');
     if(outcome.done){
      const restored={...current.save,chips:current.save.chips+p.stake,pendingMiniRound:null};
-     next=account.applyCompletedRound(restored,{game:p.game,stake:p.stake,payout:outcome.payout,description:'Карточный раунд',now});
+     next=account.applyCompletedRound(restored,{game:p.game,stake:p.stake,payout:outcome.payout,description:p.game===13?'Crash':'Карточный раунд',now});
      newRevision=await persistRoundFinish(client,vk,roundId,rev,next);receipt=outcome;
     }else{
      next={...current.save,stamp:now};
@@ -259,7 +264,7 @@ function registerCasinoSaves(app,pool,requireAuth){
    return res.json({...receipt,ok:true,save:next,revision:newRevision});
   }catch(e){
    if(client)await client.query('ROLLBACK').catch(()=>{});
-   const known=['SAVE_NOT_FOUND','REQUEST_ID_REUSED','REVISION_CONFLICT','ROUND_PENDING','INVALID_STAKE','INSUFFICIENT_CHIPS','ROUND_CONFLICT','INVALID_ROUND_ACTION','IMPOSSIBLE_GUESS','INVALID_RESULT'];
+   const known=['SAVE_NOT_FOUND','REQUEST_ID_REUSED','REVISION_CONFLICT','ROUND_PENDING','INVALID_STAKE','INSUFFICIENT_CHIPS','ROUND_CONFLICT','INVALID_ROUND_ACTION','IMPOSSIBLE_GUESS','INVALID_RESULT','INVALID_AUTO_TARGET','INVALID_ROUND'];
    if(known.includes(e.message))return res.status(409).json({error:e.message});
    console.error('card action',e.code||e.message);return res.status(503).json({error:'ROUND_UNAVAILABLE'});
   }finally{if(client)client.release()}
@@ -274,7 +279,7 @@ function registerCasinoSaves(app,pool,requireAuth){
    res.set('Cache-Control','no-store');
    if(!row)return res.json({round:null});
    if(row.revision!==row.current_revision)return res.status(409).json({error:'ROUND_SAVE_CONFLICT'});
-   const view=require('./casino-private-round-state.cjs').publicRound(row.private_state);
+   const view=row.private_state.game===13?require('./casino-authoritative-crash.cjs').viewCrash(row.private_state):require('./casino-private-round-state.cjs').publicRound(row.private_state);
    return res.json({round:{...view,id:row.round_id},revision:Number(row.revision)});
   }catch(e){console.error('casino active round',e.code||e.message);return res.status(503).json({error:'ROUND_UNAVAILABLE'})}
  });
