@@ -5373,7 +5373,7 @@ function pokerDraw(){if(busy||!round||round.kind!=='poker')return;const cards=ro
 let kenoLastDraw=[];
 function selectKeno(n){if(busy||!Number.isInteger(n)||n<1||n>20)return;kenoLastDraw=[];if(kenoSelected.includes(n))kenoSelected=kenoSelected.filter(x=>x!==n);else if(kenoSelected.length<4)kenoSelected.push(n);render()}
 function kenoQuickPick(){if(busy)return;kenoLastDraw=[];const pool=Array.from({length:20},(_,i)=>i+1);for(let i=pool.length-1;i>0;i--){const j=rand(i+1);[pool[i],pool[j]]=[pool[j],pool[i]]}kenoSelected=pool.slice(0,4).sort((a,b)=>a-b);render()}
-function kenoPlay(){if(busy)return;if(kenoSelected.length!==4)return message('Выбери четыре числа');if(!startCost())return;busy=true;kenoLastDraw=[];const picks=new Set();while(picks.size<8)picks.add(1+rand(20));const hits=kenoSelected.filter(x=>picks.has(x)).length,draw=[...picks];let step=0;const revealDelay=(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)?60:320;const timer=setInterval(()=>{kenoLastDraw=draw.slice(0,++step);const e=$('keno-draw');if(e)e.innerHTML='Шары: '+kenoLastDraw.map(n=>'<span class="keno-ball '+(kenoSelected.includes(n)?'matched':'')+'">'+n+'</span>').join(' ');document.querySelectorAll('[data-keno]').forEach(el=>{const n=Number(el.dataset.keno);el.classList.toggle('drawn',kenoLastDraw.includes(n));el.classList.toggle('matched',kenoLastDraw.includes(n)&&kenoSelected.includes(n))});if(step>=draw.length){clearInterval(timer);busy=false;finish(hits>=2?Math.floor(roundBet*([0,0,1.5,5,22][hits])):0,'Угадано '+hits+'/4 · Выпали: '+draw.join(', '))}},revealDelay)}
+function kenoPlay(){if(casinoServerEconomy){if(kenoSelected.length!==4)return message('Выбери четыре числа');void casinoServerSimpleRound(10,{picks:kenoSelected.slice()});return;}if(busy)return;if(kenoSelected.length!==4)return message('Выбери четыре числа');if(!startCost())return;busy=true;kenoLastDraw=[];const picks=new Set();while(picks.size<8)picks.add(1+rand(20));const hits=kenoSelected.filter(x=>picks.has(x)).length,draw=[...picks];let step=0;const revealDelay=(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)?60:320;const timer=setInterval(()=>{kenoLastDraw=draw.slice(0,++step);const e=$('keno-draw');if(e)e.innerHTML='Шары: '+kenoLastDraw.map(n=>'<span class="keno-ball '+(kenoSelected.includes(n)?'matched':'')+'">'+n+'</span>').join(' ');document.querySelectorAll('[data-keno]').forEach(el=>{const n=Number(el.dataset.keno);el.classList.toggle('drawn',kenoLastDraw.includes(n));el.classList.toggle('matched',kenoLastDraw.includes(n)&&kenoSelected.includes(n))});if(step>=draw.length){clearInterval(timer);busy=false;finish(hits>=2?Math.floor(roundBet*([0,0,1.5,5,22][hits])):0,'Угадано '+hits+'/4 · Выпали: '+draw.join(', '))}},revealDelay)}
 function hiloStart(){if(busy||round)return;if(!startCost())return;const deck=freshDeck();round={kind:'hilo',deck,num:deck.pop()};render()}
 function hiloOdds(high){if(!round||round.kind!=='hilo'||!round.deck.length)return {chance:0,multiplier:0};const prev=cardRank(round.num),favorable=round.deck.filter(c=>high?cardRank(c)>prev:cardRank(c)<prev).length,chance=favorable/round.deck.length;return {chance,multiplier:chance?Math.floor(.94/chance*100)/100:0}}
 function hiloPlay(high){if(!round||round.kind!=='hilo'||busy)return;const odds=hiloOdds(high);if(!odds.chance)return message('Для этой карты такой исход невозможен');const prev=cardRank(round.num),nextCard=round.deck.pop(),next=cardRank(nextCard),win=high?next>prev:next<prev;round=null;finish(win?Math.floor(roundBet*odds.multiplier):0,'Карты: '+CARD_FACES[prev]+' → '+CARD_FACES[next]+(next===prev?' · одинаковый ранг':win?' · угадал!':' · не угадал')+' · ×'+odds.multiplier.toFixed(2))}
@@ -5502,7 +5502,25 @@ function crashCash(automatic=false){
 }
 let lastDice=[1,1];
 function diceFace(n){const layouts={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};return '<div class="dice-pips">'+Array.from({length:9},(_,i)=>'<span class="dice-pip '+(layouts[n].includes(i)?'visible':'')+'"></span>').join('')+'</div>'}
-function dicePlay(guess){if(busy||!startCost())return;busy=true;const a=1+rand(6),b=1+rand(6),sum=a+b,win=guess==='over'?sum>=8:sum<=6,push=sum===7;const diceDuration=(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)?80:950;document.querySelectorAll('.dice-cube').forEach(c=>{c.classList.remove('dice-rolling');void c.offsetWidth;if(diceDuration>80)c.classList.add('dice-rolling')});setTimeout(()=>{busy=false;lastDice=[a,b];document.querySelectorAll('.dice-cube').forEach(c=>c.classList.remove('dice-rolling'));finish(push?roundBet:win?Math.floor(roundBet*1.9):0,'Кубики: '+a+' + '+b+' = '+sum+(push?' · семёрка: ставка возвращена':win?' · победа!':' · не угадал'))},diceDuration)}
+async function casinoServerSimpleRound(game,options){
+ if(busy||round||casinoEconomyActionBusy)return;
+ casinoNormalizeBet();
+ const result=await casinoRunEconomyAction('play_round',{game,stake:bet,...options});
+ if(!result)return;
+ if(game===14&&result.details)lastDice=[result.details.a,result.details.b];
+ if(game===10&&result.details)kenoLastDraw=result.details.draw;
+ if(tab==='game'&&selected===game){
+  render();
+  const output=$('game-result');
+  if(output)output.textContent=result.description+' · Выплата: '+fmt(result.payout)+' фишек';
+  if(game===15&&Array.isArray(result.details)){
+   const reveal=document.createElement('div');
+   reveal.textContent='Символы билета: '+result.details.map(x=>x+1).join(' · ');
+   if(output)output.appendChild(reveal);
+  }
+ }
+}
+function dicePlay(guess){if(casinoServerEconomy){void casinoServerSimpleRound(14,{guess});return;}if(busy||!startCost())return;busy=true;const a=1+rand(6),b=1+rand(6),sum=a+b,win=guess==='over'?sum>=8:sum<=6,push=sum===7;const diceDuration=(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)?80:950;document.querySelectorAll('.dice-cube').forEach(c=>{c.classList.remove('dice-rolling');void c.offsetWidth;if(diceDuration>80)c.classList.add('dice-rolling')});setTimeout(()=>{busy=false;lastDice=[a,b];document.querySelectorAll('.dice-cube').forEach(c=>c.classList.remove('dice-rolling'));finish(push?roundBet:win?Math.floor(roundBet*1.9):0,'Кубики: '+a+' + '+b+' = '+sum+(push?' · семёрка: ставка возвращена':win?' · победа!':' · не угадал'))},diceDuration)}
 
 // A new scratch ticket is generated with explicit, visible odds:
 // 75% no match, 15% three-of-a-kind, 7% four, 3% five.
@@ -5522,7 +5540,7 @@ function casinoScratchPayout(cells){
  const max=Math.max(...counts);
  return max>=5?roundBet*10:max===4?roundBet*5:max===3?roundBet*2:0;
 }
-function scratchStart(){if(busy||round)return;if(!startCost())return;round={kind:'scratch',cells:casinoScratchTicket(),opened:[]};render()}
+function scratchStart(){if(casinoServerEconomy){void casinoServerSimpleRound(15,{});return;}if(busy||round)return;if(!startCost())return;round={kind:'scratch',cells:casinoScratchTicket(),opened:[]};render()}
 function scratchRevealAll(){if(busy||!round||round.kind!=='scratch')return;const reward=casinoScratchPayout(round.cells);round=null;finish(reward,reward?'Нашёл сочетание!':'Попробуй ещё')}
 function scratchOpen(i){if(busy||!round||round.kind!=='scratch'||!Number.isInteger(i)||i<0||i>8||round.opened.includes(i))return;round.opened.push(i);if(round.opened.length===9){const reward=casinoScratchPayout(round.cells);round=null;finish(reward,reward?'Нашёл сочетание!':'Попробуй ещё');return}render()}
 
