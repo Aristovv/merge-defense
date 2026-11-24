@@ -415,7 +415,14 @@
       await api('/create',{groupId,userVKToken:userToken});
      }catch(error){
       if(error.message!=='VK_USER_TOKEN_NEEDS_COMMUNITY')throw error;
-      try{await api('/create',{groupId,automaticProof:true});}catch(autoError){
+      try{
+ const proof=await getCommunityProof(groupId).catch(()=>null);
+ if(proof){
+  await api('/create',{groupId,communityToken:proof});
+ }else{
+  await api('/create',{groupId,automaticProof:true});
+ }
+}catch(autoError){
       if(autoError.message!=='VK_AUTO_PROOF_UNAVAILABLE')throw autoError;
       const challenge=await api('/challenge',{groupId});
       sessionStorage.setItem('lc-clan-proof:'+groupId,challenge.code);
