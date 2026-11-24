@@ -42,6 +42,10 @@ async function ensure(pool){
     vk_id BIGINT NOT NULL,request_id TEXT NOT NULL,signature TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY(vk_id,request_id))`);
    if(process.env.CASINO_AUTHORITATIVE_ECONOMY==='1')await pool.query(`ALTER TABLE public.casino_economy_receipts ADD COLUMN IF NOT EXISTS result JSONB NOT NULL DEFAULT '{}'::jsonb`);
+   if(process.env.CASINO_AUTHORITATIVE_ECONOMY==='1')await pool.query(`CREATE TABLE IF NOT EXISTS public.casino_private_rounds(
+    vk_id BIGINT PRIMARY KEY,round_id TEXT NOT NULL UNIQUE,private_state JSONB NOT NULL,
+    save_revision BIGINT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
   })().catch(error=>{ready=null;throw error});
  }
  await ready;
@@ -171,6 +175,21 @@ function registerCasinoSaves(app,pool,requireAuth){
  });
 
  // Opt-in only: the legacy client still writes snapshots until migration is complete.
+ // Read-only recovery endpoint: never expose the hidden deck.
+ app.get('/api/casino/rounds/active',requireAuth,async(req,res)=>{
+  if(process.env.CASINO_AUTHORITATIVE_ECONOMY!=='1')return res.status(503).json({error:'ECONOMY_NOT_ENABLED'});
+  const vk=id(req);if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
+  try{
+   await ensure(pool);
+   const q=await pool.query('SELECT r.round_id,r.private_state,r.save_revision::text AS revision,s.revision::text AS current_revision FROM public.casino_private_rounds r JOIN public.casino_city_saves s USING(vk_id) WHERE r.vk_id=$1',[vk]);
+   const row=q.rows[0];
+   res.set('Cache-Control','no-store');
+   if(!row)return res.json({round:null});
+   if(row.revision!==row.current_revision)return res.status(409).json({error:'ROUND_SAVE_CONFLICT'});
+   const view=require('./casino-private-round-state.cjs').publicRound(row.private_state);
+   return res.json({round:{...view,id:row.round_id},revision:Number(row.revision)});
+  }catch(e){console.error('casino active round',e.code||e.message);return res.status(503).json({error:'ROUND_UNAVAILABLE'})}
+ });
  app.post('/api/casino/economy/action',requireAuth,async(req,res)=>{
   if(process.env.CASINO_AUTHORITATIVE_ECONOMY!=='1')return res.status(503).json({error:'ECONOMY_NOT_ENABLED'});
   const vk=id(req),{action,revision,requestId,index,level,game,stake,count=1,risk=0,guess,picks}=req.body||{};
