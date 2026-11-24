@@ -31,4 +31,32 @@ function advanceBlackjack(privateRound,action,version){
  while(d<17){r.dealer.push(r.deck.pop());d=points(r.dealer)}
  return {done:true,payout:y<=21&&(d>21||y>d)?r.stake*2:y===d&&y<=21?r.stake:0,you:r.you,dealer:r.dealer};
 }
-module.exports={startRound,publicRound,advanceBlackjack,points};
+function pokerResult(cards){
+ const ranks=cards.map(rank),suits=cards.map(c=>Math.floor((c-1)/13)),counts={};
+ ranks.forEach(r=>counts[r]=(counts[r]||0)+1);
+ const groups=Object.entries(counts).map(([r,n])=>({r:Number(r),n})).sort((a,b)=>b.n-a.n);
+ const sorted=[...new Set(ranks)].map(r=>r===1?14:r).sort((a,b)=>a-b);
+ const flush=suits.every(x=>x===suits[0]),straight=sorted.length===5&&(sorted[4]-sorted[0]===4||sorted.join(',')==='2,3,4,5,14');
+ if(straight&&flush&&sorted[0]===10)return 250;
+ if(straight&&flush)return 50;
+ if(groups[0].n===4)return 25;
+ if(groups[0].n===3&&groups[1].n===2)return 9;
+ if(flush)return 6;if(straight)return 4;if(groups[0].n===3)return 3;
+ if(groups[0].n===2&&groups[1].n===2)return 2;
+ return groups[0].n===2&&(groups[0].r===1||groups[0].r>=11)?1:0;
+}
+function advancePoker(r,held,version){
+ if(r.game!==9||r.version!==version||!Array.isArray(held)||held.length>5||new Set(held).size!==held.length||held.some(i=>!Number.isInteger(i)||i<0||i>4))throw Error('INVALID_ROUND_ACTION');
+ const remaining=r.deck.slice(),cards=r.cards.map((c,i)=>held.includes(i)?c:remaining.pop());
+ const multiplier=pokerResult(cards);
+ return {done:true,payout:Math.floor(r.stake*multiplier),cards,multiplier};
+}
+function advanceHiLo(r,high,version){
+ if(r.game!==11||r.version!==version||typeof high!=='boolean')throw Error('INVALID_ROUND_ACTION');
+ const prev=rank(r.num),favorable=r.deck.filter(c=>high?rank(c)>prev:rank(c)<prev).length;
+ if(!favorable)throw Error('IMPOSSIBLE_GUESS');
+ const multiplier=Math.floor(.94/(favorable/r.deck.length)*100)/100;
+ const card=r.deck[r.deck.length-1],next=rank(card),won=high?next>prev:next<prev;
+ return {done:true,payout:won?Math.floor(r.stake*multiplier):0,previous:r.num,card,multiplier};
+}
+module.exports={startRound,publicRound,advanceBlackjack,advancePoker,advanceHiLo,pokerResult,points};
