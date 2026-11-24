@@ -193,6 +193,77 @@ function registerCasinoSaves(app,pool,requireAuth){
 
  // Opt-in only: the legacy client still writes snapshots until migration is complete.
  // Read-only recovery endpoint: never expose the hidden deck.
+ // Test-only card round API. All writes share the same player row lock.
+ app.post('/api/casino/rounds/card-action',requireAuth,async(req,res)=>{
+  if(process.env.CASINO_AUTHORITATIVE_ECONOMY!=='1')return res.status(503).json({error:'ECONOMY_NOT_ENABLED'});
+  const vk=id(req),{action,revision,requestId,game,stake,roundId,version,held,high}=req.body||{};
+  if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
+  if(!['start','hit','stand','draw','guess'].includes(action)||!valid(revision,1,Number.MAX_SAFE_INTEGER)||typeof requestId!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(requestId))return res.status(400).json({error:'INVALID_ACTION'});
+  const signature=JSON.stringify(['card',action,game??null,stake??null,roundId??null,version??null,held??null,high??null]);
+  let client;
+  try{
+   await ensure(pool);client=await pool.connect();await client.query('BEGIN');
+   const q=await client.query('SELECT save,revision::text AS revision FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vk]);
+   if(!q.rowCount)throw Error('SAVE_NOT_FOUND');
+   const current=q.rows[0],rev=Number(current.revision);
+   const prior=await client.query('SELECT signature,result FROM public.casino_economy_receipts WHERE vk_id=$1 AND request_id=$2',[vk,requestId]);
+   if(prior.rowCount){
+    if(prior.rows[0].signature!==signature)throw Error('REQUEST_ID_REUSED');
+    await client.query('COMMIT');res.set('Cache-Control','no-store');
+    return res.json({...prior.rows[0].result,ok:true,alreadyProcessed:true,save:current.save,revision:rev});
+   }
+   if(rev!==revision)throw Error('REVISION_CONFLICT');
+   const active=await client.query('SELECT round_id,private_state,save_revision::text AS revision FROM public.casino_private_rounds WHERE vk_id=$1 FOR UPDATE',[vk]);
+   const cards=require('./casino-private-round-state.cjs'),account=require('./casino-authoritative-rounds.cjs');
+   const now=Date.now();let next,receipt,newRevision;
+   if(action==='start'){
+    if(active.rowCount||current.save.pendingMiniRound)throw Error('ROUND_PENDING');
+    const max=Math.min(100000,500+Math.floor(require('./casino-authoritative-economy.cjs').hourlyRate(current.save)/1000)*100);
+    if(![8,9,11].includes(game)||!valid(stake,25,max)||stake%5)throw Error('INVALID_STAKE');
+    if(current.save.chips<stake)throw Error('INSUFFICIENT_CHIPS');
+    const started=cards.startRound(game,stake);
+    if(started.done){
+     next=account.applyCompletedRound(current.save,{game,stake,payout:started.payout,description:'Blackjack',now});
+     const u=await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1 RETURNING revision::text AS revision',[vk,JSON.stringify(next)]);
+     newRevision=Number(u.rows[0].revision);receipt=started;
+    }else{
+     const rid=require('node:crypto').randomUUID();
+     next={...current.save,chips:current.save.chips-stake,stamp:now,pendingMiniRound:{kind:'server-card',id:rid}};
+     newRevision=await persistRoundStart(client,vk,rid,started.privateRound,rev,next);
+     receipt={done:false,round:{...started.view,id:rid}};
+    }
+   }else{
+    const row=active.rows[0];
+    if(!row||row.round_id!==roundId||Number(row.revision)!==rev||current.save.pendingMiniRound?.id!==roundId)throw Error('ROUND_CONFLICT');
+    const p=row.private_state;
+    let outcome;
+    if(p.game===8)outcome=cards.advanceBlackjack(p,action,version);
+    else if(p.game===9&&action==='draw')outcome=cards.advancePoker(p,held,version);
+    else if(p.game===11&&action==='guess')outcome=cards.advanceHiLo(p,high,version);
+    else throw Error('INVALID_ROUND_ACTION');
+    if(outcome.done){
+     const restored={...current.save,chips:current.save.chips+p.stake,pendingMiniRound:null};
+     next=account.applyCompletedRound(restored,{game:p.game,stake:p.stake,payout:outcome.payout,description:'Карточный раунд',now});
+     newRevision=await persistRoundFinish(client,vk,roundId,rev,next);receipt=outcome;
+    }else{
+     next={...current.save,stamp:now};
+     const u=await client.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1 RETURNING revision::text AS revision',[vk,JSON.stringify(next)]);
+     newRevision=Number(u.rows[0].revision);
+     await client.query('UPDATE public.casino_private_rounds SET private_state=$2::jsonb,save_revision=$3,updated_at=NOW() WHERE vk_id=$1',[vk,JSON.stringify(outcome.privateRound),newRevision]);
+     receipt={done:false,round:{...outcome.view,id:roundId}};
+    }
+   }
+   if(!clean(next))throw Error('INVALID_RESULT');
+   await client.query('INSERT INTO public.casino_economy_receipts(vk_id,request_id,signature,result) VALUES($1,$2,$3,$4::jsonb)',[vk,requestId,signature,JSON.stringify(receipt)]);
+   await client.query('COMMIT');res.set('Cache-Control','no-store');
+   return res.json({...receipt,ok:true,save:next,revision:newRevision});
+  }catch(e){
+   if(client)await client.query('ROLLBACK').catch(()=>{});
+   const known=['SAVE_NOT_FOUND','REQUEST_ID_REUSED','REVISION_CONFLICT','ROUND_PENDING','INVALID_STAKE','INSUFFICIENT_CHIPS','ROUND_CONFLICT','INVALID_ROUND_ACTION','IMPOSSIBLE_GUESS','INVALID_RESULT'];
+   if(known.includes(e.message))return res.status(409).json({error:e.message});
+   console.error('card action',e.code||e.message);return res.status(503).json({error:'ROUND_UNAVAILABLE'});
+  }finally{if(client)client.release()}
+ });
  app.get('/api/casino/rounds/active',requireAuth,async(req,res)=>{
   if(process.env.CASINO_AUTHORITATIVE_ECONOMY!=='1')return res.status(503).json({error:'ECONOMY_NOT_ENABLED'});
   const vk=id(req);if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
@@ -279,6 +350,9 @@ function registerCasinoSaves(app,pool,requireAuth){
      if(!current.rowCount||Number(current.rows[0].revision)!==revision){
       await client.query('ROLLBACK');
       return res.status(409).json({error:'REVISION_CONFLICT',revision:Number(current.rows[0]?.revision||0)});
+     }
+     if(current.rows[0].save.pendingMiniRound?.kind==='server-card'||save.pendingMiniRound?.kind==='server-card'){
+      await client.query('ROLLBACK');return res.status(409).json({error:'ROUND_PENDING'});
      }
      const reason=regression(current.rows[0].save,save);
      if(reason){
