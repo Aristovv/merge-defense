@@ -6265,6 +6265,13 @@ function cc14OpenChest(withKey=false){
  message('Сундук '+reward.tier+': '+reward.label);
 }
 function cc14ClaimEvent(){
+ if(casinoServerEconomy){
+  void casinoRunEconomyAction('claim_city_event',{}).then(r=>{
+   if(r)message('Награда события получена');
+  });
+  return;
+ }
+
  if(busy||round)return message('Заверши текущую игру');
  const x=cc14Data(),e=cc14Event();
  if(x.eventClaimed===e.key)return message('Сегодняшнее событие уже завершено');

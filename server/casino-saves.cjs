@@ -287,7 +287,7 @@ function registerCasinoSaves(app,pool,requireAuth){
   if(process.env.CASINO_AUTHORITATIVE_ECONOMY!=='1')return res.status(503).json({error:'ECONOMY_NOT_ENABLED'});
   const vk=id(req),{action,revision,requestId,index,level,game,stake,count=1,risk=0,guess,picks,freeSpin=false,withKey=false,kind}=req.body||{};
   if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
-  if(!['collect_income','upgrade_building','claim_milestone','play_round','claim_daily_reward','claim_weekly_reward','open_chest','activate_booster'].includes(action)||
+  if(!['collect_income','upgrade_building','claim_milestone','play_round','claim_daily_reward','claim_weekly_reward','open_chest','activate_booster','claim_city_event'].includes(action)||
      !valid(revision,1,Number.MAX_SAFE_INTEGER)||typeof requestId!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(requestId)||
      (action==='upgrade_building'&&!valid(index,0,13))||
      (action==='claim_milestone'&&!valid(level,1,500))||
@@ -320,6 +320,7 @@ function registerCasinoSaves(app,pool,requireAuth){
       action==='upgrade_building'?economy.upgradeBuilding(current.save,index,now):
       action==='claim_milestone'?economy.claimMilestone(current.save,level):
       action==='claim_daily_reward'?require('./casino-authoritative-rewards.cjs').claimReward(current.save,'daily',index,now):
+      action==='claim_city_event'?require('./casino-authoritative-events.cjs').claimEvent(current.save,now):
       action==='activate_booster'?require('./casino-authoritative-boosters.cjs').activateBooster(current.save,kind,now):
       action==='open_chest'?require('./casino-authoritative-chests.cjs').openChest(current.save,withKey,now):
       action==='claim_weekly_reward'?require('./casino-authoritative-rewards.cjs').claimReward(current.save,'weekly',null,now):
