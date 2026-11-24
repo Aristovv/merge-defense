@@ -258,6 +258,12 @@
  function clanDetailUI(info){
   const c=info.clan,stats=c.stats||{},fmt=n=>Number(n||0).toLocaleString('ru-RU');
   const asLink=url=>esc(url||'#');
+  const honors=Array.isArray(c.seasonHonors)?c.seasonHonors:[];
+  const medalNames={1:'Чемпион',2:'Вице-чемпион',3:'Бронзовый призёр'};
+  const medals={1:'🥇',2:'🥈',3:'🥉'};
+  const honorPanel='<div class="lc-clan-panel"><h3>🏆 Зал славы клана</h3>'+(honors.length?honors.map(h=>'<div class="lc-clan-roster"><div><strong>'+medals[h.rank]+' '+esc(medalNames[h.rank])+'</strong><div class="lc-clan-note">Сезон '+fmt(h.season)+' · '+esc(leagueNames[h.league]||h.league)+'</div></div><strong>'+fmt(h.points)+' оч.</strong></div>').join(''):'<p class="lc-clan-note">Почётные знаки появятся после призового места в завершённом сезоне.</p>')+'</div>';
+  const championBadge=honors.length&&Number(honors[0].rank)===1?'<span style="display:inline-block;margin-top:6px;padding:5px 9px;border:1px solid #d9ad58;border-radius:8px;color:#f4d48a">👑 Чемпион · '+esc(leagueNames[honors[0].league]||honors[0].league)+'</span>':'';
+
   const tiles=[
    ['Участники',fmt(c.memberCount)+' / '+fmt(c.memberCapacity)],
    ['Место в рейтинге',rankings?.findIndex(x=>String(x.id)===String(c.id))+1||'—'],
@@ -285,8 +291,9 @@
   const progress=(value,max)=>{const v=Number(value),m=Number(max);return Number.isFinite(v)&&Number.isFinite(m)&&m>0?Math.max(0,Math.min(100,Math.round(v/m*100))):0};
   const meter=(label,value,max)=>'<div style="margin:10px 0"><div class="lc-clan-note">'+esc(label)+' · '+fmt(value)+' / '+fmt(max)+' · '+progress(value,max)+'%</div><progress aria-label="'+esc(label)+'" max="100" value="'+progress(value,max)+'" style="width:100%;height:10px;accent-color:#a78bfa"></progress></div>';
   return '<div class="lc-clan-panel"><button class="btn ghost" data-clan-top-back>← К рейтингу</button></div>'+
-   '<div class="lc-clan-detail-hero"><div class="lc-clan-detail-header"><img src="'+esc(c.avatar)+'" alt=""><div><div class="lc-clan-detail-title">'+esc(c.name)+'</div><p class="lc-clan-note">Клан сообщества VK · Основан '+(c.createdAt?esc(new Date(c.createdAt).toLocaleDateString('ru-RU')):'—')+'</p></div></div>'+
+   '<div class="lc-clan-detail-hero"><div class="lc-clan-detail-header"><img src="'+esc(c.avatar)+'" alt=""><div><div class="lc-clan-detail-title">'+esc(c.name)+'</div>'+championBadge+'<p class="lc-clan-note">Клан сообщества VK · Основан '+(c.createdAt?esc(new Date(c.createdAt).toLocaleDateString('ru-RU')):'—')+'</p></div></div>'+
    '<a class="lc-clan-detail-action" href="'+asLink(c.communityUrl)+'" target="_blank" rel="noopener noreferrer">Открыть сообщество клана VK ↗</a></div>'+
+   honorPanel+
    '<div class="lc-clan-detail-stats">'+tiles.map(([label,value])=>'<div class="lc-clan-detail-stat"><span class="lc-clan-note">'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>').join('')+'</div>'+
    '<div class="lc-clan-panel"><h3>Прогресс клана</h3>'+meter('Казна',c.coins,c.treasuryCapacity)+meter('Участники',c.memberCount,c.memberCapacity)+meter('Штаб',hq,50)+meter('Стена',wall,50)+'</div>'+
    '<div class="lc-clan-panel"><h3>🏰 Уровни и развитие</h3>'+
