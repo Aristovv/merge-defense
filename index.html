@@ -5414,7 +5414,9 @@ async function casinoCardRequest(action,args={}){
     requestId:crypto.randomUUID()};
    localStorage.setItem(key,JSON.stringify(pending));
   }
-  const response=await fetch(
+  const snapshot=casinoStableJSON(state);
+ const revisionBefore=casinoCloudRevision;
+ const response=await fetch(
    CASINO_API_BASE+'/api/casino/rounds/card-action',{
    method:'POST',
    headers:{
@@ -5451,7 +5453,16 @@ async function casinoCardRequest(action,args={}){
   }
   if(!result.save||!Number.isSafeInteger(result.revision))
    throw Error('Некорректное сохранение');
-  state={...fresh(),...result.save};
+  if(casinoStableJSON(state)!==snapshot||
+ casinoCloudRevision!==revisionBefore||
+ (Number.isSafeInteger(revisionBefore)&&
+ result.revision<revisionBefore)){
+  casinoCloudBackup('Concurrent card change');
+  casinoCloudPreserveRemote(result,'card conflict');
+  casinoCloudRevision=null;
+  throw Error('Обнаружен конфликт. Требуется сверка сохранений.');
+ }
+ state={...fresh(),...result.save};
   casinoCloudRevision=result.revision;
   localStorage.setItem(STORAGE,JSON.stringify(state));
   casinoCloudDirty=false;
@@ -6970,13 +6981,20 @@ async function casinoAutoRecoverEconomy(){
  !navigator.onLine||document.hidden||
  casinoAutoRecoveryBusy||casinoCloudBusy||
  casinoEconomyActionBusy||casinoCardRequestBusy||
- casinoDailyClaiming||busy||round)return;
+ casinoDailyClaiming||busy)return;
 
  casinoAutoRecoveryBusy=true;
  try{
   const id=casinoCloudVKId();
   if(!id)return;
-  if(localStorage.getItem('casino_card_pending_'+id))return;
+  const cardKey='casino_card_pending_'+id;
+  const card=JSON.parse(localStorage.getItem(cardKey)||'null');
+  if(card){
+   const {action,revision,requestId,...args}=card;
+   await casinoApplyCardAction(action,args);
+   return;
+  }
+  if(round)return;
   const key='casino_economy_pending_'+id;
   const pending=JSON.parse(localStorage.getItem(key)||'null');
   if(pending){
