@@ -173,14 +173,14 @@ function registerCasinoSaves(app,pool,requireAuth){
  // Opt-in only: the legacy client still writes snapshots until migration is complete.
  app.post('/api/casino/economy/action',requireAuth,async(req,res)=>{
   if(process.env.CASINO_AUTHORITATIVE_ECONOMY!=='1')return res.status(503).json({error:'ECONOMY_NOT_ENABLED'});
-  const vk=id(req),{action,revision,requestId,index,level,game,stake,count=1,risk=0,guess}=req.body||{};
+  const vk=id(req),{action,revision,requestId,index,level,game,stake,count=1,risk=0,guess,picks}=req.body||{};
   if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
   if(!['collect_income','upgrade_building','claim_milestone','play_round'].includes(action)||
      !valid(revision,1,Number.MAX_SAFE_INTEGER)||typeof requestId!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(requestId)||
      (action==='upgrade_building'&&!valid(index,0,13))||
      (action==='claim_milestone'&&!valid(level,1,500))||
-     (action==='play_round'&&(![12,14,15].includes(game)||!valid(stake,25,100000)||stake%5!==0)))return res.status(400).json({error:'INVALID_ACTION'});
-  const signature=JSON.stringify([action,action==='upgrade_building'?index:action==='claim_milestone'?level:action==='play_round'?[game,stake,count,risk,guess??null]:null]);
+     (action==='play_round'&&(![0,1,2,3,4,5,6,7,10,12,14,15].includes(game)||!valid(stake,25,100000)||stake%5!==0)))return res.status(400).json({error:'INVALID_ACTION'});
+  const signature=JSON.stringify([action,action==='upgrade_building'?index:action==='claim_milestone'?level:action==='play_round'?[game,stake,count,risk,guess??null,picks??null]:null]);
   let client;
   try{
    await ensure(pool);
@@ -207,11 +207,11 @@ function registerCasinoSaves(app,pool,requireAuth){
     result=action==='collect_income'?economy.collectIncome(current.save,now):
       action==='upgrade_building'?economy.upgradeBuilding(current.save,index,now):
       action==='claim_milestone'?economy.claimMilestone(current.save,level):
-      require('./casino-authoritative-outcomes.cjs').resolveRound(current.save,{game,stake,count,risk,guess},now);
+      require('./casino-authoritative-outcomes.cjs').resolveRound(current.save,{game,stake,count,risk,guess,picks},now);
     if(!clean(result.save))throw Error('INVALID_RESULT');
    }catch(e){
     await client.query('ROLLBACK');
-    const known=['INSUFFICIENT_COINS','MILESTONE_NOT_REACHED','BUILDING_LEVEL_LIMIT','BUILDING_COST_LIMIT','BALANCE_LIMIT','INVALID_INCOME_TIME','INVALID_BUILDING','INVALID_RESULT','INVALID_STAKE','INVALID_PLINKO','INVALID_GUESS','INSUFFICIENT_CHIPS','ROUND_PENDING','UNSUPPORTED_GAME'];
+    const known=['INSUFFICIENT_COINS','MILESTONE_NOT_REACHED','BUILDING_LEVEL_LIMIT','BUILDING_COST_LIMIT','BALANCE_LIMIT','INVALID_INCOME_TIME','INVALID_BUILDING','INVALID_RESULT','INVALID_STAKE','INVALID_PLINKO','INVALID_GUESS','INSUFFICIENT_CHIPS','ROUND_PENDING','UNSUPPORTED_GAME','INVALID_PICKS','SLOT_BONUS_PENDING'];
     return res.status(422).json({error:known.includes(e.message)?e.message:'ACTION_REJECTED'});
    }
    const next={...result.save,stamp:Date.now()};
