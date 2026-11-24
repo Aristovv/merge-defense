@@ -38,4 +38,35 @@ function claimMilestone(save,level){
  next.levelRewards.push(level);next.chips+=reward[0];next.coins+=reward[1];
  return {save:next,alreadyClaimed:false};
 }
-module.exports={buildingCost,hourlyRate,collectIncome,claimMilestone};
+function upgradeBuilding(save,i,now){
+ const next=collectIncome(save,now).save;
+ const price=buildingCost(i,next.buildings[i]);
+ if(next.coins<price)throw Error('INSUFFICIENT_COINS');
+ if(next.buildings[i]>=1000)throw Error('BUILDING_LEVEL_LIMIT');
+ next.coins-=price;next.buildings[i]++;
+ const date=new Date(now),day=date.toISOString().slice(0,10);
+ date.setUTCDate(date.getUTCDate()-((date.getUTCDay()+6)%7));
+ const week=date.toISOString().slice(0,10);
+ next.questPeriods??={};
+ for(const [scope,key] of [['daily',day],['weekly',week]]){
+  let p=next.questPeriods[scope];
+  if(!p||p.key!==key||!p.counts||!Array.isArray(p.claimed))p=next.questPeriods[scope]={key,counts:{plays:0,wins:0,builds:0},claimed:[]};
+  p.counts.builds=(Number(p.counts.builds)||0)+1;
+ }
+ next.liveCity14??={};
+ const x=next.liveCity14;
+ if(!x.daily||x.daily.key!==day)x.daily={key:day,games:[],rounds:0,builds:0,hot:0,claims:[]};
+ x.daily.builds=(Number(x.daily.builds)||0)+1;
+ if(next.level<500){
+  next.xp+=Math.floor(25*(Number(x.boosts?.xp)>now?1.5:1));
+  while(next.level<500){
+   const need=420+next.level*110+next.level*next.level*8;
+   if(next.xp<need)break;
+   next.xp-=need;next.level++;next.chips+=100+next.level*20;
+  }
+ }
+ if(next.level>=500)next.xp=0;
+ if(!Number.isSafeInteger(next.chips))throw Error('BALANCE_LIMIT');
+ return {save:next,price};
+}
+module.exports={buildingCost,hourlyRate,collectIncome,claimMilestone,upgradeBuilding};
