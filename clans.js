@@ -170,8 +170,9 @@
    html+='<div class="lc-clan-panel"><h3>✦ Прогресс моего клана</h3>'+clanMeter('Казна',c.coins,c.treasuryCapacity)+clanMeter('Участники',c.memberCount,c.memberCapacity||10)+clanMeter('Штаб',c.headquarters,50)+clanMeter('Стена',c.wall,50)+'<a class="btn ghost" style="display:block;text-align:center;text-decoration:none;margin-top:12px" href="https://vk.com/club'+Number(c.groupId)+'" target="_blank" rel="noopener noreferrer">Сообщество клана ↗</a></div>';
    const activity=c.activity;
    if(activity){
+    if(c.missionXp!==undefined){const xp=Math.max(0,Number(c.missionXp)||0),lv=1+Math.floor(xp/1000);html+='<div class="lc-clan-panel"><h3>⭐ Уровень клана '+lv+'</h3><p class="lc-clan-note">Всего опыта: '+fmtProgress(xp)+' XP. Каждые 1 000 XP — новый уровень. Личные балансы не меняются.</p>'+clanMeter('До следующего уровня',xp%1000,1000)+'<p class="lc-clan-note">Ежедневные задания: 100 и 150 XP. Еженедельные: 500 и 400 XP.</p><button class="btn purple" data-clan="mission-rewards">Получить опыт за задания</button></div>';}
     const tasks=[['Ежедневные','Получить 3 ежедневных взноса',activity.dailyClaims,3],['Ежедневные','Пополнить казну на 10 000 монет',activity.dailyDeposits,10000],['Еженедельные','Пополнить казну на 50 000 монет',activity.weeklyDeposits,50000],['Еженедельные','Провести 3 улучшения клана',activity.weeklyUpgrades,3]];
-    html+='<div class="lc-clan-panel"><h3>📋 Клановые задания</h3><p class="lc-clan-note">Общие цели для всего клана. Прогресс учитывается сервером. День обновляется в 00:00 UTC, неделя — в понедельник. Пока без дополнительных наград.</p>'+['Ежедневные','Еженедельные'].map(period=>'<strong style="display:block;margin-top:14px">'+period+'</strong>'+tasks.filter(t=>t[0]===period).map(t=>clanMeter(t[1]+(Number(t[2])>=t[3]?' ✓':''),Math.min(Number(t[2])||0,t[3]),t[3])).join('')).join('')+'</div>';
+    html+='<div class="lc-clan-panel"><h3>📋 Клановые задания</h3><p class="lc-clan-note">Общие цели для всего клана. Прогресс учитывается сервером. День обновляется в 00:00 UTC, неделя — в понедельник. За выполненные задания начисляется клановый опыт.</p>'+['Ежедневные','Еженедельные'].map(period=>'<strong style="display:block;margin-top:14px">'+period+'</strong>'+tasks.filter(t=>t[0]===period).map(t=>clanMeter(t[1]+(Number(t[2])>=t[3]?' ✓':''),Math.min(Number(t[2])||0,t[3]),t[3])).join('')).join('')+'</div>';
    }
    const contributors=[...(c.members||[])].filter(m=>Number(m.contributed)>0).sort((a,b)=>Number(b.contributed)-Number(a.contributed)||Number(b.deposits||0)-Number(a.deposits||0));
    const totalContributions=contributors.reduce((sum,m)=>sum+Number(m.contributed),0);
@@ -326,6 +327,7 @@
  document.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-clan]');if(!btn||!root()?.contains(btn)||btn.disabled)return;
   const action=btn.dataset.clan;if(action==='reload'||action==='refresh-permits')return load();
+  if(action==='mission-rewards'){btn.disabled=true;try{const result=await api('/mission-rewards',{});await load();notice=Number(result.xp)>0?'Клан получил '+Number(result.xp)+' XP':'Нет новых выполненных заданий';}catch(e){notice=e.message}finally{btn.disabled=false;paint()}return;}
   if(!launch){notice='Откройте Lucky City через VK';return paint()}
   if(action==='start-create'||action==='refresh-groups')return openCreator();
   if(action==='cancel-create'){creating=false;preview=null;userToken=null;adminGroups=[];notice='';return paint()}
