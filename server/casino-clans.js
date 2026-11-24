@@ -508,7 +508,8 @@ export function registerLuckyClans(app,pool,requireAuth){
    COUNT(*) FILTER(WHERE action='wall')::int AS "wallUpgrades",
    COUNT(*) FILTER(WHERE action='seats')::int AS "seatUpgrades"
    FROM lucky_clan_transactions WHERE clan_id=$1`,[clan.id]);
-  return res.json({clan:{...clan,members:await vkMemberProfiles(members.rows),
+  const honors=await pool.query(`SELECT season,league,rank,points FROM lucky_clan_season_results WHERE clan_id=$1 AND rank BETWEEN 1 AND 3 AND points>0 AND season<$2 ORDER BY season DESC LIMIT 30`,[clan.id,clanSeasonWindow().number]);
+  return res.json({clan:{...clan,seasonHonors:honors.rows,members:await vkMemberProfiles(members.rows),
    stats:totals.rows[0]||{},communityUrl:'https://vk.com/club'+String(clan.groupId)},
    premiumLevels:PREMIUM_LEVELS,seatPrices:CLAN_SEAT_PRICES});
  }));
