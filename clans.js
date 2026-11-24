@@ -315,7 +315,7 @@
   if(action==='cancel-create'){creating=false;preview=null;userToken=null;adminGroups=[];notice='';return paint()}
   if(action==='manual-group'){
    let value=String(document.getElementById('lc-manual-group')?.value||'').trim();
-   value=value.replace(/^https?:\\/\\/(?:m\\.)?(?:vk\\.com|vk\\.ru)\\//i,'').split(/[/?#]/)[0];
+   if(value.startsWith('http://')||value.startsWith('https://')){try{const u=new URL(value);if(!['vk.com','vk.ru','m.vk.com','m.vk.ru'].includes(u.hostname))throw Error();value=u.pathname.split('/').filter(Boolean)[0]||''}catch(_){notice='Введите корректную ссылку VK';return paint()}}
    if(!/^[a-zA-Z0-9_.]{1,100}$/.test(value)){notice='Введите ссылку или ID сообщества VK';return paint()}
    btn.disabled=true;
    try{
