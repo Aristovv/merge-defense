@@ -5564,13 +5564,25 @@ window.LuckyClanEconomy={
  async deposit(amount){
   if(casinoDailyClaiming||casinoCloudBusy||casinoCloudStarting)throw Error('Дождись завершения сохранения');
   if(!CASINO_LAUNCH_PARAMS)throw Error('Откройте игру из ВКонтакте');
+  if(busy||round)throw Error('Сначала заверши текущую игру');
   if(state.pendingMiniRound?.kind==='plinko'&&!busy)await casinoCloudRecoverLocalPendingPlinko();
   if(casinoCloudLocalOnly||!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1){
    if(casinoCloudLocalOnly){
     if(!await casinoCloudReconcilePlinko())await casinoCloudReconnectIdentical();
    }else await casinoCloudStart();
-   if(casinoCloudLocalOnly||!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1)
-    throw Error('Локальная и облачная копии требуют сверки. Откройте «Персонаж» → «Проверить облачную копию». Перевод не выполнен.');
+   if(casinoCloudLocalOnly||!Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1){
+    const remote=await casinoCloudFetch('GET');
+    if(!remote?.save||!Number.isSafeInteger(remote.revision)||remote.revision<1||remote.save.pendingMiniRound||state.pendingMiniRound)throw Error('Серверный баланс пока недоступен');
+    const local=casinoStableJSON(state),cloud=casinoStableJSON(remote.save);
+    if(local!==cloud){
+     const pending=casinoCloudPendingRead();
+     if(pending)throw Error('Есть незавершённое сохранение. Взнос пока не выполнен.');
+     // Only normalize missing default fields; never discard different progress.
+     if(casinoStableJSON({...fresh(),...remote.save})!==local)throw Error('Баланс на сервере отличается от телефона. Взнос не выполнен, прогресс сохранён.');
+    }
+    casinoCloudRevision=remote.revision;casinoCloudLocalOnly=false;casinoCloudDirty=false;
+    if(localStorage.getItem(CASINO_LOCAL_ONLY_KEY)===casinoCloudLocalOwner())localStorage.removeItem(CASINO_LOCAL_ONLY_KEY);
+   }
   }
   if(state.pendingMiniRound&&!busy){
    throw Error('В сохранении остался незавершённый раунд '+(state.pendingMiniRound.kind==='plinko'?'Plinko':'Crash')+'. Не переводите монеты, пока не проверите восстановление во вкладке «Персонаж».');
