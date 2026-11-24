@@ -23,20 +23,24 @@ function resolveRoulette(save,input,now,rand){
  return {save:applyCompletedRound(save,{game,stake:total,payout,description,now}),payout,stake:total,details:{num,color},description};
 }
 function resolvePaidSlot(save,input,now,rand){
- const {game,stake}=input,[min,max]=SLOT_LIMITS[game];
- if(save.slotBonus?.left>0||save.slotFreeSpinInProgress)throw Error('SLOT_BONUS_PENDING');
+ const {game}=input,[min,max]=SLOT_LIMITS[game];
+ const free=input.freeSpin===true,bonus=save.slotBonus,stake=free?bonus?.bet:input.stake;
+ if(save.slotFreeSpinInProgress)throw Error('SLOT_BONUS_PENDING');
+ if(free&&(!bonus||bonus.game!==game||!Number.isInteger(bonus.left)||bonus.left<1||bonus.left>[2,3,2,2,3,2][game]))throw Error('NO_FREE_SPIN');
+ if(!free&&bonus?.left>0)throw Error('SLOT_BONUS_PENDING');
  if(!Number.isSafeInteger(stake)||stake<min||stake>max||stake%5)throw Error('INVALID_STAKE');
- if(save.chips<stake)throw Error('INSUFFICIENT_CHIPS');
+ if(!free&&save.chips<stake)throw Error('INSUFFICIENT_CHIPS');
  if(save.pendingMiniRound)throw Error('ROUND_PENDING');
  const weights=SLOT_WEIGHTS[game],symbol=()=>{let p=rand(weights.reduce((a,b)=>a+b,0));for(let i=0;i<weights.length;i++){p-=weights[i];if(p<0)return i}return 7};
  const grid=Array.from({length:5},()=>Array.from({length:4},symbol)),lines=[],lineMatches={};
  let raw=0;
  SLOT_LINES.forEach((rows,i)=>{const symbols=rows.map((row,col)=>grid[col][row]);const base=symbols.find(x=>x!==6)??0;if(base===7)return;let n=0;while(n<5&&(symbols[n]===base||symbols[n]===6))n++;if(n<3)return;raw+=n===3?(base===0?.34:.19):n===4?(base===0?1.1:.63):(base===0?4.5:2.4);lines.push(i);lineMatches[i]=n});
- const payout=Math.floor(raw*stake*[1.17,1.03,1.24,1.29,1.16,1.06][game]),scatters=grid.flat().filter(x=>x===7).length;
+ const payout=Math.floor(raw*stake*[1.17,1.03,1.24,1.29,1.16,1.06][game])*(free?[2,2,3,2,2,3][game]:1),scatters=grid.flat().filter(x=>x===7).length;
  const description=lines.length?'Линии: '+lines.map(i=>i+1).join(', '):'Без совпадений';
- const next=applyCompletedRound(save,{game,stake,payout,description,now});
- if(scatters>=3&&rand(100)<8)next.slotBonus={game,left:[2,3,2,2,3,2][game],bet:stake};
- return {save:next,payout,stake,details:{grid,lines,lineMatches,scatters},description};
+ const next=applyCompletedRound(save,{game,stake:free?0:stake,payout,description,now,freeSpin:free});
+ if(free)next.slotBonus=bonus.left>1?{...bonus,left:bonus.left-1}:null;
+ if(!free&&scatters>=3&&rand(100)<8)next.slotBonus={game,left:[2,3,2,2,3,2][game],bet:stake};
+ return {save:next,payout,stake:free?0:stake,details:{grid,lines,lineMatches,scatters,freeSpin:free},description};
 }
 function resolveRound(save,input,now=Date.now(),rand=randomInt){
  if([6,7].includes(input.game))return resolveRoulette(save,input,now,rand);
