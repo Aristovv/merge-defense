@@ -1,4 +1,9 @@
 import {createHmac} from 'node:crypto';
+import economyRules from './casino-authoritative-economy.cjs';
+// Base income excludes temporary boosts; malformed legacy saves keep the old limit.
+function clanIncome(save){try{if(!Array.isArray(save?.buildings)||save.buildings.length!==14||save.buildings.some(x=>!Number.isInteger(x)||x<0||x>1000))return 0;const rate=economyRules.hourlyRate(save);return Number.isFinite(rate)&&rate>=0?Math.min(rate,10000000):0}catch{return 0}}
+function clanDepositLimit(save){return Math.min(5000000,Math.max(100000,Math.ceil(clanIncome(save)*2/100)*100))}
+
 // Lucky City clans: independent, server-owned data; never writes player cloud saves.
 const INIT=`
 CREATE TABLE IF NOT EXISTS lucky_clans (
@@ -282,6 +287,9 @@ export async function vkMemberProfiles(members,token=process.env.VK_GROUP_SERVIC
 const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.coins,c.seat_tier AS "seatTier",(10+c.seat_tier*5)::int AS "memberCapacity",(50000+c.headquarters*c.headquarters*20000)::bigint AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
 // Fixed targets per UTC period. Existing rewards retain their original keys.
 async function missionTargets(pool,id){
+ const incomes=await pool.query(`SELECT s.save->'buildings' AS buildings FROM lucky_clan_members m LEFT JOIN public.casino_city_saves s ON s.vk_id::text=regexp_replace(m.player_id,'^vk:','') WHERE m.clan_id=$1`,[id]);
+ const totalIncome=Math.ceil(incomes.rows.reduce((sum,row)=>sum+clanIncome(row),0));
+ const totalLimit=incomes.rows.reduce((sum,row)=>sum+clanDepositLimit(row),0)||100000;
  const {rows}=await pool.query(`WITH periods AS (
  SELECT (NOW() AT TIME ZONE 'UTC')::date AS d,date_trunc('week',NOW() AT TIME ZONE 'UTC')::date AS w
  ), roster AS (
@@ -292,15 +300,15 @@ async function missionTargets(pool,id){
  FROM lucky_clans c CROSS JOIN roster r WHERE c.id=$1
  ), targets AS (
  SELECT p.d,p.w, GREATEST(1,CEIL(b.n*0.6))::int AS participants,
- LEAST(b.cap,b.n*100000::bigint,GREATEST(10000,b.n*10000::bigint,b.headquarters*5000::bigint,b.wall*3000::bigint)) AS daily_coins,
- LEAST(b.cap,b.n*700000::bigint,GREATEST(50000,b.n*50000::bigint,b.headquarters*25000::bigint,b.wall*15000::bigint)) AS weekly_coins
+ LEAST(b.cap,$3::bigint,GREATEST(10000,b.n*10000::bigint,b.headquarters*5000::bigint,b.wall*3000::bigint,$2::bigint)) AS daily_coins,
+ LEAST(b.cap,$3::bigint*7,GREATEST(50000,b.n*50000::bigint,b.headquarters*25000::bigint,b.wall*15000::bigint,$2::bigint*5)) AS weekly_coins
  FROM base b CROSS JOIN periods p
  ), ins AS (
  INSERT INTO lucky_clan_mission_targets(clan_id,scope,period_start,participants,coins)
  SELECT $1,v.scope,v.period_start,t.participants,v.coins FROM targets t CROSS JOIN LATERAL
  (VALUES ('daily',t.d,t.daily_coins),('weekly',t.w,t.weekly_coins)) v(scope,period_start,coins)
  ON CONFLICT DO NOTHING RETURNING scope
- ) SELECT COUNT(*) FROM ins`,[id]);
+ ) SELECT COUNT(*) FROM ins`,[id,totalIncome,totalLimit]);
  const saved=await pool.query(`SELECT scope,participants,coins FROM lucky_clan_mission_targets WHERE clan_id=$1 AND
  ((scope='daily' AND period_start=(NOW() AT TIME ZONE 'UTC')::date) OR
  (scope='weekly' AND period_start=date_trunc('week',NOW() AT TIME ZONE 'UTC')::date))`,[id]);
@@ -334,7 +342,9 @@ async function mine(pool,playerId){
  FROM lucky_clan_transactions WHERE clan_id=$1
  AND created_at>=date_trunc('week',NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'`,[rows[0].id]);
  const rewards=await pool.query(`SELECT COALESCE(SUM(xp),0)::bigint AS xp FROM lucky_clan_mission_rewards WHERE clan_id=$1`,[rows[0].id]);
- return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,activity:activity.rows[0]||{},missionTargets:targets,missionXp:Number(rewards.rows[0]?.xp||0)};
+ const own=await pool.query(`SELECT s.save->'buildings' AS buildings FROM public.casino_city_saves s WHERE s.vk_id=$1`,[String(playerId).replace(/^vk:/,'')]);
+ const depositLimit=clanDepositLimit(own.rows[0]);
+ return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,activity:activity.rows[0]||{},missionTargets:targets,depositLimit,missionXp:Number(rewards.rows[0]?.xp||0)};
 }
 async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
@@ -513,7 +523,7 @@ export function registerLuckyClans(app,pool,requireAuth){
  app.post('/api/casino/clans/deposit',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   const amount=req.body?.amount,revision=req.body?.revision,key=req.body?.requestId;
-  if(!Number.isSafeInteger(amount)||amount<100||amount>100000||amount%100!==0)fail('Взнос от 100 до 100 000 монет, шаг 100');
+  if(!Number.isSafeInteger(amount)||amount<100||amount>5000000||amount%100!==0)fail('Взнос от 100 до 5 000 000 монет, шаг 100');
   if(!Number.isSafeInteger(revision)||revision<1)fail('Облако не подтверждено');
   if(typeof key!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(key))fail('Неверный идентификатор операции');
   const result=await tx(pool,async c=>{
@@ -527,7 +537,8 @@ export function registerLuckyClans(app,pool,requireAuth){
    }
    if(Number(current.rows[0].revision)!==revision)fail('Сохранение изменилось — перезайди в игру',409);
    const daily=await c.query("SELECT COALESCE(SUM(coins),0)::bigint AS total FROM lucky_clan_transactions WHERE player_id=$1 AND action='deposit' AND (created_at AT TIME ZONE 'UTC')::date=(NOW() AT TIME ZONE 'UTC')::date",[req.playerId]);
-   if(Number(daily.rows[0].total)+amount>100000)fail('Лимит взносов: 100 000 монет в сутки');
+   const limit=clanDepositLimit(current.rows[0].save);
+   if(Number(daily.rows[0].total)+amount>limit)fail('Лимит взносов: '+limit.toLocaleString('ru-RU')+' монет в сутки');
    const save=current.rows[0].save;
    if(save.pendingMiniRound)fail('Сначала закончи мини-игру',409);
    if(!Number.isSafeInteger(save.coins)||save.coins<amount)fail('Недостаточно личных монет');
