@@ -116,6 +116,23 @@ function settleRecordedPlinko(save){
  return next;
 }
 function id(req){const n=String(req.playerId||'').replace(/^vk:/,'');return /^[1-9][0-9]{0,18}$/.test(n)?n:null}
+async function persistRoundStart(client,vk,roundId,privateState,expectedRevision,nextSave){
+ if(!clean(nextSave)||!valid(expectedRevision,1,Number.MAX_SAFE_INTEGER))throw Error('INVALID_ROUND_SAVE');
+ const updated=await client.query('UPDATE public.casino_city_saves SET save=$3::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1 AND revision=$2 RETURNING revision::text AS revision',[vk,expectedRevision,JSON.stringify(nextSave)]);
+ if(!updated.rowCount)throw Error('REVISION_CONFLICT');
+ const revision=Number(updated.rows[0].revision);
+ await client.query('INSERT INTO public.casino_private_rounds(vk_id,round_id,private_state,save_revision) VALUES($1,$2,$3::jsonb,$4)',[vk,roundId,JSON.stringify(privateState),revision]);
+ return revision;
+}
+async function persistRoundFinish(client,vk,roundId,expectedRevision,nextSave){
+ if(!clean(nextSave)||!valid(expectedRevision,1,Number.MAX_SAFE_INTEGER))throw Error('INVALID_ROUND_SAVE');
+ const locked=await client.query('SELECT round_id FROM public.casino_private_rounds WHERE vk_id=$1 AND round_id=$2 AND save_revision=$3 FOR UPDATE',[vk,roundId,expectedRevision]);
+ if(!locked.rowCount)throw Error('ROUND_CONFLICT');
+ const updated=await client.query('UPDATE public.casino_city_saves SET save=$3::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1 AND revision=$2 RETURNING revision::text AS revision',[vk,expectedRevision,JSON.stringify(nextSave)]);
+ if(!updated.rowCount)throw Error('REVISION_CONFLICT');
+ await client.query('DELETE FROM public.casino_private_rounds WHERE vk_id=$1 AND round_id=$2',[vk,roundId]);
+ return Number(updated.rows[0].revision);
+}
 function registerCasinoSaves(app,pool,requireAuth){
  app.get('/api/casino/save',requireAuth,async(req,res)=>{
   try{await ensure(pool);const vk=id(req);if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
@@ -279,4 +296,4 @@ function registerCasinoSaves(app,pool,requireAuth){
   }catch(e){console.error('casino save write',e.code||e.message);res.status(503).json({error:'SAVE_UNAVAILABLE'})}
  });
 }
-module.exports={registerCasinoSaves,regression,clean,settleRecordedPlinko};
+module.exports={registerCasinoSaves,regression,clean,settleRecordedPlinko,persistRoundStart,persistRoundFinish};
