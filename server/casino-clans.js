@@ -36,7 +36,8 @@ const ECONOMY_SQL=[
  `CREATE TABLE IF NOT EXISTS lucky_clan_daily_claims(
  vk_id BIGINT NOT NULL, claim_day DATE NOT NULL, clan_id BIGINT NOT NULL,
  PRIMARY KEY(vk_id,claim_day))`,
- "ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS seat_tier SMALLINT NOT NULL DEFAULT 0 CHECK(seat_tier BETWEEN 0 AND 8)"
+ "ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS seat_tier SMALLINT NOT NULL DEFAULT 0 CHECK(seat_tier BETWEEN 0 AND 8)",
+ `CREATE TABLE IF NOT EXISTS lucky_clan_mission_rewards(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE, mission TEXT NOT NULL, period_start DATE NOT NULL, xp INTEGER NOT NULL CHECK(xp>0), PRIMARY KEY(clan_id,mission,period_start))`
 ];
 let initialized;
 const start=pool=>{
@@ -300,7 +301,8 @@ async function mine(pool,playerId){
  COUNT(*) FILTER(WHERE action IN ('headquarters','wall','seats'))::int AS "weeklyUpgrades"
  FROM lucky_clan_transactions WHERE clan_id=$1
  AND created_at>=date_trunc('week',NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'`,[rows[0].id]);
- return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,activity:activity.rows[0]||{}};
+ const rewards=await pool.query(`SELECT COALESCE(SUM(xp),0)::bigint AS xp FROM lucky_clan_mission_rewards WHERE clan_id=$1`,[rows[0].id]);
+ return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,activity:activity.rows[0]||{},missionXp:Number(rewards.rows[0]?.xp||0)};
 }
 async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
@@ -422,6 +424,34 @@ export function registerLuckyClans(app,pool,requireAuth){
   });res.json({ok:true});
  }));
 
+ app.post('/api/casino/clans/mission-rewards',requireAuth,wrap(async(req,res)=>{
+  await start(pool);
+  const result=await tx(pool,async c=>{
+   const member=await c.query('SELECT clan_id FROM lucky_clan_members WHERE player_id=$1 FOR UPDATE',[req.playerId]);
+   if(!member.rowCount)fail('Сначала вступите в клан',403);
+   const id=member.rows[0].clan_id;
+   const result=await c.query(`WITH periods AS (
+    SELECT date_trunc('day',NOW() AT TIME ZONE 'UTC') AS d,date_trunc('week',NOW() AT TIME ZONE 'UTC') AS w
+   ), totals AS (
+    SELECT COUNT(*) FILTER(WHERE action='daily' AND created_at >= (p.d AT TIME ZONE 'UTC')) AS daily_claims,
+    COALESCE(SUM(coins) FILTER(WHERE action='deposit' AND created_at >= (p.d AT TIME ZONE 'UTC')),0) AS daily_deposits,
+    COALESCE(SUM(coins) FILTER(WHERE action='deposit'),0) AS weekly_deposits,
+    COUNT(*) FILTER(WHERE action IN ('headquarters','wall','seats')) AS weekly_upgrades
+    FROM lucky_clan_transactions CROSS JOIN periods p WHERE clan_id=$1 AND created_at >= (p.w AT TIME ZONE 'UTC')
+   ), eligible AS (
+    SELECT v.mission,v.period_start,v.xp FROM totals t CROSS JOIN periods p CROSS JOIN LATERAL (VALUES
+      ('daily_claims',p.d::date,100,t.daily_claims>=3),
+      ('daily_deposits',p.d::date,150,t.daily_deposits>=10000),
+      ('weekly_deposits',p.w::date,500,t.weekly_deposits>=50000),
+      ('weekly_upgrades',p.w::date,400,t.weekly_upgrades>=3)
+    ) v(mission,period_start,xp,done) WHERE v.done
+   )
+   INSERT INTO lucky_clan_mission_rewards(clan_id,mission,period_start,xp)
+   SELECT $1,mission,period_start,xp FROM eligible ORDER BY mission
+   ON CONFLICT DO NOTHING RETURNING xp`,[id]);
+   return {xp:result.rows.reduce((n,row)=>n+Number(row.xp),0)};
+  });res.json({ok:true,...result});
+ }));
  app.post('/api/casino/clans/daily',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   const result=await tx(pool,async c=>{
