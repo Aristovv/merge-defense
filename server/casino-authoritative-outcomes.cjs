@@ -42,16 +42,23 @@ function resolveRound(save,input,now=Date.now(),rand=randomInt){
  if([6,7].includes(input.game))return resolveRoulette(save,input,now,rand);
  if(Number.isInteger(input.game)&&input.game>=0&&input.game<6)return resolvePaidSlot(save,input,now,rand);
  const {game,stake,count=1,risk=0,guess}=input;
- if(![12,14,15].includes(game))throw Error('UNSUPPORTED_GAME');
+ if(![10,12,14,15].includes(game))throw Error('UNSUPPORTED_GAME');
  const max=Math.min(100000,500+Math.floor(hourlyRate(save)/1000)*100);
  if(!Number.isSafeInteger(stake)||stake<25||stake>max||stake%5)throw Error('INVALID_STAKE');
  if(game===12&&(!Number.isInteger(count)||count<1||count>10||!Number.isInteger(risk)||risk<0||risk>2))throw Error('INVALID_PLINKO');
+ if(game===10&&(!Array.isArray(input.picks)||input.picks.length!==4||new Set(input.picks).size!==4||input.picks.some(n=>!Number.isInteger(n)||n<1||n>20)))throw Error('INVALID_PICKS');
  if(game===14&&!['over','under'].includes(guess))throw Error('INVALID_GUESS');
  const total=game===12?stake*count:stake;
  if(save.pendingMiniRound)throw Error('ROUND_PENDING');
  if(save.chips<total)throw Error('INSUFFICIENT_CHIPS');
  let payout=0,details,description;
- if(game===12){
+ if(game===10){
+  const pool=Array.from({length:20},(_,i)=>i+1);
+  for(let i=0;i<8;i++){const j=i+rand(20-i);[pool[i],pool[j]]=[pool[j],pool[i]]}
+  const draw=pool.slice(0,8),hits=input.picks.filter(n=>draw.includes(n)).length;
+  payout=Math.floor(stake*[0,0,1.5,5,22][hits]);details={draw,hits};
+  description='Угадано '+hits+'/4 · Выпали: '+draw.join(', ');
+ }else if(game===12){
   details=Array.from({length:count},()=>{let index=0;const path=[];for(let i=0;i<12;i++){index+=rand(2);path.push(index)}return {index,path,prize:Math.floor(stake*TABLES[risk][index])}});
   payout=details.reduce((n,x)=>n+x.prize,0);description='Plinko: '+count+' шариков';
  }else if(game===14){
