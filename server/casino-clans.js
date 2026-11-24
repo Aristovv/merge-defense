@@ -287,6 +287,12 @@ export async function vkMemberProfiles(members,token=process.env.VK_GROUP_SERVIC
 const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.coins,c.seat_tier AS "seatTier",(10+c.seat_tier*5)::int AS "memberCapacity",(50000+c.headquarters*c.headquarters*20000)::bigint AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
 // Fixed targets per UTC period. Existing rewards retain their original keys.
 // Capped rewards keep high-income clans from gaining unlimited XP.
+// Shared clan perk: only the free daily treasury contribution is boosted.
+export function clanLevelBonus(xp){
+ const level=1+Math.floor(Math.max(0,Number(xp)||0)/1000);
+ const percent=Math.min(50,Math.floor((level-1)/5)*5);
+ return {level,percent,dailyReward:Math.floor(500*(100+percent)/100)};
+}
 export function clanMissionRewards(targets){
  const scale=(value,base)=>Math.max(1,Math.min(3,1+Math.log10(Math.max(1,Number(value)/base))));
  const round=(base,factor)=>Math.round(base*factor/25)*25;
@@ -350,7 +356,7 @@ async function mine(pool,playerId){
  const rewards=await pool.query(`SELECT COALESCE(SUM(xp),0)::bigint AS xp FROM lucky_clan_mission_rewards WHERE clan_id=$1`,[rows[0].id]);
  const own=await pool.query(`SELECT s.save->'buildings' AS buildings FROM public.casino_city_saves s WHERE s.vk_id=$1`,[String(playerId).replace(/^vk:/,'')]);
  const depositLimit=clanDepositLimit(own.rows[0]);
- return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,activity:activity.rows[0]||{},missionTargets:targets,missionRewards:clanMissionRewards(targets),depositLimit,missionXp:Number(rewards.rows[0]?.xp||0)};
+ return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,activity:activity.rows[0]||{},missionTargets:targets,missionRewards:clanMissionRewards(targets),depositLimit,missionXp:Number(rewards.rows[0]?.xp||0),levelBonus:clanLevelBonus(rewards.rows[0]?.xp)};
 }
 async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
@@ -518,7 +524,8 @@ export function registerLuckyClans(app,pool,requireAuth){
    if(!claimed.rowCount)fail('Сегодня бонус уже начислялся в другой клан');
    const clan=await c.query('SELECT coins,headquarters FROM lucky_clans WHERE id=$1 FOR UPDATE',[m.rows[0].clan_id]);
    const cap=50000+clan.rows[0].headquarters**2*20000;
-   const reward=Math.min(500,cap-Number(clan.rows[0].coins));
+   const xp=await c.query('SELECT COALESCE(SUM(xp),0)::bigint AS xp FROM lucky_clan_mission_rewards WHERE clan_id=$1',[m.rows[0].clan_id]);
+   const reward=Math.min(clanLevelBonus(xp.rows[0]?.xp).dailyReward,cap-Number(clan.rows[0].coins));
    if(reward<=0)fail('Казна заполнена');
    await c.query('UPDATE lucky_clans SET coins=coins+$1 WHERE id=$2',[reward,m.rows[0].clan_id]);
    await c.query('UPDATE lucky_clan_members SET last_claim=$1::date WHERE player_id=$2',[date,req.playerId]);
