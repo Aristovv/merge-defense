@@ -4057,7 +4057,7 @@ async function casinoDonationSubmit(){
  button.disabled=true;host.textContent='Записываем выдачу в облако…';
  const requestId='donation_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,14);
  try{
-  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/admin/donation',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId,kind,id,mode,requestId}),cache:'no-store'});
+  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/donation',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId,kind,id,mode,requestId}),cache:'no-store'});
   const data=await response.json();if(!response.ok)throw Error(data.error||'HTTP '+response.status);
   host.textContent='✓ Сервер подтвердил выдачу: '+id+' игроку VK '+vkId+'.';
   const me=new URLSearchParams(CASINO_LAUNCH_PARAMS||'').get('vk_user_id');
@@ -4080,7 +4080,7 @@ async function casinoDonationRefresh(){
  if(button.dataset.confirmToken!==token){button.dataset.confirmToken=token;host.textContent='Подтверди синхронизацию для VK '+vkId+' повторным нажатием. Ресурсы не начислятся повторно.';button.textContent='Подтвердить синхронизацию';return}
  button.disabled=true;
  try{
-  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/admin/donation-refresh',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId}),cache:'no-store'});
+  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/donation-refresh',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId}),cache:'no-store'});
   const data=await response.json();if(!response.ok)throw Error(data.error||'HTTP '+response.status);
   host.textContent='✓ Облако обновлено. Закрой игру полностью и открой снова. Никаких повторных начислений.';
  }catch(e){host.textContent='Не удалось синхронизировать: '+e.message}
@@ -4235,7 +4235,7 @@ async function initCasinoLaunchParams(){if(CASINO_LAUNCH_PARAMS){loadCasinoVKPro
 function casinoRankPayload(){return {plays:Math.max(0,Math.floor(Number(state.plays)||0)),wins:Math.max(0,Math.floor(Number(state.wins)||0)),level:Math.max(1,Math.floor(Number(state.level)||1)),buildings:state.buildings.map(v=>Math.max(0,Math.floor(Number(v)||0))),displayName:casinoVKDisplayName,avatarUrl:casinoVKAvatar}}
 function syncCasinoRanking(){if(!CASINO_LAUNCH_PARAMS)return;clearTimeout(casinoRankTimer);casinoRankTimer=setTimeout(()=>{
  if(tab==='top'){loadCasinoRanking();return}
- fetch('https://merge.89-23-115-251.sslip.io/api/casino/sync',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify(casinoRankPayload()),cache:'no-store'}).catch(()=>{});
+ fetch('http://127.0.0.1:3099/api/casino/sync',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify(casinoRankPayload()),cache:'no-store'}).catch(()=>{});
 },700)}
 function casinoRankingPoints(){
  return Math.floor(Math.min(Math.max(0,state.plays||0),1000)*3+Math.max(0,state.wins||0)*35+Math.max(1,state.level||1)*100+state.buildings.reduce((a,b)=>a+Math.max(0,Number(b)||0),0)*25);
@@ -4305,7 +4305,7 @@ async function loadCasinoRanking(){
  try{
   if(CASINO_LAUNCH_PARAMS){
    try{
-    const synced=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/sync',{
+    const synced=await fetch('http://127.0.0.1:3099/api/casino/sync',{
      method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
      body:JSON.stringify(casinoRankPayload()),cache:'no-store'
     });
@@ -4329,7 +4329,7 @@ async function loadCasinoRanking(){
     }
    }catch(err){casinoRankingAuthIssue='Ошибка подключения: '+String(err?.message||err).slice(0,100)}
   }else{casinoRankingAuthIssue='Нет подписанных параметров VK'}
-  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/top',{cache:'no-store'});
+  const response=await fetch('http://127.0.0.1:3099/api/casino/top',{cache:'no-store'});
   if(!response.ok)throw Error('HTTP '+response.status);
   const data=await response.json();
   casinoLeaderboardPlayers=(Array.isArray(data.top)?data.top:[])
@@ -4458,7 +4458,7 @@ async function casinoCloudFetch(method,body){
  const controller=new AbortController();
  const timer=setTimeout(()=>controller.abort(),12000);
  try{
-  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/save',{method,headers,body:body?JSON.stringify(body):undefined,cache:'no-store',signal:controller.signal});
+  const response=await fetch('http://127.0.0.1:3099/api/casino/save',{method,headers,body:body?JSON.stringify(body):undefined,cache:'no-store',signal:controller.signal});
   const payload=await response.json().catch(()=>null);
   if(!response.ok)throw Object.assign(new Error('Cloud HTTP '+response.status+(payload?.error?' · '+payload.error:'')),{
    status:response.status,code:payload?.error||'',reason:payload?.reason||''
@@ -4476,7 +4476,7 @@ function casinoCloudRetryStart(){
 async function casinoCloudSettleRecordedPlinko(revision){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
  try{
-  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/rounds/settle-plinko',{
+  const response=await fetch('http://127.0.0.1:3099/api/casino/rounds/settle-plinko',{
    method:'POST',headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS,'Content-Type':'application/json'},
    body:JSON.stringify({revision}),cache:'no-store',signal:controller.signal
   });
@@ -4947,7 +4947,7 @@ async function casinoRunEconomyAction(action,args={}){
    localStorage.setItem(key,JSON.stringify(pending));
   }
   casinoCloudBusy=true;ownsCloud=true;
-  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/economy/action',{
+  const response=await fetch('http://127.0.0.1:3099/api/casino/economy/action',{
    method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
    body:JSON.stringify({...pending.args,action:pending.action,revision:pending.revision,requestId:pending.requestId}),cache:'no-store'
   });
@@ -5353,7 +5353,25 @@ function casinoInitRouletteWebGL(){
 }
 
 function rouletteLandingAngle(previousIndex,index,turns){const sector=360/EURO_WHEEL.length;const offset=((previousIndex-index+EURO_WHEEL.length)%EURO_WHEEL.length)*sector;return -previousIndex*sector+turns*360+offset}
-function playRoulette(){if(busy||round)return;casinoNormalizeBet();const count=roulettePicks.length;if(!count)return message('Сначала выбери ставку на поле рулетки');const total=bet*count;if(!Number.isSafeInteger(total)||total<=0||state.chips<total)return message('Недостаточно фишек для '+count+' ставок');roundBet=bet;casinoCurrentStake=total;state.chips-=total;state.plays++;recordCasinoQuestEvent('plays',1);xp(4);busy=true;save();const num=EURO_WHEEL[rand(37)],color=num===0?'green':ROULETTE_REDS.includes(num)?'red':'black',pick=roulettePick,vip=selected===7;const wheel=$('wheel'),track=$('roulette-ball-track'),rn=$('roulettenumber');if(rn)rn.textContent='••';document.querySelectorAll('.roulette-number-landed,.roulette-choice-landed').forEach(el=>el.classList.remove('roulette-number-landed','roulette-choice-landed'));const reducedMotion=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches),index=EURO_WHEEL.indexOf(num),turns=vip?7:5,duration=reducedMotion?180:(vip?3700:2900),previousIndex=rouletteLastResult?rouletteLastResult.index:0,previousAngle=-previousIndex*360/37,angle=rouletteLandingAngle(previousIndex,index,turns);wheel?.classList.remove('spin');if(wheel){wheel.style.transition='none';wheel.style.transform='rotate('+previousAngle+'deg)';void wheel.offsetWidth;wheel.style.transition=reducedMotion?'none':'transform '+duration+'ms cubic-bezier(.12,.58,.12,1)';wheel.style.transform='rotate('+angle+'deg)';const webglCanvas=$('casino-roulette-webgl');if(webglCanvas?.casinoDraw)requestAnimationFrame(webglCanvas.casinoDraw)}if(track){track.style.animation='none';track.style.transform='translate(-50%,-50%) rotate(0deg)';track.classList.remove('roulette-ball-landing');void track.offsetWidth;track.style.setProperty('--roulette-ball-turns',String(vip?8:6));track.style.setProperty('--roulette-ball-duration',duration+'ms');track.style.animation=reducedMotion?'none':'casinoBallOrbit227 '+duration+'ms cubic-bezier(.17,.52,.26,1) both';if(!reducedMotion)track.classList.add('roulette-ball-landing');track.dataset.targetPocket=String(num);track.dataset.targetIndex=String(index);track.style.setProperty('--roulette-pocket-angle',(-index*360/37)+'deg');track.style.setProperty('--roulette-wheel-duration',duration+'ms')}setTimeout(()=>{busy=false;rouletteHistory.unshift({num,color});rouletteHistory=rouletteHistory.slice(0,8);rouletteLastResult={num,color,index};const prize=roulettePicks.reduce((sum,p)=>{const win=p.startsWith('n')?num===Number(p.slice(1)):p==='odd'?num>0&&num%2===1:p==='even'?num>0&&num%2===0:p===color;return sum+(win?roundBet*(p==='green'||p.startsWith('n')?36:2):0)},0);finish(prize,'Выпало '+num+' ('+(color==='red'?'красное':color==='black'?'чёрное':'зеро')+')');const display=$('roulettenumber');if(display){display.textContent=String(num);display.className='roulette-numeric '+color;display.setAttribute('aria-label','Выпало '+num)}document.querySelectorAll('.roulette-number').forEach(el=>{const n=Number(el.textContent.trim());el.classList.toggle('roulette-number-landed',n===num)});document.querySelectorAll('.chips .choice').forEach(el=>{const pick=el.dataset.pick;const win=pick==='red'||pick==='black'?pick===color:pick==='green'?num===0:pick==='odd'?num>0&&num%2===1:pick==='even'?num>0&&num%2===0:false;el.classList.toggle('roulette-choice-landed',win)});if(track){track.classList.remove('roulette-ball-landing');track.style.animation='none'}},duration+120)}
+function playRoulette(){
+if(casinoServerEconomy){
+ if(busy||round||casinoEconomyActionBusy)return;
+ if(!roulettePicks.length)return message('Выбери ставку');
+ casinoNormalizeBet();
+ const game=selected;
+ void casinoRunEconomyAction('play_round',{
+  game,
+  stake:bet,
+  picks:roulettePicks.slice()
+ }).then(r=>{
+  if(!r)return;
+  render();
+  const el=$('game-result');
+  if(el)el.textContent=r.description+' · Выплата: '+fmt(r.payout);
+ });
+ return;
+}
+if(busy||round)return;casinoNormalizeBet();const count=roulettePicks.length;if(!count)return message('Сначала выбери ставку на поле рулетки');const total=bet*count;if(!Number.isSafeInteger(total)||total<=0||state.chips<total)return message('Недостаточно фишек для '+count+' ставок');roundBet=bet;casinoCurrentStake=total;state.chips-=total;state.plays++;recordCasinoQuestEvent('plays',1);xp(4);busy=true;save();const num=EURO_WHEEL[rand(37)],color=num===0?'green':ROULETTE_REDS.includes(num)?'red':'black',pick=roulettePick,vip=selected===7;const wheel=$('wheel'),track=$('roulette-ball-track'),rn=$('roulettenumber');if(rn)rn.textContent='••';document.querySelectorAll('.roulette-number-landed,.roulette-choice-landed').forEach(el=>el.classList.remove('roulette-number-landed','roulette-choice-landed'));const reducedMotion=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches),index=EURO_WHEEL.indexOf(num),turns=vip?7:5,duration=reducedMotion?180:(vip?3700:2900),previousIndex=rouletteLastResult?rouletteLastResult.index:0,previousAngle=-previousIndex*360/37,angle=rouletteLandingAngle(previousIndex,index,turns);wheel?.classList.remove('spin');if(wheel){wheel.style.transition='none';wheel.style.transform='rotate('+previousAngle+'deg)';void wheel.offsetWidth;wheel.style.transition=reducedMotion?'none':'transform '+duration+'ms cubic-bezier(.12,.58,.12,1)';wheel.style.transform='rotate('+angle+'deg)';const webglCanvas=$('casino-roulette-webgl');if(webglCanvas?.casinoDraw)requestAnimationFrame(webglCanvas.casinoDraw)}if(track){track.style.animation='none';track.style.transform='translate(-50%,-50%) rotate(0deg)';track.classList.remove('roulette-ball-landing');void track.offsetWidth;track.style.setProperty('--roulette-ball-turns',String(vip?8:6));track.style.setProperty('--roulette-ball-duration',duration+'ms');track.style.animation=reducedMotion?'none':'casinoBallOrbit227 '+duration+'ms cubic-bezier(.17,.52,.26,1) both';if(!reducedMotion)track.classList.add('roulette-ball-landing');track.dataset.targetPocket=String(num);track.dataset.targetIndex=String(index);track.style.setProperty('--roulette-pocket-angle',(-index*360/37)+'deg');track.style.setProperty('--roulette-wheel-duration',duration+'ms')}setTimeout(()=>{busy=false;rouletteHistory.unshift({num,color});rouletteHistory=rouletteHistory.slice(0,8);rouletteLastResult={num,color,index};const prize=roulettePicks.reduce((sum,p)=>{const win=p.startsWith('n')?num===Number(p.slice(1)):p==='odd'?num>0&&num%2===1:p==='even'?num>0&&num%2===0:p===color;return sum+(win?roundBet*(p==='green'||p.startsWith('n')?36:2):0)},0);finish(prize,'Выпало '+num+' ('+(color==='red'?'красное':color==='black'?'чёрное':'зеро')+')');const display=$('roulettenumber');if(display){display.textContent=String(num);display.className='roulette-numeric '+color;display.setAttribute('aria-label','Выпало '+num)}document.querySelectorAll('.roulette-number').forEach(el=>{const n=Number(el.textContent.trim());el.classList.toggle('roulette-number-landed',n===num)});document.querySelectorAll('.chips .choice').forEach(el=>{const pick=el.dataset.pick;const win=pick==='red'||pick==='black'?pick===color:pick==='green'?num===0:pick==='odd'?num>0&&num%2===1:pick==='even'?num>0&&num%2===0:false;el.classList.toggle('roulette-choice-landed',win)});if(track){track.classList.remove('roulette-ball-landing');track.style.animation='none'}},duration+120)}
 const CARD_FACES=['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 const CARD_SUITS=['♠','♥','♦','♣'];
 function freshDeck(){const deck=Array.from({length:52},(_,i)=>i+1);for(let i=deck.length-1;i>0;i--){const j=rand(i+1);[deck[i],deck[j]]=[deck[j],deck[i]]}return deck}
@@ -5362,27 +5380,192 @@ function cardSuit(c){return Math.floor((c-1)/13)}
 function drawCard(){return 1+rand(52)}
 function points(arr){let total=0,aces=0;for(const c of arr){const rank=cardRank(c);total+=Math.min(10,rank);if(rank===1)aces++}while(aces&&total+10<=21){total+=10;aces--}return total}
 function card(c){const suit=cardSuit(c),rank=cardRank(c),face=CARD_FACES[rank],symbol=CARD_SUITS[suit];return '<div class="playing '+(suit===1||suit===2?'red':'')+'" role="img" aria-label="'+face+' '+symbol+'"><span class="playing-rank">'+face+'</span><small class="card-suit">'+symbol+'</small></div>'}
-function startBlackjack(){if(busy||round)return message('Заверши текущую раздачу');if(!startCost())return;round={kind:'blackjack',deck:freshDeck(),you:[],dealer:[]};round.you.push(round.deck.pop(),round.deck.pop());round.dealer.push(round.deck.pop(),round.deck.pop());if(points(round.you)===21){let d=points(round.dealer),prize=d===21?roundBet:Math.floor(roundBet*2.5);round=null;finish(prize,d===21?'Оба собрали Blackjack · возврат ставки':'Натуральный Blackjack · выплата ×2.5');return}render()}
+
+let casinoCardRequestBusy=false;
+
+async function casinoCardRequest(action,args={}){
+ if(casinoCardRequestBusy||casinoEconomyActionBusy)return null;
+ casinoCardRequestBusy=true;
+ try{
+  const key='casino_card_pending_'+casinoCloudVKId();
+  let pending=JSON.parse(localStorage.getItem(key)||'null');
+  if(!pending){
+   if(action==='start'){
+    const issue=await casinoDailySettleCloud();
+    if(issue)throw Error(issue);
+   }
+   if(!Number.isSafeInteger(casinoCloudRevision))
+    throw Error('Облако не подключено');
+   pending={action,...args,revision:casinoCloudRevision,
+    requestId:crypto.randomUUID()};
+   localStorage.setItem(key,JSON.stringify(pending));
+  }
+  const response=await fetch(
+   'http://127.0.0.1:3099/api/casino/rounds/card-action',{
+   method:'POST',
+   headers:{
+    'Content-Type':'application/json',
+    'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS
+   },
+   body:JSON.stringify(pending)
+  });
+  const result=await response.json();
+  if(!response.ok||!result.ok)
+   throw Error(result.error||'Ошибка сервера');
+  if(!result.save||!Number.isSafeInteger(result.revision))
+   throw Error('Некорректное сохранение');
+  state={...fresh(),...result.save};
+  casinoCloudRevision=result.revision;
+  localStorage.setItem(STORAGE,JSON.stringify(state));
+  casinoCloudDirty=false;
+  casinoCloudPendingClear();
+  localStorage.removeItem(key);
+  return result;
+ }catch(e){
+  message(e.message);
+  return null;
+ }finally{
+  casinoCardRequestBusy=false;
+ }
+}
+
+
+async function casinoApplyCardAction(action,args={}){
+ const result=await casinoCardRequest(action,args);
+ if(!result)return;
+
+ if(result.done){
+  round=null;
+  render();
+  const el=$('game-result');
+  if(el)el.textContent='Выплата: '+fmt(result.payout)+' фишек';
+  return;
+ }
+
+ const r=result.round;
+ if(!r)return;
+
+ round={
+  ...r,
+  kind:r.game===8?'blackjack':r.game===9?'poker':'hilo'
+ };
+ roundBet=r.stake;
+ render();
+}
+
+function casinoStartCard(game){
+ if(busy||round||casinoCardRequestBusy)return;
+ casinoNormalizeBet();
+ held=[];
+ void casinoApplyCardAction('start',{game,stake:bet});
+}
+
+function casinoAdvanceCard(action,args={}){
+ if(!round||!round.id||casinoCardRequestBusy)return;
+ void casinoApplyCardAction(action,{
+  roundId:round.id,
+  version:round.version,
+  ...args
+ });
+}
+
+
+async function casinoRecoverServerRound(){
+ if(!casinoServerEconomy||casinoCardRequestBusy||round)return;
+ if(!CASINO_LAUNCH_PARAMS)return;
+ try{
+  const response=await fetch(
+   'http://127.0.0.1:3099/api/casino/rounds/active',{
+    headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
+    cache:'no-store'
+   });
+  if(!response.ok)return;
+  const result=await response.json();
+  const r=result.round;
+  if(!r||round)return;
+
+  if(result.revision!==casinoCloudRevision){
+   message('Требуется синхронизация сохранения');
+   return;
+  }
+
+  if(r.game===13){
+   message('Обнаружен незавершённый Crash');
+   return;
+  }
+
+  round={
+   ...r,
+   kind:r.game===8?'blackjack':
+        r.game===9?'poker':'hilo'
+  };
+  roundBet=r.stake;
+  held=[];
+  selected=r.game;
+  tab='game';
+  render();
+  message('Раздача восстановлена');
+ }catch(e){
+  console.warn('Round recovery:',e.message);
+ }
+}
+
+function startBlackjack(){if(casinoServerEconomy){casinoStartCard(8);return;}if(busy||round)return message('Заверши текущую раздачу');if(!startCost())return;round={kind:'blackjack',deck:freshDeck(),you:[],dealer:[]};round.you.push(round.deck.pop(),round.deck.pop());round.dealer.push(round.deck.pop(),round.deck.pop());if(points(round.you)===21){let d=points(round.dealer),prize=d===21?roundBet:Math.floor(roundBet*2.5);round=null;finish(prize,d===21?'Оба собрали Blackjack · возврат ставки':'Натуральный Blackjack · выплата ×2.5');return}render()}
 function endBlackjack(){let y=points(round.you),d=points(round.dealer);while(d<17)round.dealer.push(round.deck.pop()),d=points(round.dealer);let prize=y<=21&&(d>21||y>d)?Math.floor(roundBet*2):y===d&&y<=21?roundBet:0;round=null;finish(prize,'Ты: '+y+' · Дилер: '+d)}
-function hit(){if(!round||round.kind!=='blackjack')return;round.you.push(round.deck.pop());if(points(round.you)>21){round=null;finish(0,'Перебор!')}else render()}
-function stand(){if(round?.kind==='blackjack')endBlackjack()}
+function hit(){if(casinoServerEconomy){casinoAdvanceCard('hit');return;}if(!round||round.kind!=='blackjack')return;round.you.push(round.deck.pop());if(points(round.you)>21){round=null;finish(0,'Перебор!')}else render()}
+function stand(){if(casinoServerEconomy){casinoAdvanceCard('stand');return;}if(round?.kind==='blackjack')endBlackjack()}
 function pokerResult(cards){const ranks=cards.map(cardRank),suits=cards.map(cardSuit),counts={};ranks.forEach(r=>counts[r]=(counts[r]||0)+1);const groups=Object.entries(counts).map(([r,n])=>({r:Number(r),n})).sort((a,b)=>b.n-a.n),sorted=[...new Set(ranks)].map(r=>r===1?14:r).sort((a,b)=>a-b),flush=suits.every(s=>s===suits[0]),straight=sorted.length===5&&(sorted[4]-sorted[0]===4||sorted.join(',')==='2,3,4,5,14');if(straight&&flush&&sorted[0]===10)return {m:250,label:'Роял-флеш'};if(straight&&flush)return {m:50,label:'Стрит-флеш'};if(groups[0].n===4)return {m:25,label:'Каре'};if(groups[0].n===3&&groups[1].n===2)return {m:9,label:'Фулл-хаус'};if(flush)return {m:6,label:'Флеш'};if(straight)return {m:4,label:'Стрит'};if(groups[0].n===3)return {m:3,label:'Тройка'};if(groups[0].n===2&&groups[1].n===2)return {m:2,label:'Две пары'};if(groups[0].n===2&&(groups[0].r===1||groups[0].r>=11))return {m:1,label:'Валеты или выше'};return {m:0,label:'Нет комбинации'}}
 function evaluatePoker(cards){return pokerResult(cards).m}
-function pokerStart(){if(busy||round)return;if(!startCost())return;const deck=freshDeck();round={kind:'poker',deck,cards:Array.from({length:5},()=>deck.pop())};held=[];render()}
-function pokerDraw(){if(busy||!round||round.kind!=='poker')return;const cards=round.cards.map((c,i)=>held.includes(i)?c:round.deck.pop()),result=pokerResult(cards);round=null;held=[];finish(result.m?Math.floor(roundBet*result.m):0,result.label)}
+function pokerStart(){if(casinoServerEconomy){casinoStartCard(9);return;}if(busy||round)return;if(!startCost())return;const deck=freshDeck();round={kind:'poker',deck,cards:Array.from({length:5},()=>deck.pop())};held=[];render()}
+function pokerDraw(){if(casinoServerEconomy){casinoAdvanceCard('draw',{held:held.slice()});return;}if(busy||!round||round.kind!=='poker')return;const cards=round.cards.map((c,i)=>held.includes(i)?c:round.deck.pop()),result=pokerResult(cards);round=null;held=[];finish(result.m?Math.floor(roundBet*result.m):0,result.label)}
 let kenoLastDraw=[];
 function selectKeno(n){if(busy||!Number.isInteger(n)||n<1||n>20)return;kenoLastDraw=[];if(kenoSelected.includes(n))kenoSelected=kenoSelected.filter(x=>x!==n);else if(kenoSelected.length<4)kenoSelected.push(n);render()}
 function kenoQuickPick(){if(busy)return;kenoLastDraw=[];const pool=Array.from({length:20},(_,i)=>i+1);for(let i=pool.length-1;i>0;i--){const j=rand(i+1);[pool[i],pool[j]]=[pool[j],pool[i]]}kenoSelected=pool.slice(0,4).sort((a,b)=>a-b);render()}
 function kenoPlay(){if(casinoServerEconomy){if(kenoSelected.length!==4)return message('Выбери четыре числа');void casinoServerSimpleRound(10,{picks:kenoSelected.slice()});return;}if(busy)return;if(kenoSelected.length!==4)return message('Выбери четыре числа');if(!startCost())return;busy=true;kenoLastDraw=[];const picks=new Set();while(picks.size<8)picks.add(1+rand(20));const hits=kenoSelected.filter(x=>picks.has(x)).length,draw=[...picks];let step=0;const revealDelay=(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)?60:320;const timer=setInterval(()=>{kenoLastDraw=draw.slice(0,++step);const e=$('keno-draw');if(e)e.innerHTML='Шары: '+kenoLastDraw.map(n=>'<span class="keno-ball '+(kenoSelected.includes(n)?'matched':'')+'">'+n+'</span>').join(' ');document.querySelectorAll('[data-keno]').forEach(el=>{const n=Number(el.dataset.keno);el.classList.toggle('drawn',kenoLastDraw.includes(n));el.classList.toggle('matched',kenoLastDraw.includes(n)&&kenoSelected.includes(n))});if(step>=draw.length){clearInterval(timer);busy=false;finish(hits>=2?Math.floor(roundBet*([0,0,1.5,5,22][hits])):0,'Угадано '+hits+'/4 · Выпали: '+draw.join(', '))}},revealDelay)}
-function hiloStart(){if(busy||round)return;if(!startCost())return;const deck=freshDeck();round={kind:'hilo',deck,num:deck.pop()};render()}
-function hiloOdds(high){if(!round||round.kind!=='hilo'||!round.deck.length)return {chance:0,multiplier:0};const prev=cardRank(round.num),favorable=round.deck.filter(c=>high?cardRank(c)>prev:cardRank(c)<prev).length,chance=favorable/round.deck.length;return {chance,multiplier:chance?Math.floor(.94/chance*100)/100:0}}
-function hiloPlay(high){if(!round||round.kind!=='hilo'||busy)return;const odds=hiloOdds(high);if(!odds.chance)return message('Для этой карты такой исход невозможен');const prev=cardRank(round.num),nextCard=round.deck.pop(),next=cardRank(nextCard),win=high?next>prev:next<prev;round=null;finish(win?Math.floor(roundBet*odds.multiplier):0,'Карты: '+CARD_FACES[prev]+' → '+CARD_FACES[next]+(next===prev?' · одинаковый ранг':win?' · угадал!':' · не угадал')+' · ×'+odds.multiplier.toFixed(2))}
+function hiloStart(){if(casinoServerEconomy){casinoStartCard(11);return;}if(busy||round)return;if(!startCost())return;const deck=freshDeck();round={kind:'hilo',deck,num:deck.pop()};render()}
+function hiloOdds(high){
+ if(casinoServerEconomy){
+  if(!round||round.kind!=='hilo')
+   return {chance:0,multiplier:0};
+  const rank=cardRank(round.num);
+  const favorable=high?(13-rank)*4:(rank-1)*4;
+  const chance=favorable/51;
+  return {
+   chance,
+   multiplier:chance?Math.floor(.94/chance*100)/100:0
+  };
+ }
+ if(!round||round.kind!=='hilo'||!round.deck.length)return {chance:0,multiplier:0};const prev=cardRank(round.num),favorable=round.deck.filter(c=>high?cardRank(c)>prev:cardRank(c)<prev).length,chance=favorable/round.deck.length;return {chance,multiplier:chance?Math.floor(.94/chance*100)/100:0}}
+function hiloPlay(high){if(casinoServerEconomy){casinoAdvanceCard('guess',{high:!!high});return;}if(!round||round.kind!=='hilo'||busy)return;const odds=hiloOdds(high);if(!odds.chance)return message('Для этой карты такой исход невозможен');const prev=cardRank(round.num),nextCard=round.deck.pop(),next=cardRank(nextCard),win=high?next>prev:next<prev;round=null;finish(win?Math.floor(roundBet*odds.multiplier):0,'Карты: '+CARD_FACES[prev]+' → '+CARD_FACES[next]+(next===prev?' · одинаковый ранг':win?' · угадал!':' · не угадал')+' · ×'+odds.multiplier.toFixed(2))}
 let plinkoLastSector=-1,plinkoRisk=1,plinkoCount=1,plinkoHits=[];
 const PLINKO_PAYTABLES=[
 [8,2.5,1.4,1.05,.8,.7,.55,.7,.8,1.05,1.4,2.5,8],
 [35,9,3,1.8,.8,.4,.15,.4,.8,1.8,3,9,35],
 [250,28,8,1.8,.4,.3,0,.3,.4,1.8,8,28,250]];
 function plinkoPlay(){
+ if(casinoServerEconomy){
+  if(busy||round||casinoEconomyActionBusy)return;
+  casinoNormalizeBet();
+  const count=plinkoCount;
+  const risk=plinkoRisk;
+  void casinoRunEconomyAction('play_round',{
+   game:12,
+   stake:bet,
+   count,
+   risk
+  }).then(r=>{
+   if(!r)return;
+   render();
+   const el=$('plinko-hits');
+   if(el)el.textContent='Шариков: '+count+
+    ' · Выплата: '+fmt(r.payout);
+   const output=$('game-result');
+   if(output)output.textContent=r.description+
+    ' · Выигрыш: '+fmt(r.payout);
+  });
+  return;
+ }
+
  if(busy||round)return;
  casinoNormalizeBet();
  const count=plinkoCount,stake=bet,total=stake*count;
@@ -5460,7 +5643,65 @@ function updateCrashGraph(){
  const halo=$('crash-dot-halo');if(halo){halo.setAttribute('cx',x);halo.setAttribute('cy',y)}
  const dot=$('crash-dot');if(dot){dot.setAttribute('cx',x);dot.setAttribute('cy',y)}
 }
-function crashStart(){
+
+async function casinoServerCrashStart(){
+ if(busy||round||casinoCardRequestBusy)return;
+ casinoNormalizeBet();
+
+ const raw=($('crash-auto')?.value||'').replace(',','.');
+ const target=crashAutoEnabled?Number(raw):null;
+
+ if(target!==null&&(!Number.isFinite(target)||target<1.1||target>8))
+  return message('Укажи множитель от 1.10 до 8.00');
+
+ const r=await casinoCardRequest('start',{
+  game:13,stake:bet,autoTarget:target
+ });
+
+ if(!r||!r.round)return;
+ round={...r.round,kind:'crash'};
+ roundBet=r.round.stake;
+ busy=true;
+ crashValue=1;
+ crashLastStatus='';
+ render();
+
+ clearInterval(crashTimer);
+ crashTimer=setInterval(()=>{
+  if(!round||round.kind!=='crash')return;
+  crashValue=Math.min(8,Math.exp(.29*Math.max(0,Date.now()-round.startedAt)/1000));
+  const el=$('multiple');
+  if(el)el.textContent='×'+crashValue.toFixed(2);
+  updateCrashGraph();
+  void casinoServerCrashAction('status');
+ },500);
+}
+
+async function casinoServerCrashAction(action){
+ if(!round||round.kind!=='crash'||casinoCardRequestBusy)return;
+
+ const r=await casinoCardRequest(action,{
+  roundId:round.id,
+  version:round.version
+ });
+
+ if(!r||!r.done)return;
+
+ clearInterval(crashTimer);
+ crashTimer=null;
+ busy=false;
+ round=null;
+ crashValue=r.multiplier||1;
+ crashLastStatus=r.crashed?'КРАШ':'ЗАБРАНО';
+ render();
+
+ const el=$('game-result');
+ if(el)el.textContent=crashLastStatus+
+  ' ×'+crashValue.toFixed(2)+
+  ' · Выплата: '+fmt(r.payout);
+}
+
+function crashStart(){if(casinoServerEconomy){void casinoServerCrashStart();return;}
  if(busy)return;
  const raw=$('crash-auto')?.value?.trim()||'';
  const normalized=raw.replace(',','.');const target=/^\d+(\.\d{1,2})?$/.test(normalized)?Number(normalized):0;
@@ -5491,7 +5732,7 @@ function crashStart(){
   updateCrashGraph();
  },50);
 }
-function crashCash(automatic=false){
+function crashCash(automatic=false){if(casinoServerEconomy){void casinoServerCrashAction('cashout');return;}
  if(!busy||!crashTimer||state.pendingMiniRound?.kind!=='crash')return;
  const now=performance.now();if(Number.isFinite(crashStartedAt)){const live=Math.min(8,Math.exp(.29*(now-crashStartedAt)/1000));if(automatic&&live<crashAutoTarget)return;if((!automatic&&live>=crashStop)||(automatic&&(crashAutoTarget<=0||crashAutoTarget>=crashStop))){clearInterval(crashTimer);crashTimer=null;busy=false;state.pendingMiniRound=null;crashValue=crashStop;crashHistory.unshift(crashStop);crashHistory=crashHistory.slice(0,8);crashLastStatus='КРАШ НА ×'+crashStop.toFixed(2);finish(0,'Краш на ×'+crashStop.toFixed(2));return}crashValue=automatic?crashAutoTarget:Math.max(crashValue,live)}
  updateCrashGraph();
@@ -5698,7 +5939,7 @@ window.LuckyClanEconomy={
    const controller=new AbortController();
    const timeout=setTimeout(()=>controller.abort(),12000);
    try{
-    response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/clans/deposit',{
+    response=await fetch('http://127.0.0.1:3099/api/casino/clans/deposit',{
      method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
      body:JSON.stringify({amount,revision,requestId}),cache:'no-store',signal:controller.signal
     });
@@ -5752,7 +5993,7 @@ async function daily(){
   const timeout=setTimeout(()=>controller.abort(),12000);
   let response;
   try{
-   response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/daily/claim',{
+   response=await fetch('http://127.0.0.1:3099/api/casino/daily/claim',{
     method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
     body:JSON.stringify({revision}),cache:'no-store',signal:controller.signal
    });
@@ -5821,7 +6062,7 @@ async function casinoAdminStats(){
  const host=document.getElementById('casino-admin-stats');if(!host)return;
  host.textContent='Загружаем…';
  try{
-  const r=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/admin/stats',{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
+  const r=await fetch('http://127.0.0.1:3099/api/casino/admin/stats',{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
   const d=await r.json();if(!r.ok)throw Error(d.error||'HTTP '+r.status);
   host.innerHTML='<div class="casino-admin-player"><b>Облачные игроки: '+fmt(d.cloud.total)+'</b><span>Активность за сутки: '+fmt(d.cloud.active24)+'</span><span>Фишек в облаке: '+fmt(Number(d.cloud.chips))+'</span><span>Монет в облаке: '+fmt(Number(d.cloud.coins))+'</span><span>Всего партий: '+fmt(Number(d.cloud.plays))+'</span><span>В рейтинге: '+fmt(d.ranking.total)+' · Обновлялись за сутки: '+fmt(d.ranking.active24)+'</span><span>Турнирных записей: '+fmt(d.tournaments.total)+'</span></div>';
  }catch(e){host.textContent='Ошибка: '+e.message}
@@ -5838,7 +6079,7 @@ async function casinoAdminAdjust(){
  if(button.dataset.confirmToken!==token){button.dataset.confirmToken=token;button.textContent='Подтвердить изменение';host.textContent='Подтверди действие для VK '+vkId+' повторным нажатием.';return}
  button.disabled=true;host.textContent='Сохраняем в облаке…';
  try{
-  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/admin/adjust',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify(payload),cache:'no-store'});
+  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/adjust',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify(payload),cache:'no-store'});
   const data=await response.json();if(!response.ok)throw Error(data.error||'HTTP '+response.status);
   host.textContent='Готово: '+data.before+' → '+data.after+'. Игроку нужно перезапустить игру.';
  }catch(e){host.textContent='Ошибка: '+e.message}
@@ -5861,7 +6102,7 @@ async function casinoAdminGrant(){
  if(button){button.disabled=true;button.textContent='Выдаём…';}
  host.textContent='Отправляем запрос на сервер…';
  try{
-  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/admin/grant',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId,field,amount}),cache:'no-store'});
+  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/grant',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId,field,amount}),cache:'no-store'});
   const data=await response.json();
   if(!response.ok)throw Error(data.error==='CLOUD_SAVE_NOT_FOUND'?'У игрока пока нет облачного сохранения':data.error||'HTTP '+response.status);
   host.textContent='Выдано успешно. Игрок получит обновление после повторного входа в игру.';
@@ -5879,7 +6120,7 @@ async function casinoAdminResetAll(){
  }
  button.disabled=true;button.textContent='Сбрасываем…';host.textContent='Запрос отправлен…';
  try{
-  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/admin/reset-all',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({confirmation:'RESET ALL LUCKY CITY',acknowledge:true}),cache:'no-store'});
+  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/reset-all',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({confirmation:'RESET ALL LUCKY CITY',acknowledge:true}),cache:'no-store'});
   const data=await response.json();if(!response.ok)throw Error(data.error||'HTTP '+response.status);
   host.textContent='Готово. Сохранений: '+data.saves+', игроков рейтинга: '+data.ranking+', записей турниров: '+data.tournaments+'. Всем нужно перезапустить игру.';
  }catch(error){host.textContent='Ошибка: '+error.message}
@@ -5897,7 +6138,7 @@ async function casinoAdminReset(){
  }
  button.disabled=true;button.textContent='Сбрасываем…';host.textContent='Отправляем запрос…';
  try{
-  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/admin/reset-player',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId,confirmation:'RESET '+vkId}),cache:'no-store'});
+  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/reset-player',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId,confirmation:'RESET '+vkId}),cache:'no-store'});
   const data=await response.json();
   if(!response.ok)throw Error(data.error||'HTTP '+response.status);
   host.textContent='Облачный прогресс VK '+vkId+' сброшен. Рейтинг не затронут. Игроку нужно перезапустить игру.';
@@ -5910,7 +6151,7 @@ async function casinoAdminPlayer(){
  if(!/^[1-9][0-9]{0,18}$/.test(vkId)){host.textContent='Введи корректный VK ID';return}
  host.textContent='Загружаем прогресс…';
  try{
-  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/admin/player?vkId='+encodeURIComponent(vkId),{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
+  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/player?vkId='+encodeURIComponent(vkId),{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
   if(!response.ok)throw Error('HTTP '+response.status);
   const data=await response.json();if(!document.getElementById('casino-admin-player-detail'))return;
   const c=data.cloud,p=data.ranking;
@@ -5922,7 +6163,7 @@ async function casinoAdminAudit(){
  host.textContent='Загружаем историю…';
  try{
   const vkId=document.getElementById('casino-audit-vk')?.value.trim()||'';if(vkId&&!/^[1-9][0-9]{0,18}$/.test(vkId)){host.textContent='Неверный VK ID';return}
-  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/admin/audit?vkId='+encodeURIComponent(vkId),{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
+  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/audit?vkId='+encodeURIComponent(vkId),{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
   if(!response.ok)throw Error('HTTP '+response.status);
   const data=await response.json();if(!document.getElementById('casino-admin-audit'))return;
   host.innerHTML=(data.entries||[]).length?data.entries.map(e=>'<div class="casino-admin-player"><b>VK '+rankEsc(e.vk_id)+'</b><span>'+rankEsc(e.action)+' · '+rankEsc(e.details?.field||'')+' +'+Number(e.details?.amount||0)+' · '+new Date(e.created_at).toLocaleString('ru-RU')+'</span></div>').join(''):'Операций пока нет';
@@ -5934,7 +6175,7 @@ async function casinoAdminLoad(){
  try{
   if(!CASINO_LAUNCH_PARAMS)throw Error('Открой игру из ВКонтакте');
   const query=document.getElementById('casino-admin-query')?.value.trim()||'';
-  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/admin/players?q='+encodeURIComponent(query),{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
+  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/players?q='+encodeURIComponent(query),{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
   if(!response.ok)throw Error(response.status===403?'Нет прав администратора':'Сервер: HTTP '+response.status);
   const data=await response.json();if(!document.getElementById('casino-admin-results'))return;
   host.innerHTML=(data.players||[]).length?(data.players||[]).map(p=>'<div class="casino-admin-player"><b>'+rankEsc(p.display_name||'Игрок')+'</b><span>VK '+rankEsc(p.vk_id)+' · Ур. '+Number(p.level||1)+' · '+fmt(Number(p.score||0))+' очков · '+fmt(Number(p.plays||0))+' игр</span></div>').join(''):'Игроки не найдены';
@@ -6418,7 +6659,7 @@ function profileScreen(){const need=levelXpNeed(state.level),nextRank=nextRankAf
 /* LUCKY CITY 14.1 — weekly tournament from server-accepted ranking increments. */
 let casinoTournamentSnapshot=null;
 let casinoTournamentLoading=false;
-const CASINO_TOURNAMENT_URL='https://merge.89-23-115-251.sslip.io';
+const CASINO_TOURNAMENT_URL='http://127.0.0.1:3099';
 function casinoTournamentHeader(){
  return '<section class="cc14-online-tournament" id="casino-online-tournament"><div class="cc14-tournament-hdr"><div><span class="eyebrow">🏆 ОНЛАЙН · ВСЕ ИГРОКИ ВК</span><h2>Чемпионат Lucky City</h2></div><span class="cc14-online-live">LIVE</span></div>'+
  '<p class="cc14-tournament-desc">Турнирные очки начисляются только за прирост рейтинга, подтверждённый сервером в течение недели. В понедельник в 00:00 UTC открывается новый турнир.</p>'+
@@ -6505,7 +6746,7 @@ const LUCKY_DONATE_PACKS=[
 let luckyPaymentsReady=false;
 async function luckyPaymentsCheck(){
  try{
-  const response=await fetch('https://merge.89-23-115-251.sslip.io/api/casino/payments/status',{cache:'no-store'});
+  const response=await fetch('http://127.0.0.1:3099/api/casino/payments/status',{cache:'no-store'});
   luckyPaymentsReady=response.ok&&!!(await response.json()).enabled;
   if(tab==='shop')render();
  }catch(e){luckyPaymentsReady=false}
@@ -6607,5 +6848,10 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&casinoClo
 window.addEventListener('pagehide',()=>{if(casinoCloudRevision!==null||casinoCloudLocalOnly)try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}});
 setInterval(()=>{if(tab==='city'||tab==='profile'){let gained=collectPassive();if(gained&&tab==='city')render()}},30000);
 render();
-casinoCloudStart();
+casinoCloudStart().then(()=>{
+ if(casinoServerEconomy){
+  void casinoRecoverServerRound();
+ }
+}).catch(e=>console.warn('Cloud startup:',e));
+
 </script><script src="./ambient-audio.js?v=distinct-scenes-20261123-6"></script></body></html>
