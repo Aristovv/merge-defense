@@ -46,7 +46,8 @@ const ECONOMY_SQL=[
  `CREATE TABLE IF NOT EXISTS lucky_clan_mission_targets(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE, scope TEXT NOT NULL, period_start DATE NOT NULL, participants INTEGER NOT NULL, coins BIGINT NOT NULL, PRIMARY KEY(clan_id,scope,period_start))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_season_entries(season INTEGER NOT NULL, clan_id BIGINT NOT NULL, league TEXT NOT NULL, name TEXT NOT NULL, avatar TEXT NOT NULL, PRIMARY KEY(season,clan_id))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_season_results(season INTEGER NOT NULL, clan_id BIGINT NOT NULL, league TEXT NOT NULL, name TEXT NOT NULL, points INTEGER NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY(season,clan_id))`,
- `CREATE TABLE IF NOT EXISTS lucky_clan_weekly_duels(week_start DATE NOT NULL, clan_a BIGINT NOT NULL, clan_b BIGINT NOT NULL, league TEXT NOT NULL, name_a TEXT NOT NULL, name_b TEXT NOT NULL, PRIMARY KEY(week_start,clan_a), UNIQUE(week_start,clan_b), CHECK(clan_a<>clan_b))`
+ `CREATE TABLE IF NOT EXISTS lucky_clan_weekly_duels(week_start DATE NOT NULL, clan_a BIGINT NOT NULL, clan_b BIGINT NOT NULL, league TEXT NOT NULL, name_a TEXT NOT NULL, name_b TEXT NOT NULL, PRIMARY KEY(week_start,clan_a), UNIQUE(week_start,clan_b), CHECK(clan_a<>clan_b))`,
+ `CREATE TABLE IF NOT EXISTS lucky_clan_duel_results(week_start DATE NOT NULL,clan_a BIGINT NOT NULL,clan_b BIGINT NOT NULL,name_a TEXT NOT NULL,name_b TEXT NOT NULL,points_a INTEGER NOT NULL,points_b INTEGER NOT NULL,winner BIGINT,PRIMARY KEY(week_start,clan_a))`
 ];
 let initialized;
 const start=pool=>{
@@ -425,7 +426,27 @@ async function clanDuels(pool,playerId){
   COALESCE((SELECT SUM(CASE WHEN r.mission IN ('daily_claims','daily_deposits') THEN 10 WHEN r.mission IN ('weekly_deposits','weekly_upgrades') THEN 40 ELSE 0 END) FROM lucky_clan_mission_rewards r WHERE r.clan_id=d.clan_a AND r.period_start>=d.week_start AND r.period_start<d.week_start+7),0)::int AS "pointsA",
   COALESCE((SELECT SUM(CASE WHEN r.mission IN ('daily_claims','daily_deposits') THEN 10 WHEN r.mission IN ('weekly_deposits','weekly_upgrades') THEN 40 ELSE 0 END) FROM lucky_clan_mission_rewards r WHERE r.clan_id=d.clan_b AND r.period_start>=d.week_start AND r.period_start<d.week_start+7),0)::int AS "pointsB"
   FROM lucky_clan_weekly_duels d JOIN lucky_clan_members m ON (m.clan_id=d.clan_a OR m.clan_id=d.clan_b) WHERE m.player_id=$1 AND d.week_start=$2::date`,[playerId,week]);
-  return {week,duel:rows[0]||null};
+  // Archive completed matches once. No currency awards or personal save changes.
+  await c.query(`WITH scores AS (
+   SELECT d.*,
+   COALESCE((SELECT SUM(CASE WHEN r.mission IN ('daily_claims','daily_deposits') THEN 10 WHEN r.mission IN ('weekly_deposits','weekly_upgrades') THEN 40 ELSE 0 END) FROM lucky_clan_mission_rewards r WHERE r.clan_id=d.clan_a AND r.period_start>=d.week_start AND r.period_start<d.week_start+7),0)::int AS pa,
+   COALESCE((SELECT SUM(CASE WHEN r.mission IN ('daily_claims','daily_deposits') THEN 10 WHEN r.mission IN ('weekly_deposits','weekly_upgrades') THEN 40 ELSE 0 END) FROM lucky_clan_mission_rewards r WHERE r.clan_id=d.clan_b AND r.period_start>=d.week_start AND r.period_start<d.week_start+7),0)::int AS pb
+   FROM lucky_clan_weekly_duels d WHERE d.week_start+7<=$1::date AND NOT EXISTS(SELECT 1 FROM lucky_clan_duel_results z WHERE z.week_start=d.week_start AND z.clan_a=d.clan_a)
+  )
+  INSERT INTO lucky_clan_duel_results(week_start,clan_a,clan_b,name_a,name_b,points_a,points_b,winner)
+  SELECT week_start,clan_a,clan_b,name_a,name_b,pa,pb,CASE WHEN pa>pb THEN clan_a WHEN pb>pa THEN clan_b ELSE NULL END FROM scores ON CONFLICT DO NOTHING`,[week]);
+  const history=await c.query(`SELECT z.week_start::text AS "start",
+  CASE WHEN z.clan_a=m.clan_id THEN z.name_b ELSE z.name_a END AS opponent,
+  CASE WHEN z.clan_a=m.clan_id THEN z.points_a ELSE z.points_b END AS "myPoints",
+  CASE WHEN z.clan_a=m.clan_id THEN z.points_b ELSE z.points_a END AS "opponentPoints",
+  CASE WHEN z.winner IS NULL THEN 'draw' WHEN z.winner=m.clan_id THEN 'win' ELSE 'loss' END AS outcome
+  FROM lucky_clan_duel_results z JOIN lucky_clan_members m ON m.clan_id IN(z.clan_a,z.clan_b)
+  WHERE m.player_id=$1 ORDER BY z.week_start DESC LIMIT 20`,[playerId]);
+  const stats=await c.query(`SELECT COUNT(*) FILTER(WHERE z.winner=m.clan_id)::int AS wins,
+  COUNT(*) FILTER(WHERE z.winner IS NOT NULL AND z.winner<>m.clan_id)::int AS losses,
+  COUNT(*) FILTER(WHERE z.winner IS NULL)::int AS draws
+  FROM lucky_clan_duel_results z JOIN lucky_clan_members m ON m.clan_id IN(z.clan_a,z.clan_b) WHERE m.player_id=$1`,[playerId]);
+  return {week,duel:rows[0]||null,history:history.rows,stats:stats.rows[0]};
  });
 }
 async function listing(pool){
