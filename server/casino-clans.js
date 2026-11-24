@@ -1,3 +1,4 @@
+import {createHmac} from 'node:crypto';
 // Lucky City clans: independent, server-owned data; never writes player cloud saves.
 const INIT=`
 CREATE TABLE IF NOT EXISTS lucky_clans (
@@ -138,6 +139,23 @@ export async function verifyUserAdminGroup(playerId,groupId,userToken){
   if(groups.length<200)break;
  }
  fail('Вы не администратор выбранного сообщества VK',403);
+}
+// Proof of control through a temporary community description marker.
+function clanChallenge(playerId,groupId,bucket){
+ const secret=process.env.VK_APP_SECRET;
+ if(!secret)fail('Проверка сообщества не настроена',503);
+ return 'LC-'+createHmac('sha256',secret).update(JSON.stringify(['clan-description-v1',String(playerId),Number(groupId),bucket])).digest('hex').slice(0,32);
+}
+export async function verifyDescriptionProof(playerId,groupId){
+ const id=Number(groupId);
+ if(!validId(id))fail('Выберите сообщество VK');
+ const bucket=Math.floor(Date.now()/900000);
+ const raw=await serviceVK('groups.getById',{group_ids:String(id),fields:'description,photo_200'});
+ const group=(Array.isArray(raw)?raw:raw?.groups)?.[0];
+ const description=String(group?.description||'');
+ if(![bucket,bucket-1].some(b=>description.includes(clanChallenge(playerId,id,b))))
+  fail('Код не найден в описании сообщества. Сохраните описание в VK и повторите проверку.',403);
+ return cleanVKGroup(raw,id);
 }
 export async function verifiedAdminGroup(playerId,groupId,communityToken,verifiedLaunch){
  const requested=Number(groupId);
@@ -308,6 +326,12 @@ export function registerLuckyClans(app,pool,requireAuth){
    stats:totals.rows[0]||{},communityUrl:'https://vk.com/club'+String(clan.groupId)},
    premiumLevels:PREMIUM_LEVELS,seatPrices:CLAN_SEAT_PRICES});
  }));
+ app.post('/api/casino/clans/challenge',requireAuth,wrap(async(req,res)=>{
+  const groupId=Number(req.body?.groupId);
+  if(!validId(groupId))fail('Выберите сообщество VK');
+  if(!process.env.VK_GROUP_SERVICE_TOKEN)fail('Сервисный ключ VK не настроен',503);
+  res.json({code:clanChallenge(req.playerId,groupId,Math.floor(Date.now()/900000))});
+ }));
  app.post('/api/casino/clans/create',requireAuth,wrap(async(req,res)=>{
   req.clanCreateStage='database-initialization';
   console.info('[clans-create] received',JSON.stringify({
@@ -317,7 +341,9 @@ export function registerLuckyClans(app,pool,requireAuth){
   }));
   await start(pool);
   req.clanCreateStage='vk-group-verification';
-  const group=typeof req.body?.userVKToken==='string'?
+  const group=req.body?.descriptionProof===true?
+   await verifyDescriptionProof(req.playerId,req.body?.groupId):
+   typeof req.body?.userVKToken==='string'?
    await verifyUserAdminGroup(req.playerId,req.body?.groupId,req.body.userVKToken):
    await verifiedAdminGroup(req.playerId,req.body?.groupId,req.body?.communityToken,verifiedCommunityLaunch(req,req.body?.groupId));
   req.clanCreateStage='database-create';
