@@ -5389,6 +5389,17 @@ async function casinoCardRequest(action,args={}){
  try{
   const key='casino_card_pending_'+casinoCloudVKId();
   let pending=JSON.parse(localStorage.getItem(key)||'null');
+  if(pending){
+   const {revision,requestId,...previous}=pending;
+   const requested={action,...args};
+   const normalize=o=>JSON.stringify(
+    Object.keys(o).sort().map(k=>[k,o[k]])
+   );
+   if(normalize(previous)!==normalize(requested)){
+    message('Есть неподтверждённая операция. Сначала повтори предыдущее действие.');
+    return null;
+   }
+  }
   if(!pending){
    if(action==='start'){
     const issue=await casinoDailySettleCloud();
@@ -5410,8 +5421,31 @@ async function casinoCardRequest(action,args={}){
    body:JSON.stringify(pending)
   });
   const result=await response.json();
-  if(!response.ok||!result.ok)
+  if(!response.ok||!result.ok){
+   if([400,409,422].includes(response.status)){
+    localStorage.setItem(
+     key+'_rejected_'+Date.now(),
+     JSON.stringify({pending,error:result.error})
+    );
+    localStorage.removeItem(key);
+    casinoCloudRevision=null;
+    message('Операция отклонена. Синхронизация с облаком...');
+    setTimeout(async()=>{
+     if(casinoCardRequestBusy||casinoEconomyActionBusy)return;
+     try{
+      await casinoCloudStart();
+      if(casinoCloudRevision!==null){
+       await casinoRecoverServerRound();
+       render();
+      }
+     }catch(e){
+      console.warn('Cloud resync:',e.message);
+     }
+    },500);
+    return null;
+   }
    throw Error(result.error||'Ошибка сервера');
+  }
   if(!result.save||!Number.isSafeInteger(result.revision))
    throw Error('Некорректное сохранение');
   state={...fresh(),...result.save};
@@ -6887,7 +6921,17 @@ setInterval(()=>{if(tab==='city'||tab==='profile'){let gained=collectPassive();i
 render();
 casinoCloudStart().then(()=>{
  if(casinoServerEconomy){
-  void casinoRecoverServerRound();
+  void (async()=>{
+   const key='casino_card_pending_'+casinoCloudVKId();
+   const pending=JSON.parse(localStorage.getItem(key)||'null');
+   if(pending){
+    const {action,revision,requestId,...args}=pending;
+    await casinoApplyCardAction(action,args);
+    if(localStorage.getItem(key))return;
+   }
+   await casinoRecoverServerRound();
+  })().catch(e=>console.warn('Recovery:',e));
+
  }
 }).catch(e=>console.warn('Cloud startup:',e));
 
