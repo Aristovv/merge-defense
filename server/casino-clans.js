@@ -292,7 +292,15 @@ async function mine(pool,playerId){
  ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'officer' THEN 1 ELSE 2 END,
   m.joined_at LIMIT 50`,[rows[0].id]);
  const log=await pool.query('SELECT action,coins,player_id AS "playerId",created_at AS "createdAt" FROM lucky_clan_transactions WHERE clan_id=$1 ORDER BY created_at DESC,id DESC LIMIT 25',[rows[0].id]);
- return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows};
+ // Shared UTC objectives are calculated from committed transactions, not the client.
+ const activity=await pool.query(`SELECT
+ COUNT(*) FILTER(WHERE action='daily' AND created_at>=date_trunc('day',NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')::int AS "dailyClaims",
+ COALESCE(SUM(coins) FILTER(WHERE action='deposit' AND created_at>=date_trunc('day',NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'),0)::bigint AS "dailyDeposits",
+ COALESCE(SUM(coins) FILTER(WHERE action='deposit'),0)::bigint AS "weeklyDeposits",
+ COUNT(*) FILTER(WHERE action IN ('headquarters','wall','seats'))::int AS "weeklyUpgrades"
+ FROM lucky_clan_transactions WHERE clan_id=$1
+ AND created_at>=date_trunc('week',NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'`,[rows[0].id]);
+ return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,activity:activity.rows[0]||{}};
 }
 async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
