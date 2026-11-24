@@ -6810,6 +6810,15 @@ async function casinoTournamentClaim(){
   const r=await fetch(CASINO_TOURNAMENT_URL+'/api/casino/tournament/claim',{method:'POST',headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS,'Content-Type':'application/json'},body:'{}',cache:'no-store'});
   if(!r.ok)throw Error('HTTP '+r.status);
   const prize=await r.json();
+    if(prize.serverApplied===true){
+      casinoCloudRevision=null;
+      await casinoCloudStart();
+      render();
+      message(casinoCloudRevision===null
+        ?'Приз обработан сервером. Требуется синхронизация.'
+        :'Турнирная награда обработана');
+      return;
+    }
   if(!prize.receipt||!prize.reward)throw Error('Неверный ответ сервера');
   if(!Array.isArray(state.tournamentReceipts))state.tournamentReceipts=[];
   // An already-paid receipt must never mint another prize from a second device

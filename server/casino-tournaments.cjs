@@ -113,6 +113,45 @@ function registerCasinoTournaments(app,pool,requireAuth,optionalAuth) {
    const top=await leaders(client,previous),place=top.findIndex(p=>p.vk_id===id)+1;
    if(!place||place>10){await client.query('ROLLBACK');return res.status(409).json({error:'NOT_A_PRIZE_WINNER'})}
    const reward=weeklyRewards(place);
+    if(process.env.CASINO_AUTHORITATIVE_ECONOMY==='1'){
+      const receipt='casino-tournament:'+previous+':'+id;
+      const q=await client.query(
+        'SELECT save,revision FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[id]
+      );
+      if(!q.rows.length)throw Error('SAVE_NOT_FOUND');
+
+      const active=await client.query(
+        'SELECT 1 FROM public.casino_private_rounds WHERE vk_id=$1',[id]
+      );
+
+      if(active.rowCount||q.rows[0].save.pendingMiniRound)
+        throw Error('ROUND_PENDING');
+
+      if(!rows[0].claimed_at){
+        const result=require('./casino-authoritative-tournament.cjs')
+          .applyTournamentReward(q.rows[0].save,receipt,reward,place);
+
+        if(!result.alreadyApplied){
+          await client.query(
+            'UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',
+            [id,JSON.stringify(result.save)]
+          );
+        }
+
+        await client.query(
+          'UPDATE public.casino_city_tournaments SET claimed_at=NOW() WHERE week_start=$1 AND vk_id=$2',
+          [previous,id]
+        );
+      }
+
+      await client.query('COMMIT');
+      res.set('Cache-Control','no-store');
+      return res.json({
+        ok:true,receipt,place,reward,
+        serverApplied:true,
+        alreadyClaimed:!!rows[0].claimed_at
+      });
+    }
    if(!rows[0].claimed_at)await client.query('UPDATE public.casino_city_tournaments SET claimed_at=NOW() WHERE week_start=$1 AND vk_id=$2',[previous,id]);
    await client.query('COMMIT');
    res.set('Cache-Control','no-store');
