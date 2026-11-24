@@ -114,10 +114,11 @@ export async function verifyUserAdminGroup(playerId,groupId,userToken){
     signal:AbortSignal.timeout(7000)
    });
    body=await response.json();
-  }catch(error){fail('VK_USER_TOKEN_NEEDS_COMMUNITY',409)}
-  if(!response.ok)fail('VK_USER_TOKEN_NEEDS_COMMUNITY',409);
+  }catch(error){console.warn('[clans-vk] transport',String(error.name||'Error'));fail('VK_USER_TOKEN_NEEDS_COMMUNITY',409)}
+  if(!response.ok){console.warn('[clans-vk] HTTP',response.status);fail('VK_USER_TOKEN_NEEDS_COMMUNITY',409);}
   if(body?.error){
    const code=Number(body.error.error_code||0);
+   console.warn('[clans-vk] API',JSON.stringify({method,code,ipRestricted:/ip address/i.test(String(body.error.error_msg||''))}));
    // Most frequently VK binds this user token to the phone's IP.
    if(code===5||/ip address/i.test(String(body.error.error_msg||'')))
     fail('VK_USER_TOKEN_NEEDS_COMMUNITY',409);
