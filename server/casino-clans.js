@@ -45,7 +45,8 @@ const ECONOMY_SQL=[
  `CREATE TABLE IF NOT EXISTS lucky_clan_mission_rewards(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE, mission TEXT NOT NULL, period_start DATE NOT NULL, xp INTEGER NOT NULL CHECK(xp>0), PRIMARY KEY(clan_id,mission,period_start))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_mission_targets(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE, scope TEXT NOT NULL, period_start DATE NOT NULL, participants INTEGER NOT NULL, coins BIGINT NOT NULL, PRIMARY KEY(clan_id,scope,period_start))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_season_entries(season INTEGER NOT NULL, clan_id BIGINT NOT NULL, league TEXT NOT NULL, name TEXT NOT NULL, avatar TEXT NOT NULL, PRIMARY KEY(season,clan_id))`,
- `CREATE TABLE IF NOT EXISTS lucky_clan_season_results(season INTEGER NOT NULL, clan_id BIGINT NOT NULL, league TEXT NOT NULL, name TEXT NOT NULL, points INTEGER NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY(season,clan_id))`
+ `CREATE TABLE IF NOT EXISTS lucky_clan_season_results(season INTEGER NOT NULL, clan_id BIGINT NOT NULL, league TEXT NOT NULL, name TEXT NOT NULL, points INTEGER NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY(season,clan_id))`,
+ `CREATE TABLE IF NOT EXISTS lucky_clan_weekly_duels(week_start DATE NOT NULL, clan_a BIGINT NOT NULL, clan_b BIGINT NOT NULL, league TEXT NOT NULL, name_a TEXT NOT NULL, name_b TEXT NOT NULL, PRIMARY KEY(week_start,clan_a), UNIQUE(week_start,clan_b), CHECK(clan_a<>clan_b))`
 ];
 let initialized;
 const start=pool=>{
@@ -404,6 +405,29 @@ async function seasonListing(pool){
   return {...season,leagues,previousWinners:archive.rows};
  });
 }
+// Pair clans of the same locked seasonal league by building development.
+async function clanDuels(pool,playerId){
+ await seasonListing(pool);
+ const season=clanSeasonWindow();
+ return tx(pool,async c=>{
+  await c.query("SELECT pg_advisory_xact_lock(74826532)");
+  const week=(await c.query("SELECT date_trunc('week',NOW() AT TIME ZONE 'UTC')::date::text AS week")).rows[0].week;
+  await c.query(`WITH candidates AS (
+   SELECT e.clan_id,e.name,e.league,ROW_NUMBER() OVER(PARTITION BY e.league ORDER BY cl.headquarters+cl.wall,e.clan_id) AS n
+   FROM lucky_clan_season_entries e JOIN lucky_clans cl ON cl.id=e.clan_id
+   WHERE e.season=$1 AND NOT EXISTS(SELECT 1 FROM lucky_clan_weekly_duels d WHERE d.week_start=$2::date AND (d.clan_a=e.clan_id OR d.clan_b=e.clan_id))
+  )
+  INSERT INTO lucky_clan_weekly_duels(week_start,clan_a,clan_b,league,name_a,name_b)
+  SELECT $2::date,a.clan_id,b.clan_id,a.league,a.name,b.name FROM candidates a JOIN candidates b ON a.league=b.league AND b.n=a.n+1 WHERE MOD(a.n,2)=1
+  ON CONFLICT DO NOTHING`,[season.number,week]);
+  const {rows}=await c.query(`SELECT d.week_start::text AS "start",(d.week_start+7)::text AS "end",
+  d.clan_a AS "clanA",d.clan_b AS "clanB",d.name_a AS "nameA",d.name_b AS "nameB",d.league,
+  COALESCE((SELECT SUM(CASE WHEN r.mission IN ('daily_claims','daily_deposits') THEN 10 WHEN r.mission IN ('weekly_deposits','weekly_upgrades') THEN 40 ELSE 0 END) FROM lucky_clan_mission_rewards r WHERE r.clan_id=d.clan_a AND r.period_start>=d.week_start AND r.period_start<d.week_start+7),0)::int AS "pointsA",
+  COALESCE((SELECT SUM(CASE WHEN r.mission IN ('daily_claims','daily_deposits') THEN 10 WHEN r.mission IN ('weekly_deposits','weekly_upgrades') THEN 40 ELSE 0 END) FROM lucky_clan_mission_rewards r WHERE r.clan_id=d.clan_b AND r.period_start>=d.week_start AND r.period_start<d.week_start+7),0)::int AS "pointsB"
+  FROM lucky_clan_weekly_duels d JOIN lucky_clan_members m ON (m.clan_id=d.clan_a OR m.clan_id=d.clan_b) WHERE m.player_id=$1 AND d.week_start=$2::date`,[playerId,week]);
+  return {week,duel:rows[0]||null};
+ });
+}
 async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
  return rows;
@@ -426,6 +450,10 @@ export function registerLuckyClans(app,pool,requireAuth){
  app.get('/api/casino/clans/season',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   res.json(await seasonListing(pool));
+ }));
+ app.get('/api/casino/clans/duel',requireAuth,wrap(async(req,res)=>{
+  await start(pool);
+  res.json(await clanDuels(pool,req.playerId));
  }));
  app.get('/api/casino/clans/:id',requireAuth,wrap(async(req,res)=>{
   await start(pool);
