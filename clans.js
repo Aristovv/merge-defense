@@ -289,6 +289,14 @@
    '<div class="lc-clan-panel"><h3>👥 Состав клана · '+fmt(c.memberCount)+'</h3><p class="lc-clan-note">Сначала руководство, затем участники по сумме взносов. Нажмите на имя или аватарку, чтобы открыть профиль VK.</p>'+
    '<div class="lc-clan-detail-members">'+(memberMarkup||'<p class="lc-clan-note">Участников пока нет.</p>')+'</div></div>';
  }
+ let seasonData=null,seasonMode=false,seasonLeague='bronze',seasonLoading=false,seasonError='';
+ const leagueNames={bronze:'Бронза',silver:'Серебро',gold:'Золото',platinum:'Платина',diamond:'Алмаз',legend:'Легенда'};
+ async function loadSeason(){if(seasonLoading)return;seasonLoading=true;seasonError='';paintTop();try{seasonData=await api('/season')}catch(e){seasonError=e.message}finally{seasonLoading=false;paintTop()}}
+ function seasonUI(){
+ const tabs=Object.entries(leagueNames).map(([key,label])=>'<button type="button" class="btn '+(key===seasonLeague?'purple':'ghost')+'" data-season-league="'+key+'">'+label+'</button>').join('');
+ const rows=seasonData?.leagues?.[seasonLeague]||[];
+ return '<div class="lc-clan-panel"><h3>🏆 Сезон '+esc(seasonData?.number||'')+'</h3><p class="lc-clan-note">'+(seasonData?esc(seasonData.start)+' — '+esc(seasonData.end)+' (UTC, дата окончания не включена)':'')+'</p><p class="lc-clan-note">10 очков за ежедневное задание, 40 за еженедельное. Лига определяется суммой уровней штаба и стены. Пока без призов.</p><div style="display:flex;flex-wrap:wrap;gap:5px">'+tabs+'</div>'+(seasonLoading?'<p>Загрузка…</p>':seasonError?'<p class="lc-clan-error">'+esc(seasonError)+'</p><button class="btn ghost" data-season-refresh>Повторить</button>':rows.length?rows.map(c=>'<button type="button" class="lc-clan-rank lc-clan-rank-button" data-clan-top-view="'+esc(c.id)+'"><strong>#'+esc(c.rank)+'</strong><img src="'+esc(c.avatar)+'" alt=""><div><strong>'+esc(c.name)+'</strong><small>'+fmtTop(c.points)+' очков сезона</small></div></button>').join(''):'<p class="lc-clan-note">В этой лиге пока нет кланов.</p>')+'</div>';
+ }
  function paintTop(){
   const host=document.getElementById('lucky-clan-ranking');if(!host)return;
   if(topSelectedClan!==null){
@@ -297,7 +305,9 @@
     '<div class="lc-clan-panel"><button class="btn ghost" data-clan-top-back>← К рейтингу</button><p class="lc-clan-error">'+esc(topClanError||'Не удалось загрузить клан')+'</p><button class="btn purple" data-clan-top-view="'+esc(topSelectedClan)+'">Повторить</button></div>';
    return;
   }
-  host.innerHTML='<div class="lc-clan-panel"><h3>🏰 Топ кланов</h3>'+(rankings?.length?rankings.slice(0,20).map((c,i)=>
+  const switcher='<div class="lc-clan-panel" style="display:flex;gap:6px"><button class="btn '+(!seasonMode?'purple':'ghost')+'" data-season-mode="all">Общий топ</button><button class="btn '+(seasonMode?'purple':'ghost')+'" data-season-mode="season">Сезонные лиги</button></div>';
+  if(seasonMode){host.innerHTML=switcher+seasonUI();return;}
+  host.innerHTML=switcher+'<div class="lc-clan-panel"><h3>🏰 Топ кланов</h3>'+(rankings?.length?rankings.slice(0,20).map((c,i)=>
    '<button type="button" class="lc-clan-rank lc-clan-rank-button" data-clan-top-view="'+esc(c.id)+'"><strong>#'+(i+1)+'</strong><img src="'+esc(c.avatar)+'" alt=""><div><strong>'+esc(c.name)+'</strong><small>Штаб '+fmtTop(c.headquarters)+' · Стена '+fmtTop(c.wall)+' · '+fmtTop(c.memberCount)+'/'+fmtTop(c.memberCapacity||10)+' участников</small></div><span aria-hidden="true">›</span></button>').join(''):
    '<p class="lc-clan-note">'+(loadingTop?'Загрузка рейтинга…':'Кланы пока не найдены')+'</p>')+'</div>';
  }
@@ -321,6 +331,9 @@
  document.addEventListener('click',event=>{
   const host=document.getElementById('lucky-clan-ranking');
   if(!host||!host.contains(event.target))return;
+  const mode=event.target.closest('[data-season-mode]');if(mode){seasonMode=mode.dataset.seasonMode==='season';if(seasonMode)loadSeason();else paintTop();return;}
+  const league=event.target.closest('[data-season-league]');if(league){seasonLeague=league.dataset.seasonLeague;paintTop();return;}
+  if(event.target.closest('[data-season-refresh]')){loadSeason();return;}
   const back=event.target.closest('[data-clan-top-back]');
   if(back){topSelectedClan=null;topClanDetails=null;topClanLoading=false;topClanError='';paintTop();return}
   const item=event.target.closest('[data-clan-top-view]');
