@@ -381,7 +381,14 @@
    // Avoid native permission prompts when this proof is already available.
    if(action==='create'){
     const groupId=Number(preview.groupId);
-    if(signedCommunityRole(groupId)){
+    if(sessionStorage.getItem('lc-clan-proof:'+groupId)){
+     try{await api('/create',{groupId,descriptionProof:true});}catch(error){
+      const challenge=await api('/challenge',{groupId});
+      sessionStorage.setItem('lc-clan-proof:'+groupId,challenge.code);
+      throw Error(error.message+' Код: '+challenge.code);
+     }
+     sessionStorage.removeItem('lc-clan-proof:'+groupId);
+    }else if(signedCommunityRole(groupId)){
      await api('/create',{groupId});
     }else{
      // Millionaire's first path: the admin group token already obtained
@@ -391,15 +398,11 @@
       await api('/create',{groupId,userVKToken:userToken});
      }catch(error){
       if(error.message!=='VK_USER_TOKEN_NEEDS_COMMUNITY')throw error;
-      // VK often binds user access tokens to the requesting IP. Request one
-      // group token, but NEVER open AddToCommunity automatically: on mobile
-      // that may fail with the generic "Ошибка загрузки" overlay.
-      let proof;
-      try{proof=await getCommunityProof(groupId)}
-      catch(bridgeError){
-       throw Error('VK не выдал разрешение на группу «'+preview.name+'». Откройте Lucky City из меню этого сообщества либо подключите игру к группе вручную.');
-      }
-      await api('/create',{groupId,communityToken:proof});
+      const challenge=await api('/challenge',{groupId});
+      sessionStorage.setItem('lc-clan-proof:'+groupId,challenge.code);
+      notice='VK ограничил проверку по IP. Скопируйте код '+challenge.code+' в описание выбранного сообщества, сохраните его и снова нажмите «Создать клан бесплатно». После создания код можно удалить.';
+      return;
+
      }
     }
    }else{
