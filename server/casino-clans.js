@@ -43,7 +43,9 @@ const ECONOMY_SQL=[
  PRIMARY KEY(vk_id,claim_day))`,
  "ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS seat_tier SMALLINT NOT NULL DEFAULT 0 CHECK(seat_tier BETWEEN 0 AND 8)",
  `CREATE TABLE IF NOT EXISTS lucky_clan_mission_rewards(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE, mission TEXT NOT NULL, period_start DATE NOT NULL, xp INTEGER NOT NULL CHECK(xp>0), PRIMARY KEY(clan_id,mission,period_start))`,
- `CREATE TABLE IF NOT EXISTS lucky_clan_mission_targets(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE, scope TEXT NOT NULL, period_start DATE NOT NULL, participants INTEGER NOT NULL, coins BIGINT NOT NULL, PRIMARY KEY(clan_id,scope,period_start))`
+ `CREATE TABLE IF NOT EXISTS lucky_clan_mission_targets(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE, scope TEXT NOT NULL, period_start DATE NOT NULL, participants INTEGER NOT NULL, coins BIGINT NOT NULL, PRIMARY KEY(clan_id,scope,period_start))`,
+ `CREATE TABLE IF NOT EXISTS lucky_clan_season_entries(season INTEGER NOT NULL, clan_id BIGINT NOT NULL, league TEXT NOT NULL, name TEXT NOT NULL, avatar TEXT NOT NULL, PRIMARY KEY(season,clan_id))`,
+ `CREATE TABLE IF NOT EXISTS lucky_clan_season_results(season INTEGER NOT NULL, clan_id BIGINT NOT NULL, league TEXT NOT NULL, name TEXT NOT NULL, points INTEGER NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY(season,clan_id))`
 ];
 let initialized;
 const start=pool=>{
@@ -372,13 +374,35 @@ export function clanLeague(hq,wall){
 }
 async function seasonListing(pool){
  const season=clanSeasonWindow();
- const {rows}=await pool.query(`SELECT c.id,c.name,c.avatar,c.headquarters,c.wall,
- COALESCE(SUM(CASE WHEN r.mission IN ('daily_claims','daily_deposits') THEN 10 WHEN r.mission IN ('weekly_deposits','weekly_upgrades') THEN 40 ELSE 0 END),0)::int AS points
- FROM lucky_clans c LEFT JOIN lucky_clan_mission_rewards r ON r.clan_id=c.id AND r.period_start >= $1::date AND r.period_start < $2::date
- GROUP BY c.id ORDER BY points DESC,c.id ASC`,[season.start,season.end]);
- const leagues={bronze:[],silver:[],gold:[],platinum:[],diamond:[],legend:[]};
- for(const row of rows){const league=clanLeague(row.headquarters,row.wall);const list=leagues[league];if(list.length<50)list.push({...row,rank:list.length+1});}
- return {...season,leagues};
+ return tx(pool,async c=>{
+  // Serialize season snapshots and archive writes across requests.
+  await c.query("SELECT pg_advisory_xact_lock(74826531)");
+  await c.query(`INSERT INTO lucky_clan_season_entries(season,clan_id,league,name,avatar)
+   SELECT $1,id,CASE WHEN headquarters+wall>=90 THEN 'legend' WHEN headquarters+wall>=75 THEN 'diamond' WHEN headquarters+wall>=55 THEN 'platinum' WHEN headquarters+wall>=35 THEN 'gold' WHEN headquarters+wall>=15 THEN 'silver' ELSE 'bronze' END,name,avatar FROM lucky_clans
+   ON CONFLICT DO NOTHING`,[season.number]);
+  // Only archive seasons with an actual recorded league snapshot.
+  await c.query(`WITH scores AS (
+   SELECT e.season,e.clan_id,e.league,e.name,
+   COALESCE(SUM(CASE WHEN r.mission IN ('daily_claims','daily_deposits') THEN 10 WHEN r.mission IN ('weekly_deposits','weekly_upgrades') THEN 40 ELSE 0 END),0)::int AS points
+   FROM lucky_clan_season_entries e LEFT JOIN lucky_clan_mission_rewards r ON r.clan_id=e.clan_id
+    AND r.period_start >= DATE '2026-11-23'+(e.season-1)*14 AND r.period_start < DATE '2026-11-23'+e.season*14
+   WHERE e.season<$1 AND NOT EXISTS(SELECT 1 FROM lucky_clan_season_results z WHERE z.season=e.season AND z.clan_id=e.clan_id)
+   GROUP BY e.season,e.clan_id,e.league,e.name
+  ), ranked AS (
+   SELECT *,ROW_NUMBER() OVER(PARTITION BY season,league ORDER BY points DESC,clan_id)::int AS rank FROM scores
+  )
+  INSERT INTO lucky_clan_season_results(season,clan_id,league,name,points,rank)
+  SELECT season,clan_id,league,name,points,rank FROM ranked ON CONFLICT DO NOTHING`,[season.number]);
+  const {rows}=await c.query(`SELECT e.clan_id AS id,e.name,e.avatar,e.league,
+   COALESCE(SUM(CASE WHEN r.mission IN ('daily_claims','daily_deposits') THEN 10 WHEN r.mission IN ('weekly_deposits','weekly_upgrades') THEN 40 ELSE 0 END),0)::int AS points
+   FROM lucky_clan_season_entries e JOIN lucky_clans cl ON cl.id=e.clan_id
+   LEFT JOIN lucky_clan_mission_rewards r ON r.clan_id=e.clan_id AND r.period_start >= $2::date AND r.period_start < $3::date
+   WHERE e.season=$1 GROUP BY e.clan_id,e.name,e.avatar,e.league ORDER BY points DESC,e.clan_id ASC`,[season.number,season.start,season.end]);
+  const leagues={bronze:[],silver:[],gold:[],platinum:[],diamond:[],legend:[]};
+  for(const row of rows){const list=leagues[row.league];if(list&&list.length<50)list.push({...row,rank:list.length+1});}
+  const archive=await c.query(`SELECT season,clan_id AS id,league,name,points,rank FROM lucky_clan_season_results WHERE season=$1 AND rank<=3 AND points>0 ORDER BY league,rank`,[season.number-1]);
+  return {...season,leagues,previousWinners:archive.rows};
+ });
 }
 async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
