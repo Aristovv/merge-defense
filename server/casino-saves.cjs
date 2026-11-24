@@ -285,14 +285,14 @@ function registerCasinoSaves(app,pool,requireAuth){
  });
  app.post('/api/casino/economy/action',requireAuth,async(req,res)=>{
   if(process.env.CASINO_AUTHORITATIVE_ECONOMY!=='1')return res.status(503).json({error:'ECONOMY_NOT_ENABLED'});
-  const vk=id(req),{action,revision,requestId,index,level,game,stake,count=1,risk=0,guess,picks,freeSpin=false}=req.body||{};
+  const vk=id(req),{action,revision,requestId,index,level,game,stake,count=1,risk=0,guess,picks,freeSpin=false,withKey=false,kind}=req.body||{};
   if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
-  if(!['collect_income','upgrade_building','claim_milestone','play_round'].includes(action)||
+  if(!['collect_income','upgrade_building','claim_milestone','play_round','claim_daily_reward','claim_weekly_reward','open_chest','activate_booster'].includes(action)||
      !valid(revision,1,Number.MAX_SAFE_INTEGER)||typeof requestId!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(requestId)||
      (action==='upgrade_building'&&!valid(index,0,13))||
      (action==='claim_milestone'&&!valid(level,1,500))||
      (action==='play_round'&&(![0,1,2,3,4,5,6,7,10,12,14,15].includes(game)||typeof freeSpin!=='boolean'||(freeSpin?game>5:(!valid(stake,25,100000)||stake%5!==0)))))return res.status(400).json({error:'INVALID_ACTION'});
-  const signature=JSON.stringify([action,action==='upgrade_building'?index:action==='claim_milestone'?level:action==='play_round'?[game,freeSpin?null:stake,count,risk,guess??null,picks??null,freeSpin]:null]);
+  const signature=JSON.stringify([action,action==='activate_booster'?kind:null,action==='open_chest'?withKey:null,['upgrade_building','claim_daily_reward'].includes(action)?index:action==='claim_milestone'?level:action==='play_round'?[game,freeSpin?null:stake,count,risk,guess??null,picks??null,freeSpin]:null]);
   let client;
   try{
    await ensure(pool);
@@ -319,11 +319,15 @@ function registerCasinoSaves(app,pool,requireAuth){
     result=action==='collect_income'?economy.collectIncome(current.save,now):
       action==='upgrade_building'?economy.upgradeBuilding(current.save,index,now):
       action==='claim_milestone'?economy.claimMilestone(current.save,level):
+      action==='claim_daily_reward'?require('./casino-authoritative-rewards.cjs').claimReward(current.save,'daily',index,now):
+      action==='activate_booster'?require('./casino-authoritative-boosters.cjs').activateBooster(current.save,kind,now):
+      action==='open_chest'?require('./casino-authoritative-chests.cjs').openChest(current.save,withKey,now):
+      action==='claim_weekly_reward'?require('./casino-authoritative-rewards.cjs').claimReward(current.save,'weekly',null,now):
       require('./casino-authoritative-outcomes.cjs').resolveRound(current.save,{game,stake,count,risk,guess,picks,freeSpin},now);
     if(!clean(result.save))throw Error('INVALID_RESULT');
    }catch(e){
     await client.query('ROLLBACK');
-    const known=['INSUFFICIENT_COINS','MILESTONE_NOT_REACHED','BUILDING_LEVEL_LIMIT','BUILDING_COST_LIMIT','BALANCE_LIMIT','INVALID_INCOME_TIME','INVALID_BUILDING','INVALID_RESULT','INVALID_STAKE','INVALID_PLINKO','INVALID_GUESS','INSUFFICIENT_CHIPS','ROUND_PENDING','UNSUPPORTED_GAME','INVALID_PICKS','SLOT_BONUS_PENDING','NO_FREE_SPIN'];
+    const known=['INSUFFICIENT_COINS','MILESTONE_NOT_REACHED','BUILDING_LEVEL_LIMIT','BUILDING_COST_LIMIT','BALANCE_LIMIT','INVALID_INCOME_TIME','INVALID_BUILDING','INVALID_RESULT','INVALID_STAKE','INVALID_PLINKO','INVALID_GUESS','INSUFFICIENT_CHIPS','ROUND_PENDING','UNSUPPORTED_GAME','INVALID_PICKS','SLOT_BONUS_PENDING','NO_FREE_SPIN','INVALID_REWARD','ALREADY_CLAIMED','REWARD_NOT_READY','INVALID_KEY','NO_CHEST_KEY','CHEST_COOLDOWN','DAILY_SYNC_REQUIRED','INVALID_BOOSTER','NO_BOOSTER'];
     return res.status(422).json({error:known.includes(e.message)?e.message:'ACTION_REJECTED'});
    }
    const next={...result.save,stamp:Date.now()};

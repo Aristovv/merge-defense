@@ -6241,6 +6241,14 @@ function cc14ChestReward(){
  return {tier,symbol,label};
 }
 function cc14OpenChest(withKey=false){
+ if(casinoServerEconomy){
+  void casinoRunEconomyAction('open_chest',{withKey}).then(r=>{
+   if(r&&r.reward)
+    message('Сундук '+r.reward.tier+': '+r.reward.label);
+  });
+  return;
+ }
+
  if(busy||round)return message('Заверши текущую игру');
  const x=cc14Data(),now=Date.now();
  if(withKey){
@@ -6268,6 +6276,14 @@ function cc14ClaimEvent(){
  message(e.event.name+': награда получена');
 }
 function cc14ActivateBooster(kind){
+ if(casinoServerEconomy){
+  if(kind==='chest')return cc14OpenChest(true);
+  void casinoRunEconomyAction('activate_booster',{kind}).then(r=>{
+   if(r)message('Бустер активирован');
+  });
+  return;
+ }
+
  if(busy||round)return message('Заверши текущую игру');
  if(!Object.prototype.hasOwnProperty.call(CC14_BOOSTERS,kind))return;
  const x=cc14Data(),i=x.inventory.indexOf(kind);
@@ -6301,6 +6317,13 @@ const CC14_DAILY_GOALS=[
  {name:'Крупье дня',desc:'Открыть хотя бы один сундук',goal:1,value:x=>x.chests||0,chips:180,coins:90}
 ];
 function cc14ClaimChallenge(i){
+ if(casinoServerEconomy){
+  void casinoRunEconomyAction('claim_daily_reward',{index:i}).then(r=>{
+   if(r)message('Награда получена');
+  });
+  return;
+ }
+
  if(busy||round)return message('Заверши текущую игру');
  const item=CC14_DAILY_GOALS[i],x=cc14Data().daily;
  if(!item||x.claims.includes(i)||item.value(x)<item.goal)return;
@@ -6308,6 +6331,13 @@ function cc14ClaimChallenge(i){
  save();render();message('Испытание выполнено: +'+item.chips+' фишек');
 }
 function cc14ClaimTournament(){
+ if(casinoServerEconomy){
+  void casinoRunEconomyAction('claim_weekly_reward',{}).then(r=>{
+   if(r)message('Турнирная награда получена');
+  });
+  return;
+ }
+
  if(busy||round)return message('Заверши текущую игру');
  const x=cc14Data().week;
  if(x.claimed||x.rounds<30||x.wins<8)return;
