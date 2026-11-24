@@ -11,6 +11,9 @@ async function ensure(pool){
    await pool.query(`CREATE TABLE IF NOT EXISTS public.casino_city_save_history(
     vk_id BIGINT NOT NULL,revision BIGINT NOT NULL,save JSONB NOT NULL,
     captured_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(vk_id,revision))`);
+   await pool.query(`ALTER TABLE public.casino_city_save_history ADD COLUMN IF NOT EXISTS captured_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
+   await pool.query(`ALTER TABLE public.casino_city_save_history ADD COLUMN IF NOT EXISTS saved_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
+   await pool.query(`ALTER TABLE public.casino_city_save_history ALTER COLUMN saved_at SET DEFAULT NOW()`);
    await pool.query(`CREATE OR REPLACE FUNCTION public.casino_city_capture_save()
     RETURNS TRIGGER LANGUAGE plpgsql AS $history$
     BEGIN
@@ -20,6 +23,8 @@ async function ensure(pool){
      ELSIF OLD.revision IS DISTINCT FROM NEW.revision THEN
       INSERT INTO public.casino_city_save_history(vk_id,revision,save)
       VALUES(OLD.vk_id,OLD.revision,OLD.save) ON CONFLICT DO NOTHING;
+      INSERT INTO public.casino_city_save_history(vk_id,revision,save)
+      VALUES(NEW.vk_id,NEW.revision,NEW.save) ON CONFLICT DO NOTHING;
      END IF;
      RETURN NEW;
     END;
@@ -32,6 +37,7 @@ async function ensure(pool){
       FOR EACH ROW EXECUTE FUNCTION public.casino_city_capture_save();
      END IF;
     END; $install$`);
+   await pool.query(`INSERT INTO public.casino_city_save_history(vk_id,revision,save) SELECT vk_id,revision,save FROM public.casino_city_saves ON CONFLICT DO NOTHING`);
   })().catch(error=>{ready=null;throw error});
  }
  await ready;
