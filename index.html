@@ -5524,7 +5524,25 @@ async function casinoRecoverServerRound(){
   }
 
   if(r.game===13){
-   message('Обнаружен незавершённый Crash');
+   round={...r,kind:'crash'};
+   roundBet=r.stake;
+   selected=13;
+   tab='game';
+   busy=true;
+   crashValue=1;
+   render();
+
+   clearInterval(crashTimer);
+
+   crashTimer=setInterval(()=>{
+    if(!round||round.kind!=='crash'){
+     clearInterval(crashTimer);
+     return;
+    }
+    void casinoServerCrashAction('status');
+   },500);
+
+   await casinoServerCrashAction('status');
    return;
   }
 
