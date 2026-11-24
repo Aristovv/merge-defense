@@ -358,6 +358,28 @@ async function mine(pool,playerId){
  const depositLimit=clanDepositLimit(own.rows[0]);
  return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,activity:activity.rows[0]||{},missionTargets:targets,missionRewards:clanMissionRewards(targets),depositLimit,missionXp:Number(rewards.rows[0]?.xp||0),levelBonus:clanLevelBonus(rewards.rows[0]?.xp)};
 }
+// Seasons are 14 UTC days, starting on a Monday. Points count completed
+// mission periods rather than XP amounts, so higher income alone cannot buy rank.
+export function clanSeasonWindow(now=Date.now()){
+ const anchor=Date.UTC(2026,10,23),duration=14*86400000;
+ const number=Math.max(1,Math.floor((now-anchor)/duration)+1);
+ const start=new Date(anchor+(number-1)*duration),end=new Date(start.getTime()+duration);
+ return {number,start:start.toISOString().slice(0,10),end:end.toISOString().slice(0,10)};
+}
+export function clanLeague(hq,wall){
+ const development=Number(hq)+Number(wall);
+ return development>=90?'legend':development>=75?'diamond':development>=55?'platinum':development>=35?'gold':development>=15?'silver':'bronze';
+}
+async function seasonListing(pool){
+ const season=clanSeasonWindow();
+ const {rows}=await pool.query(`SELECT c.id,c.name,c.avatar,c.headquarters,c.wall,
+ COALESCE(SUM(CASE WHEN r.mission IN ('daily_claims','daily_deposits') THEN 10 WHEN r.mission IN ('weekly_deposits','weekly_upgrades') THEN 40 ELSE 0 END),0)::int AS points
+ FROM lucky_clans c LEFT JOIN lucky_clan_mission_rewards r ON r.clan_id=c.id AND r.period_start >= $1::date AND r.period_start < $2::date
+ GROUP BY c.id ORDER BY points DESC,c.id ASC`,[season.start,season.end]);
+ const leagues={bronze:[],silver:[],gold:[],platinum:[],diamond:[],legend:[]};
+ for(const row of rows){const league=clanLeague(row.headquarters,row.wall);const list=leagues[league];if(list.length<50)list.push({...row,rank:list.length+1});}
+ return {...season,leagues};
+}
 async function listing(pool){
  const {rows}=await pool.query(`SELECT ${clanFields}, (c.headquarters*1000+c.wall*600+(SELECT COUNT(*) FROM lucky_clan_members m WHERE m.clan_id=c.id)*50)::bigint AS score FROM lucky_clans c ORDER BY score DESC,c.created_at ASC LIMIT 100`);
  return rows;
@@ -377,6 +399,10 @@ export function registerLuckyClans(app,pool,requireAuth){
  }));
  // Read-only public clan card, available to signed-in VK players.
  // Never expose personal cloud saves or grant management powers here.
+ app.get('/api/casino/clans/season',requireAuth,wrap(async(req,res)=>{
+  await start(pool);
+  res.json(await seasonListing(pool));
+ }));
  app.get('/api/casino/clans/:id',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   if(!validId(req.params?.id))fail('Некорректный клан');
