@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS lucky_clan_members (
 CREATE INDEX IF NOT EXISTS lucky_clan_members_clan_idx ON lucky_clan_members(clan_id);
 `;
 const ECONOMY_SQL=[
+ `CREATE TABLE IF NOT EXISTS lucky_clan_management_log(id BIGSERIAL PRIMARY KEY,clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,actor_id TEXT NOT NULL,target_id TEXT NOT NULL,action TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`,
+ `CREATE INDEX IF NOT EXISTS lucky_clan_management_log_idx ON lucky_clan_management_log(clan_id,id DESC)`,
  "ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS coins BIGINT CHECK(coins>=0)",
  "UPDATE lucky_clans SET coins=materials WHERE coins IS NULL",
  "ALTER TABLE lucky_clans ALTER COLUMN coins SET DEFAULT 0",
@@ -360,7 +362,8 @@ async function mine(pool,playerId){
  const rewards=await pool.query(`SELECT COALESCE(SUM(xp),0)::bigint AS xp FROM lucky_clan_mission_rewards WHERE clan_id=$1`,[rows[0].id]);
  const own=await pool.query(`SELECT s.save->'buildings' AS buildings FROM public.casino_city_saves s WHERE s.vk_id=$1`,[String(playerId).replace(/^vk:/,'')]);
  const depositLimit=clanDepositLimit(own.rows[0]);
- return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,activity:activity.rows[0]||{},missionTargets:targets,missionRewards:clanMissionRewards(targets),depositLimit,missionXp:Number(rewards.rows[0]?.xp||0),levelBonus:clanLevelBonus(rewards.rows[0]?.xp)};
+ const managementLog=rows[0].role==='owner'?await pool.query(`SELECT actor_id AS "actorId",target_id AS "targetId",action,created_at AS "createdAt" FROM lucky_clan_management_log WHERE clan_id=$1 ORDER BY id DESC LIMIT 30`,[rows[0].id]):{rows:[]};
+ return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,managementLog:managementLog.rows,activity:activity.rows[0]||{},missionTargets:targets,missionRewards:clanMissionRewards(targets),depositLimit,missionXp:Number(rewards.rows[0]?.xp||0),levelBonus:clanLevelBonus(rewards.rows[0]?.xp)};
 }
 // Seasons are 14 UTC days, starting on a Monday. Points count completed
 // mission periods rather than XP amounts, so higher income alone cannot buy rank.
@@ -725,6 +728,7 @@ export function registerLuckyClans(app,pool,requireAuth){
    if(member.rows[0].role==='owner')fail('Главу нельзя исключить',403);
    const removed=await c.query('DELETE FROM lucky_clan_members WHERE player_id=$1 AND clan_id=$2 AND role<>\'owner\' RETURNING player_id',[target,member.rows[0].clan_id]);
    if(!removed.rowCount)fail('Участник больше не состоит в клане',409);
+   await c.query(`INSERT INTO lucky_clan_management_log(clan_id,actor_id,target_id,action) VALUES($1,$2,$3,'kick')`,[member.rows[0].clan_id,req.playerId,target]);
   });
   res.json({ok:true});
  }));
@@ -759,6 +763,7 @@ export function registerLuckyClans(app,pool,requireAuth){
    if(!owner.rowCount)fail('Только глава может назначать роли',403);
    const changed=await c.query("UPDATE lucky_clan_members SET role=$1 WHERE player_id=$2 AND clan_id=$3 AND role<>'owner' RETURNING player_id",[role,target,owner.rows[0].clan_id]);
    if(!changed.rowCount)fail('Участник не найден');
+   await c.query(`INSERT INTO lucky_clan_management_log(clan_id,actor_id,target_id,action) VALUES($1,$2,$3,$4)`,[owner.rows[0].clan_id,req.playerId,target,role==='officer'?'promote':'demote']);
   });res.json({ok:true});
  }));
 }
