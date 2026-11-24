@@ -249,7 +249,8 @@
    ['Улучшений штаба',fmt(stats.headquartersUpgrades)],
    ['Улучшений стены',fmt(stats.wallUpgrades)]
   ];
-  const memberMarkup=(c.members||[]).map(m=>{
+  const roleRank={owner:0,officer:1,member:2};
+  const memberMarkup=[...(c.members||[])].sort((a,b)=>(roleRank[a.role]??3)-(roleRank[b.role]??3)||Number(b.contributed||0)-Number(a.contributed||0)).map(m=>{
    const name=esc(m.profileName||'Профиль VK');
    return '<a class="lc-clan-detail-member" href="'+asLink(m.profileUrl)+'" target="_blank" rel="noopener noreferrer">'+
     (m.profileAvatar?'<img src="'+esc(m.profileAvatar)+'" alt="">':'<span class="lc-clan-person-placeholder" aria-hidden="true">👤</span>')+
@@ -258,16 +259,19 @@
   }).join('');
   const hq=Number(c.headquarters),wall=Number(c.wall),slots=Number(c.memberCapacity);
   const nextHq=hq<50?(50000+20000*(hq+1)**2):null;
+  const progress=(value,max)=>{const v=Number(value),m=Number(max);return Number.isFinite(v)&&Number.isFinite(m)&&m>0?Math.max(0,Math.min(100,Math.round(v/m*100))):0};
+  const meter=(label,value,max)=>'<div style="margin:10px 0"><div class="lc-clan-note">'+esc(label)+' · '+fmt(value)+' / '+fmt(max)+' · '+progress(value,max)+'%</div><progress aria-label="'+esc(label)+'" max="100" value="'+progress(value,max)+'" style="width:100%;height:10px;accent-color:#a78bfa"></progress></div>';
   return '<div class="lc-clan-panel"><button class="btn ghost" data-clan-top-back>← К рейтингу</button></div>'+
    '<div class="lc-clan-detail-hero"><div class="lc-clan-detail-header"><img src="'+esc(c.avatar)+'" alt=""><div><div class="lc-clan-detail-title">'+esc(c.name)+'</div><p class="lc-clan-note">Клан сообщества VK · Основан '+(c.createdAt?esc(new Date(c.createdAt).toLocaleDateString('ru-RU')):'—')+'</p></div></div>'+
    '<a class="lc-clan-detail-action" href="'+asLink(c.communityUrl)+'" target="_blank" rel="noopener noreferrer">Открыть сообщество клана VK ↗</a></div>'+
    '<div class="lc-clan-detail-stats">'+tiles.map(([label,value])=>'<div class="lc-clan-detail-stat"><span class="lc-clan-note">'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>').join('')+'</div>'+
+   '<div class="lc-clan-panel"><h3>Прогресс клана</h3>'+meter('Казна',c.coins,c.treasuryCapacity)+meter('Участники',c.memberCount,c.memberCapacity)+meter('Штаб',hq,50)+meter('Стена',wall,50)+'</div>'+
    '<div class="lc-clan-panel"><h3>🏰 Уровни и развитие</h3>'+
     '<p class="lc-clan-note">Штаб '+fmt(hq)+'/50 · '+esc(description('headquarters',hq))+'</p><div class="lc-clan-visual">'+(window.LuckyClanScene?.headquarters?.(hq)||'🏰')+'</div>'+
     '<p class="lc-clan-note">Стена '+fmt(wall)+'/50 · '+esc(description('wall',wall))+'</p><div class="lc-clan-visual">'+(window.LuckyClanScene?.wall?.(wall)||'🛡️')+'</div>'+
     '<p class="lc-clan-note">Платные строительные этапы: 5, 10, 15, 20, 30, 40. Остальные уровни прокачиваются за монеты казны.</p>'+
     '<p class="lc-clan-note">Текущая вместимость: '+fmt(slots)+' из 50 мест. '+(nextHq?'Вместимость казны после следующего уровня штаба: '+fmt(nextHq)+' 🪙.':'Штаб максимально прокачан.')+'</p></div>'+
-   '<div class="lc-clan-panel"><h3>👥 Состав клана · '+fmt(c.memberCount)+'</h3><p class="lc-clan-note">Нажмите на имя или аватарку, чтобы перейти на страницу игрока VK.</p>'+
+   '<div class="lc-clan-panel"><h3>👥 Состав клана · '+fmt(c.memberCount)+'</h3><p class="lc-clan-note">Сначала руководство, затем участники по сумме взносов. Нажмите на имя или аватарку, чтобы открыть профиль VK.</p>'+
    '<div class="lc-clan-detail-members">'+(memberMarkup||'<p class="lc-clan-note">Участников пока нет.</p>')+'</div></div>';
  }
  function paintTop(){
