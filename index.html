@@ -1,5 +1,8 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#100B20"><title>LUCKY CITY · Город удачи</title>
+<html lang="ru"><head>
+<script>
+const CASINO_API_BASE='http://127.0.0.1:3099';
+</script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#100B20"><title>LUCKY CITY · Город удачи</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 :root{--bg:#090818;--panel:#17152b;--panel2:#211b37;--gold:#eac48d;--light:#f8e8cb;--muted:#a6a0ba;--violet:#a06aff;--line:#554065;--mint:#78eed4}
@@ -4057,7 +4060,7 @@ async function casinoDonationSubmit(){
  button.disabled=true;host.textContent='Записываем выдачу в облако…';
  const requestId='donation_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,14);
  try{
-  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/donation',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId,kind,id,mode,requestId}),cache:'no-store'});
+  const response=await fetch(CASINO_API_BASE+'/api/casino/admin/donation',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId,kind,id,mode,requestId}),cache:'no-store'});
   const data=await response.json();if(!response.ok)throw Error(data.error||'HTTP '+response.status);
   host.textContent='✓ Сервер подтвердил выдачу: '+id+' игроку VK '+vkId+'.';
   const me=new URLSearchParams(CASINO_LAUNCH_PARAMS||'').get('vk_user_id');
@@ -4080,7 +4083,7 @@ async function casinoDonationRefresh(){
  if(button.dataset.confirmToken!==token){button.dataset.confirmToken=token;host.textContent='Подтверди синхронизацию для VK '+vkId+' повторным нажатием. Ресурсы не начислятся повторно.';button.textContent='Подтвердить синхронизацию';return}
  button.disabled=true;
  try{
-  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/donation-refresh',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId}),cache:'no-store'});
+  const response=await fetch(CASINO_API_BASE+'/api/casino/admin/donation-refresh',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId}),cache:'no-store'});
   const data=await response.json();if(!response.ok)throw Error(data.error||'HTTP '+response.status);
   host.textContent='✓ Облако обновлено. Закрой игру полностью и открой снова. Никаких повторных начислений.';
  }catch(e){host.textContent='Не удалось синхронизировать: '+e.message}
@@ -4235,7 +4238,7 @@ async function initCasinoLaunchParams(){if(CASINO_LAUNCH_PARAMS){loadCasinoVKPro
 function casinoRankPayload(){return {plays:Math.max(0,Math.floor(Number(state.plays)||0)),wins:Math.max(0,Math.floor(Number(state.wins)||0)),level:Math.max(1,Math.floor(Number(state.level)||1)),buildings:state.buildings.map(v=>Math.max(0,Math.floor(Number(v)||0))),displayName:casinoVKDisplayName,avatarUrl:casinoVKAvatar}}
 function syncCasinoRanking(){if(!CASINO_LAUNCH_PARAMS)return;clearTimeout(casinoRankTimer);casinoRankTimer=setTimeout(()=>{
  if(tab==='top'){loadCasinoRanking();return}
- fetch('http://127.0.0.1:3099/api/casino/sync',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify(casinoRankPayload()),cache:'no-store'}).catch(()=>{});
+ fetch(CASINO_API_BASE+'/api/casino/sync',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify(casinoRankPayload()),cache:'no-store'}).catch(()=>{});
 },700)}
 function casinoRankingPoints(){
  return Math.floor(Math.min(Math.max(0,state.plays||0),1000)*3+Math.max(0,state.wins||0)*35+Math.max(1,state.level||1)*100+state.buildings.reduce((a,b)=>a+Math.max(0,Number(b)||0),0)*25);
@@ -4305,7 +4308,7 @@ async function loadCasinoRanking(){
  try{
   if(CASINO_LAUNCH_PARAMS){
    try{
-    const synced=await fetch('http://127.0.0.1:3099/api/casino/sync',{
+    const synced=await fetch(CASINO_API_BASE+'/api/casino/sync',{
      method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
      body:JSON.stringify(casinoRankPayload()),cache:'no-store'
     });
@@ -4329,7 +4332,7 @@ async function loadCasinoRanking(){
     }
    }catch(err){casinoRankingAuthIssue='Ошибка подключения: '+String(err?.message||err).slice(0,100)}
   }else{casinoRankingAuthIssue='Нет подписанных параметров VK'}
-  const response=await fetch('http://127.0.0.1:3099/api/casino/top',{cache:'no-store'});
+  const response=await fetch(CASINO_API_BASE+'/api/casino/top',{cache:'no-store'});
   if(!response.ok)throw Error('HTTP '+response.status);
   const data=await response.json();
   casinoLeaderboardPlayers=(Array.isArray(data.top)?data.top:[])
@@ -4458,7 +4461,7 @@ async function casinoCloudFetch(method,body){
  const controller=new AbortController();
  const timer=setTimeout(()=>controller.abort(),12000);
  try{
-  const response=await fetch('http://127.0.0.1:3099/api/casino/save',{method,headers,body:body?JSON.stringify(body):undefined,cache:'no-store',signal:controller.signal});
+  const response=await fetch(CASINO_API_BASE+'/api/casino/save',{method,headers,body:body?JSON.stringify(body):undefined,cache:'no-store',signal:controller.signal});
   const payload=await response.json().catch(()=>null);
   if(!response.ok)throw Object.assign(new Error('Cloud HTTP '+response.status+(payload?.error?' · '+payload.error:'')),{
    status:response.status,code:payload?.error||'',reason:payload?.reason||''
@@ -4476,7 +4479,7 @@ function casinoCloudRetryStart(){
 async function casinoCloudSettleRecordedPlinko(revision){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
  try{
-  const response=await fetch('http://127.0.0.1:3099/api/casino/rounds/settle-plinko',{
+  const response=await fetch(CASINO_API_BASE+'/api/casino/rounds/settle-plinko',{
    method:'POST',headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS,'Content-Type':'application/json'},
    body:JSON.stringify({revision}),cache:'no-store',signal:controller.signal
   });
@@ -4947,7 +4950,7 @@ async function casinoRunEconomyAction(action,args={}){
    localStorage.setItem(key,JSON.stringify(pending));
   }
   casinoCloudBusy=true;ownsCloud=true;
-  const response=await fetch('http://127.0.0.1:3099/api/casino/economy/action',{
+  const response=await fetch(CASINO_API_BASE+'/api/casino/economy/action',{
    method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
    body:JSON.stringify({...pending.args,action:pending.action,revision:pending.revision,requestId:pending.requestId}),cache:'no-store'
   });
@@ -5412,7 +5415,7 @@ async function casinoCardRequest(action,args={}){
    localStorage.setItem(key,JSON.stringify(pending));
   }
   const response=await fetch(
-   'http://127.0.0.1:3099/api/casino/rounds/card-action',{
+   CASINO_API_BASE+'/api/casino/rounds/card-action',{
    method:'POST',
    headers:{
     'Content-Type':'application/json',
@@ -5509,7 +5512,7 @@ async function casinoRecoverServerRound(){
  if(!CASINO_LAUNCH_PARAMS)return;
  try{
   const response=await fetch(
-   'http://127.0.0.1:3099/api/casino/rounds/active',{
+   CASINO_API_BASE+'/api/casino/rounds/active',{
     headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
     cache:'no-store'
    });
@@ -5991,7 +5994,7 @@ window.LuckyClanEconomy={
    const controller=new AbortController();
    const timeout=setTimeout(()=>controller.abort(),12000);
    try{
-    response=await fetch('http://127.0.0.1:3099/api/casino/clans/deposit',{
+    response=await fetch(CASINO_API_BASE+'/api/casino/clans/deposit',{
      method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
      body:JSON.stringify({amount,revision,requestId}),cache:'no-store',signal:controller.signal
     });
@@ -6045,7 +6048,7 @@ async function daily(){
   const timeout=setTimeout(()=>controller.abort(),12000);
   let response;
   try{
-   response=await fetch('http://127.0.0.1:3099/api/casino/daily/claim',{
+   response=await fetch(CASINO_API_BASE+'/api/casino/daily/claim',{
     method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
     body:JSON.stringify({revision}),cache:'no-store',signal:controller.signal
    });
@@ -6128,7 +6131,7 @@ async function casinoAdminStats(){
  const host=document.getElementById('casino-admin-stats');if(!host)return;
  host.textContent='Загружаем…';
  try{
-  const r=await fetch('http://127.0.0.1:3099/api/casino/admin/stats',{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
+  const r=await fetch(CASINO_API_BASE+'/api/casino/admin/stats',{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
   const d=await r.json();if(!r.ok)throw Error(d.error||'HTTP '+r.status);
   host.innerHTML='<div class="casino-admin-player"><b>Облачные игроки: '+fmt(d.cloud.total)+'</b><span>Активность за сутки: '+fmt(d.cloud.active24)+'</span><span>Фишек в облаке: '+fmt(Number(d.cloud.chips))+'</span><span>Монет в облаке: '+fmt(Number(d.cloud.coins))+'</span><span>Всего партий: '+fmt(Number(d.cloud.plays))+'</span><span>В рейтинге: '+fmt(d.ranking.total)+' · Обновлялись за сутки: '+fmt(d.ranking.active24)+'</span><span>Турнирных записей: '+fmt(d.tournaments.total)+'</span></div>';
  }catch(e){host.textContent='Ошибка: '+e.message}
@@ -6145,7 +6148,7 @@ async function casinoAdminAdjust(){
  if(button.dataset.confirmToken!==token){button.dataset.confirmToken=token;button.textContent='Подтвердить изменение';host.textContent='Подтверди действие для VK '+vkId+' повторным нажатием.';return}
  button.disabled=true;host.textContent='Сохраняем в облаке…';
  try{
-  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/adjust',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify(payload),cache:'no-store'});
+  const response=await fetch(CASINO_API_BASE+'/api/casino/admin/adjust',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify(payload),cache:'no-store'});
   const data=await response.json();if(!response.ok)throw Error(data.error||'HTTP '+response.status);
   host.textContent='Готово: '+data.before+' → '+data.after+'. Игроку нужно перезапустить игру.';
  }catch(e){host.textContent='Ошибка: '+e.message}
@@ -6168,7 +6171,7 @@ async function casinoAdminGrant(){
  if(button){button.disabled=true;button.textContent='Выдаём…';}
  host.textContent='Отправляем запрос на сервер…';
  try{
-  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/grant',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId,field,amount}),cache:'no-store'});
+  const response=await fetch(CASINO_API_BASE+'/api/casino/admin/grant',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId,field,amount}),cache:'no-store'});
   const data=await response.json();
   if(!response.ok)throw Error(data.error==='CLOUD_SAVE_NOT_FOUND'?'У игрока пока нет облачного сохранения':data.error||'HTTP '+response.status);
   host.textContent='Выдано успешно. Игрок получит обновление после повторного входа в игру.';
@@ -6186,7 +6189,7 @@ async function casinoAdminResetAll(){
  }
  button.disabled=true;button.textContent='Сбрасываем…';host.textContent='Запрос отправлен…';
  try{
-  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/reset-all',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({confirmation:'RESET ALL LUCKY CITY',acknowledge:true}),cache:'no-store'});
+  const response=await fetch(CASINO_API_BASE+'/api/casino/admin/reset-all',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({confirmation:'RESET ALL LUCKY CITY',acknowledge:true}),cache:'no-store'});
   const data=await response.json();if(!response.ok)throw Error(data.error||'HTTP '+response.status);
   host.textContent='Готово. Сохранений: '+data.saves+', игроков рейтинга: '+data.ranking+', записей турниров: '+data.tournaments+'. Всем нужно перезапустить игру.';
  }catch(error){host.textContent='Ошибка: '+error.message}
@@ -6204,7 +6207,7 @@ async function casinoAdminReset(){
  }
  button.disabled=true;button.textContent='Сбрасываем…';host.textContent='Отправляем запрос…';
  try{
-  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/reset-player',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId,confirmation:'RESET '+vkId}),cache:'no-store'});
+  const response=await fetch(CASINO_API_BASE+'/api/casino/admin/reset-player',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId,confirmation:'RESET '+vkId}),cache:'no-store'});
   const data=await response.json();
   if(!response.ok)throw Error(data.error||'HTTP '+response.status);
   host.textContent='Облачный прогресс VK '+vkId+' сброшен. Рейтинг не затронут. Игроку нужно перезапустить игру.';
@@ -6217,7 +6220,7 @@ async function casinoAdminPlayer(){
  if(!/^[1-9][0-9]{0,18}$/.test(vkId)){host.textContent='Введи корректный VK ID';return}
  host.textContent='Загружаем прогресс…';
  try{
-  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/player?vkId='+encodeURIComponent(vkId),{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
+  const response=await fetch(CASINO_API_BASE+'/api/casino/admin/player?vkId='+encodeURIComponent(vkId),{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
   if(!response.ok)throw Error('HTTP '+response.status);
   const data=await response.json();if(!document.getElementById('casino-admin-player-detail'))return;
   const c=data.cloud,p=data.ranking;
@@ -6229,7 +6232,7 @@ async function casinoAdminAudit(){
  host.textContent='Загружаем историю…';
  try{
   const vkId=document.getElementById('casino-audit-vk')?.value.trim()||'';if(vkId&&!/^[1-9][0-9]{0,18}$/.test(vkId)){host.textContent='Неверный VK ID';return}
-  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/audit?vkId='+encodeURIComponent(vkId),{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
+  const response=await fetch(CASINO_API_BASE+'/api/casino/admin/audit?vkId='+encodeURIComponent(vkId),{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
   if(!response.ok)throw Error('HTTP '+response.status);
   const data=await response.json();if(!document.getElementById('casino-admin-audit'))return;
   host.innerHTML=(data.entries||[]).length?data.entries.map(e=>'<div class="casino-admin-player"><b>VK '+rankEsc(e.vk_id)+'</b><span>'+rankEsc(e.action)+' · '+rankEsc(e.details?.field||'')+' +'+Number(e.details?.amount||0)+' · '+new Date(e.created_at).toLocaleString('ru-RU')+'</span></div>').join(''):'Операций пока нет';
@@ -6241,7 +6244,7 @@ async function casinoAdminLoad(){
  try{
   if(!CASINO_LAUNCH_PARAMS)throw Error('Открой игру из ВКонтакте');
   const query=document.getElementById('casino-admin-query')?.value.trim()||'';
-  const response=await fetch('http://127.0.0.1:3099/api/casino/admin/players?q='+encodeURIComponent(query),{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
+  const response=await fetch(CASINO_API_BASE+'/api/casino/admin/players?q='+encodeURIComponent(query),{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});
   if(!response.ok)throw Error(response.status===403?'Нет прав администратора':'Сервер: HTTP '+response.status);
   const data=await response.json();if(!document.getElementById('casino-admin-results'))return;
   host.innerHTML=(data.players||[]).length?(data.players||[]).map(p=>'<div class="casino-admin-player"><b>'+rankEsc(p.display_name||'Игрок')+'</b><span>VK '+rankEsc(p.vk_id)+' · Ур. '+Number(p.level||1)+' · '+fmt(Number(p.score||0))+' очков · '+fmt(Number(p.plays||0))+' игр</span></div>').join(''):'Игроки не найдены';
@@ -6762,7 +6765,7 @@ function profileScreen(){const need=levelXpNeed(state.level),nextRank=nextRankAf
 /* LUCKY CITY 14.1 — weekly tournament from server-accepted ranking increments. */
 let casinoTournamentSnapshot=null;
 let casinoTournamentLoading=false;
-const CASINO_TOURNAMENT_URL='http://127.0.0.1:3099';
+const CASINO_TOURNAMENT_URL=CASINO_API_BASE;
 function casinoTournamentHeader(){
  return '<section class="cc14-online-tournament" id="casino-online-tournament"><div class="cc14-tournament-hdr"><div><span class="eyebrow">🏆 ОНЛАЙН · ВСЕ ИГРОКИ ВК</span><h2>Чемпионат Lucky City</h2></div><span class="cc14-online-live">LIVE</span></div>'+
  '<p class="cc14-tournament-desc">Турнирные очки начисляются только за прирост рейтинга, подтверждённый сервером в течение недели. В понедельник в 00:00 UTC открывается новый турнир.</p>'+
@@ -6858,7 +6861,7 @@ const LUCKY_DONATE_PACKS=[
 let luckyPaymentsReady=false;
 async function luckyPaymentsCheck(){
  try{
-  const response=await fetch('http://127.0.0.1:3099/api/casino/payments/status',{cache:'no-store'});
+  const response=await fetch(CASINO_API_BASE+'/api/casino/payments/status',{cache:'no-store'});
   luckyPaymentsReady=response.ok&&!!(await response.json()).enabled;
   if(tab==='shop')render();
  }catch(e){luckyPaymentsReady=false}
