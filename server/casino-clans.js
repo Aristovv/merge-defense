@@ -1046,6 +1046,7 @@ export function registerLuckyClans(app,pool,requireAuth){
     return {level:level+1,cost:0,premium:true};
    }
    const cost=upgradeCost(kind,level);
+   if(cost>50000+80000*Number(clan.headquarters)**2){const required=Math.ceil(Math.sqrt((cost-50000)/80000));fail('Для этого улучшения нужен штаб уровня '+required,409);}
    if(Number(clan.coins)<cost)fail('В казне недостаточно монет');
    await c.query('UPDATE lucky_clans SET '+kind+'='+kind+'+1,coins=coins-$1 WHERE id=$2',[cost,clan.id]);
    await c.query('INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins) VALUES($1,$2,$3,$4)',[clan.id,req.playerId,kind,-cost]);
