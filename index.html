@@ -4795,16 +4795,28 @@ async function casinoCloudStart(){
    }else{
     try{
      const sent=await casinoCloudFetch('PUT',{revision:pending.revision,save:pending.save});
-     if(!Number.isSafeInteger(Number(sent.revision)))throw Error('INVALID_SAVE_ACK');
+     if(sent.ok!==true||!Number.isSafeInteger(Number(sent.revision))||Number(sent.revision)<=pending.revision)throw Error('INVALID_SAVE_ACK');
+     if(JSON.stringify(state)!==startingSnapshot){casinoCloudBackup('Local changes during pending replay');casinoCloudPreserveRemote(sent,'pending replay conflict');casinoCloudNotice('Локальные изменения сохранены; требуется сверка.');return;}
+     const restored={...fresh(),...(sent.save||pending.save)};
+     const raw=JSON.stringify(restored);
+     if(sent.save&&casinoStableJSON(sent.save)!==casinoStableJSON(pending.save)){
+      const key='casino_city_replay_ack_backup_'+Date.now();
+      const backup=JSON.stringify(pending.save);
+      localStorage.setItem(key,backup);
+      if(localStorage.getItem(key)!==backup)throw Error('BACKUP_VERIFY_FAILED');
+     }
+     localStorage.setItem(STORAGE,raw);
+     if(localStorage.getItem(STORAGE)!==raw)throw Error('LOCAL_WRITE_FAILED');
+     state=restored;
      casinoCloudPendingClear();
      casinoCloudRevision=Number(sent.revision);casinoCloudDirty=false;
+     casinoCloudLastIssue='';
      casinoCloudStartRetryMs=3000;clearTimeout(casinoCloudStartRetryTimer);
-     state={...fresh(),...pending.save};
-     try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}
      render();
      return;
     }catch(error){
      casinoCloudNotice('Не удалось отправить несохранённые изменения. Текущая копия сохранена на устройстве.');
+     if(!error.status||error.status===429||error.status>=500)casinoCloudRetryStart();
      return;
     }
    }
