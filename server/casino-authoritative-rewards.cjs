@@ -1,5 +1,6 @@
 'use strict';
 
+function adaptiveQuestCoins(base,income,weekly=false){return base+Math.floor(Math.min(100000000,Math.max(0,Number(income)||0))*(weekly?0.5:0.05))}
 function claimReward(save,kind,index,now=Date.now()){
  const next=structuredClone(save);
  const x=next.liveCity14;
@@ -58,6 +59,7 @@ function claimReward(save,kind,index,now=Date.now()){
 
  }else throw Error('INVALID_REWARD');
 
+ coins=adaptiveQuestCoins(coins,require('./casino-authoritative-economy.cjs').hourlyRate(next),kind==='weekly');
  next.chips+=chips;
  next.coins+=coins;
  next.stamp=now;
