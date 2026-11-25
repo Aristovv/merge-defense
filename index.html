@@ -4103,8 +4103,8 @@ button:focus-visible,[role="button"]:focus-visible{outline-color:#E5B85C}
 #app .world42-business-income b{font-size:24px;color:#ffe0a4}
 #app .world42-business-details summary{color:#e1c9ff}
 @media(max-width:360px){#app .era30-property-body{padding:9px 6px}#app .era30-property-title strong{font-size:12px}#app .era30-property-stats>div{padding:6px}#app .era30-property-stats b{font-size:13px}}
-</style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js">
-</script><script src="./character33.js?v=55.3.0"></script><script src="./outfits56.js?v=56.4.3"></script><script src="./clan-scenes.js?v=20261125-2"></script><script src="./clans.js?v=world40-3"></script><script>
+</style><style id="lc-background-animation-budget">html.lc-page-hidden #app *,html.lc-page-hidden #app *::before,html.lc-page-hidden #app *::after{animation-play-state:paused!important}</style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js">
+</script><script src="./character33.js?v=55.3.0"></script><script src="./outfits56.js?v=56.4.3"></script><script src="./clan-scenes.js?v=20261125-2"></script><script src="./clans.js?v=world40-4"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
 const CASINO_DONATION_OPTIONS={
@@ -5459,7 +5459,7 @@ function casinoInitRouletteWebGL(){
  const frag='precision mediump float;varying vec3 v;void main(){gl_FragColor=vec4(v,1.);}';
  function shader(type,src){const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw Error('shader');return sh}
  try{
-  const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vert));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,frag));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error('link');
+  const program=gl.createProgram();const vs=shader(gl.VERTEX_SHADER,vert),fs=shader(gl.FRAGMENT_SHADER,frag);gl.attachShader(program,vs);gl.attachShader(program,fs);gl.linkProgram(program);gl.deleteShader(vs);gl.deleteShader(fs);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error('link');
   const vertices=[],indices=[],segments=96;
   // Cross-section of the raised bowl: bottom, stepped gold rim and outer wall.
   const rings=[[.77,-.12,[.18,.085,.035]],[.83,-.10,[.37,.18,.07]],[.88,-.06,[.73,.46,.20]],[.91,.025,[.95,.76,.39]],[.95,.06,[.46,.23,.09]],[1.00,.035,[.95,.72,.36]],[1.04,-.06,[.38,.17,.06]],[1.04,-.17,[.16,.07,.025]]];
@@ -7276,4 +7276,6 @@ const UI_EMOJI_MAP={'☕':'coffee','🚘':'car','🍽':'restaurant','🚚':'truc
 function uiVector(name){const el=document.createElement('span');el.className='lc-ui-vector';el.setAttribute('aria-hidden','true');el.style.cssText='display:inline-flex;vertical-align:-.16em;width:1.15em;height:1.15em;flex:none;color:inherit';el.innerHTML='<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(UI_VECTOR_PATHS[name]||ICONS[name]||ICONS.star)+'</svg>';return el}
 function installUiVectors(){const root=document.getElementById('app');if(!root)return;const pattern=new RegExp('('+Object.keys(UI_EMOJI_MAP).join('|')+')\\uFE0F?','gu');function scan(node){if(node.nodeType===1&&node.matches('script,style,svg,input,textarea,select,option,.lc-ui-vector,[contenteditable],.slot-symbol,.playing-card'))return;if(node.nodeType===3){const parent=node.parentElement;if(!parent||parent.closest('script,style,svg,input,textarea,select,option,.lc-ui-vector,[contenteditable],.slot-symbol,.playing-card'))return;const value=node.nodeValue;pattern.lastIndex=0;if(!pattern.test(value))return;pattern.lastIndex=0;const frag=document.createDocumentFragment();let last=0;for(const m of value.matchAll(pattern)){frag.append(document.createTextNode(value.slice(last,m.index)),uiVector(UI_EMOJI_MAP[m[1]]));last=m.index+m[0].length}frag.append(document.createTextNode(value.slice(last)));node.replaceWith(frag);return}for(const child of [...node.childNodes])scan(child)}scan(root);new MutationObserver(records=>{for(const record of records){if(record.type==='characterData'){if(root.contains(record.target))scan(record.target);}else for(const node of record.addedNodes)if(root.contains(node))scan(node)}}).observe(root,{subtree:true,childList:true,characterData:true})}
 installUiVectors();
+function casinoUpdateAnimationVisibility(){document.documentElement.classList.toggle('lc-page-hidden',document.hidden)}
+document.addEventListener('visibilitychange',casinoUpdateAnimationVisibility);casinoUpdateAnimationVisibility();
 </script><script src="./ambient-audio.js?v=distinct-scenes-20261123-6"></script></body></html>
