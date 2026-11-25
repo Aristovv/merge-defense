@@ -578,7 +578,7 @@ function lc39SetCards(){
    '<button type="button" data-lc39-wear="'+set.id+'" '+(on?'disabled':'')+'>'+(on?'✓ Надето':'Надеть комплект')+'</button>':'';
   return '<article class="lc39-set-card lc50-set-card lc53-card'+(preview?' preview':'')+(on?' worn':'')+'" style="--set-glow:'+set.accent+'">'+
    '<div class="lc39-set-top"><strong>'+set.name+'</strong><small>'+set.tier+'</small></div>'+
-   '<img class="lc50-set-image" loading="lazy" src="./assets/character44/'+files[set.id]+'" alt="Комплект '+set.name+'">'+
+   '<img decoding="async" class="lc50-set-image" loading="lazy" src="./assets/character44/'+files[set.id]+'" alt="Комплект '+set.name+'">'+
    '<p class="lc53-status">'+(on?'✓ Надето':complete?'✓ Все вещи куплены':legacy?'✓ Доступен старый STREET':'Собрано '+(5-offer.missing.length)+' из 5')+'</p>'+
    '<div class="lc53-pricing">Полная стоимость: <strong>'+fmt(fullCoins)+' 🪙'+(fullVotes?' + '+fullVotes+' гол. VK':'')+'</strong>'+
    '<small>Осталось оплатить: '+fmt(offer.total)+' 🪙'+(offer.premiumItems.length?' + '+offer.premiumItems.reduce((n,g)=>n+g.price,0)+' гол. VK':'')+'</small></div>'+
@@ -848,10 +848,10 @@ function lc33Avatar(){
  const active=lc39Preview||LC39_SETS.find(set=>lc39IsWearing(set,lc33State()));
  if(active&&!lc45TryOn){
   const outfit=LC49_OUTFITS.find(o=>o[0]===active.id);
-  if(outfit)return '<img class="lc47-real-avatar" src="./assets/character44/'+outfit[2]+'" alt="Реалистичный образ '+outfit[1]+'" draggable="false" onerror="this.onerror=null;this.src=\'./assets/character44/avatar.png\'">';
+  if(outfit)return '<img decoding="async" class="lc47-real-avatar" src="./assets/character44/'+outfit[2]+'" alt="Реалистичный образ '+outfit[1]+'" draggable="false" onerror="this.onerror=null;this.src=\'./assets/character44/avatar.png\'">';
  }
  const equipped={...lc33State().equipped,...(lc45TryOn||{})};
- if(!Object.keys(equipped).length)return '<img class="lc47-real-avatar" src="./assets/character44/avatar.png" alt="Базовый персонаж" draggable="false">';
+ if(!Object.keys(equipped).length)return '<img decoding="async" class="lc47-real-avatar" src="./assets/character44/avatar.png" alt="Базовый персонаж" draggable="false">';
  return lc55WearableAvatar(equipped);
 }
 
@@ -1066,12 +1066,12 @@ function lc45Figure(){
    const id=equipped[type],item=LC35_BY_ID.get(id);
    if(!item)return '';
    const art=LC45_IMAGES.has(id)
-     ?'<img alt="" loading="lazy" src="./assets/character44/'+id+'.png" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="lc46-fallback" hidden>'+lc43ItemIcon(item)+'</span>'
+     ?'<img decoding="async" alt="" loading="lazy" src="./assets/character44/'+id+'.png" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="lc46-fallback" hidden>'+lc43ItemIcon(item)+'</span>'
      :'<span class="lc46-fallback">'+lc43ItemIcon(item)+'</span>';
    return '<div class="lc46-piece">'+art+'<span>'+rankEsc(item.name)+'</span></div>';
  }).join('');
  return '<div class="lc45-panel lc46-panel"><div class="lc45-brow">REALISTIC CHARACTER · 46.0</div>'+
- '<div class="lc46-showcase"><div class="lc46-avatar"><img alt="Реалистичный персонаж Lucky City" src="./assets/character44/avatar.png"></div>'+
+ '<div class="lc46-showcase"><div class="lc46-avatar"><img decoding="async" alt="Реалистичный персонаж Lucky City" src="./assets/character44/avatar.png"></div>'+
  '<div class="lc46-kit">'+photos+'</div></div>'+
  '<div class="lc45-status">'+rankEsc(status)+'</div>'+
  '<p class="lc45-note">Реалистичный персонаж и выбранная одежда показаны отдельно. Одежда пока не надета на эту 3D-модель: товарные изображения не совпадают с пропорциями тела. Рабочая экипировка и образы сохранены ниже.</p>'+
@@ -1131,7 +1131,7 @@ document.head.appendChild(lc46Styles);
  lc34SvgItem=function(g){
    if(!g||!previewIds.has(g.id))return originalIcon(g);
    const fallback=originalIcon(g),src='./assets/character44/'+safePreviewId(g.id)+'.png';
-   return '<span class="lc44-asset-wrap"><img loading="lazy" alt="" class="lc44-photo" src="'+src+
+   return '<span class="lc44-asset-wrap"><img decoding="async" loading="lazy" alt="" class="lc44-photo" src="'+src+
      '" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="lc44-old-art" hidden>'+fallback+'</span></span>';
  };
  const style=document.createElement('style');style.id='lc44-style';style.textContent=
