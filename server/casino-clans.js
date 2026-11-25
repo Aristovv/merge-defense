@@ -352,7 +352,7 @@ export function clanMissionRewards(targets){
  return {dailyClaims:round(100,scale(targets.dailyParticipants,3)),dailyDeposits:round(150,scale(targets.dailyCoins,10000)),weeklyDeposits:round(500,scale(targets.weeklyCoins,50000)),weeklyUpgrades:400};
 }
 async function missionTargets(pool,id){
- const incomes=await pool.query(`SELECT s.save->'buildings' AS buildings FROM lucky_clan_members m LEFT JOIN public.casino_city_saves s ON s.vk_id::text=regexp_replace(m.player_id,'^vk:','') WHERE m.clan_id=$1`,[id]);
+ const incomes=await pool.query(`SELECT s.save->'buildings' AS buildings, s.save->'businesses' AS businesses, s.save->'businessStaff' AS "businessStaff", s.save->'businessManagers' AS "businessManagers", s.save->'businessLicenses' AS "businessLicenses" FROM lucky_clan_members m LEFT JOIN public.casino_city_saves s ON s.vk_id::text=regexp_replace(m.player_id,'^vk:','') WHERE m.clan_id=$1`,[id]);
  const totalIncome=Math.ceil(incomes.rows.reduce((sum,row)=>sum+clanIncome(row),0));
  const totalLimit=incomes.rows.reduce((sum,row)=>sum+clanDepositLimit(row),0)||100000;
  const {rows}=await pool.query(`WITH periods AS (
@@ -411,7 +411,7 @@ async function mine(pool,playerId){
  FROM lucky_clan_transactions WHERE clan_id=$1
  AND created_at>=date_trunc('week',NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'`,[rows[0].id]);
  const rewards=await pool.query(`SELECT COALESCE(SUM(xp),0)::bigint AS xp FROM lucky_clan_mission_rewards WHERE clan_id=$1`,[rows[0].id]);
- const own=await pool.query(`SELECT s.save->'buildings' AS buildings FROM public.casino_city_saves s WHERE s.vk_id=$1`,[String(playerId).replace(/^vk:/,'')]);
+ const own=await pool.query(`SELECT s.save->'buildings' AS buildings, s.save->'businesses' AS businesses, s.save->'businessStaff' AS "businessStaff", s.save->'businessManagers' AS "businessManagers", s.save->'businessLicenses' AS "businessLicenses" FROM public.casino_city_saves s WHERE s.vk_id=$1`,[String(playerId).replace(/^vk:/,'')]);
  const depositLimit=clanDepositLimit(own.rows[0]);
  const projectRows=(await pool.query('SELECT project_id,level FROM lucky_clan_projects WHERE clan_id=$1',[rows[0].id])).rows;
  const levelBonus=clanLevelBonus(rewards.rows[0]?.xp);levelBonus.projectPercent=projectBonus(projectRows);
@@ -527,14 +527,14 @@ const premiumUpgrade=(kind,nextLevel)=>PREMIUM_LEVELS[kind]?.includes(nextLevel)
 export function upgradeCost(kind,level){return Math.ceil((kind==='headquarters'?5000:3500)*Math.pow(1.13,level-1)/100)*100}
 async function checkAdmissionIncome(c,playerId,minimum){
  const min=Number(minimum)||0;if(min<=0)return;
- const save=await c.query("SELECT save->'buildings' AS buildings FROM public.casino_city_saves WHERE vk_id=$1",[String(playerId).replace(/^vk:/,'')]);
+ const save=await c.query("SELECT save->'buildings' AS buildings, save->'businesses' AS businesses, save->'businessStaff' AS \"businessStaff\", save->'businessManagers' AS \"businessManagers\", save->'businessLicenses' AS \"businessLicenses\" FROM public.casino_city_saves WHERE vk_id=$1",[String(playerId).replace(/^vk:/,'')]);
  if(clanIncome(save.rows[0])<min)fail('Для вступления требуется базовый доход не менее '+min.toLocaleString('ru-RU')+' монет в час',403);
 }
 async function personalDaily(c,playerId){
  const member=(await c.query('SELECT clan_id FROM lucky_clan_members WHERE player_id=$1 FOR UPDATE',[playerId])).rows[0];
  if(!member)fail('Сначала вступите в клан',403);
  const day=(await c.query("SELECT (NOW() AT TIME ZONE 'UTC')::date::text AS day")).rows[0].day;
- const save=(await c.query("SELECT save->'buildings' AS buildings FROM public.casino_city_saves WHERE vk_id=$1",[String(playerId).replace(/^vk:/,'')])).rows[0];
+ const save=(await c.query("SELECT save->'buildings' AS buildings, save->'businesses' AS businesses, save->'businessStaff' AS \"businessStaff\", save->'businessManagers' AS \"businessManagers\", save->'businessLicenses' AS \"businessLicenses\" FROM public.casino_city_saves WHERE vk_id=$1",[String(playerId).replace(/^vk:/,'')])).rows[0];
  await c.query('INSERT INTO lucky_clan_personal_daily(player_id,day,clan_id,target) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[playerId,day,member.clan_id,personalClanTarget(clanIncome(save))]);
  const task=(await c.query('SELECT clan_id,target,claimed_at,prize FROM lucky_clan_personal_daily WHERE player_id=$1 AND day=$2 FOR UPDATE',[playerId,day])).rows[0];
  if(String(task.clan_id)!==String(member.clan_id))fail('Сегодня задание закреплено за прежним кланом. Новое будет завтра.');
