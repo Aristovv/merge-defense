@@ -5063,11 +5063,19 @@ async function casinoRunEconomyAction(action,args={}){
    localStorage.setItem(key,JSON.stringify(pending));
   }
   casinoCloudBusy=true;ownsCloud=true;
-  const response=await fetch(CASINO_API_BASE+'/api/casino/economy/action',{
-   method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
-   body:JSON.stringify({...pending.args,action:pending.action,revision:pending.revision,requestId:pending.requestId}),cache:'no-store'
-  });
-  const result=await response.json();
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),12000);
+  let response,result;
+  try{
+   response=await fetch(CASINO_API_BASE+'/api/casino/economy/action',{
+    method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
+    body:JSON.stringify({...pending.args,action:pending.action,revision:pending.revision,requestId:pending.requestId}),cache:'no-store',signal:controller.signal
+   });
+   result=await response.json();
+  }catch(error){
+   if(controller.signal.aborted)throw Error('Сервер не ответил вовремя. Операция будет проверена автоматически.');
+   throw error;
+  }finally{clearTimeout(timeout)}
   if(!response.ok){
    if([400,401,404,409,422].includes(response.status))localStorage.removeItem(key);
    throw Error(result.error==='BOOSTER_QUEUE_LIMIT'?'Максимум 2 часа действия усилителя':result.error||'Сервер отклонил действие');
