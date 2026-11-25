@@ -84,4 +84,18 @@ function claimAchievement(save,index,now=Date.now()){
  if(!Number.isSafeInteger(next.chips))throw Error('BALANCE_LIMIT');
  return {save:next,chips,coins:0};
 }
-module.exports={claimReward,claimAchievement};
+function claimPeriodQuest(save,index,now=Date.now()){
+ const next=structuredClone(save);
+ const daily=index<3,scope=daily?'daily':'weekly',i=daily?index:index-3;
+ const goals=daily?[['plays',5,150,0],['wins',3,200,0],['plays',15,350,100]]:[['plays',40,700,200],['wins',15,800,200],['builds',1,500,250]];
+ if(!Number.isInteger(index)||index<0||index>5)throw Error('INVALID_REWARD');
+ const date=new Date(now);if(!daily)date.setUTCDate(date.getUTCDate()-((date.getUTCDay()+6)%7));
+ const p=next.questPeriods?.[scope], [type,goal,chips,base]=goals[i];
+ if(!p||p.key!==date.toISOString().slice(0,10)||Number(p.counts?.[type]||0)<goal)throw Error('REWARD_NOT_READY');
+ p.claimed??=[];if(p.claimed.includes(i))throw Error('ALREADY_CLAIMED');
+ const coins=base?adaptiveQuestCoins(base,require('./casino-authoritative-economy.cjs').hourlyRate(next),!daily):0;
+ p.claimed.push(i);next.chips+=chips;next.coins+=coins;next.stamp=now;
+ if(!Number.isSafeInteger(next.chips)||!Number.isSafeInteger(next.coins))throw Error('BALANCE_LIMIT');
+ return {save:next,chips,coins};
+}
+module.exports={claimReward,claimAchievement,claimPeriodQuest};
