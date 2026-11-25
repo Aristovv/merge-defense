@@ -26,7 +26,17 @@ CREATE TABLE IF NOT EXISTS lucky_clan_members (
 );
 CREATE INDEX IF NOT EXISTS lucky_clan_members_clan_idx ON lucky_clan_members(clan_id);
 `;
+const CLAN_SHOP=Object.freeze([
+ {id:'violet',name:'Неоновый союз',price:25000,color:'#b78aff',icon:'✦'},
+ {id:'emerald',name:'Изумрудная гвардия',price:75000,color:'#69dfb0',icon:'◆'},
+ {id:'gold',name:'Золотая династия',price:150000,color:'#efc66d',icon:'♛'},
+ {id:'crimson',name:'Багровый легион',price:300000,color:'#ff829d',icon:'⚔'},
+ {id:'royal',name:'Королевский орден',price:750000,color:'#9edcff',icon:'♜'},
+ {id:'cosmic',name:'Космическая элита',price:1500000,color:'#d7a8ff',icon:'✧'}
+]);
 const ECONOMY_SQL=[
+ `ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS equipped_style TEXT NOT NULL DEFAULT ''`,
+ `CREATE TABLE IF NOT EXISTS lucky_clan_shop_owned(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,item_id TEXT NOT NULL,purchased_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(clan_id,item_id))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_tournament_entries(kind TEXT NOT NULL,period_start DATE NOT NULL,clan_id BIGINT NOT NULL,league TEXT NOT NULL,band INTEGER NOT NULL,name TEXT NOT NULL,avatar TEXT NOT NULL,members INTEGER NOT NULL,PRIMARY KEY(kind,period_start,clan_id))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_tournament_roster(kind TEXT NOT NULL,period_start DATE NOT NULL,player_id TEXT NOT NULL,clan_id BIGINT NOT NULL,PRIMARY KEY(kind,period_start,player_id))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_tournament_periods(kind TEXT NOT NULL,period_start DATE NOT NULL,period_end DATE NOT NULL,finished BOOLEAN NOT NULL DEFAULT FALSE,PRIMARY KEY(kind,period_start))`,
@@ -298,7 +308,7 @@ export async function vkMemberProfiles(members,token=process.env.VK_GROUP_SERVIC
    profileAvatar:profile?.until>now?profile.avatar:'',profileUrl:/^[1-9][0-9]{0,18}$/.test(id)?'https://vk.com/id'+id:''};
  });
 }
-const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.coins,c.join_policy AS "joinPolicy",c.min_income AS "minIncome",c.seat_tier AS "seatTier",(10+c.seat_tier*5)::int AS "memberCapacity",(50000+c.headquarters*c.headquarters*20000)::bigint AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
+const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.coins,c.equipped_style AS "equippedStyle",c.join_policy AS "joinPolicy",c.min_income AS "minIncome",c.seat_tier AS "seatTier",(10+c.seat_tier*5)::int AS "memberCapacity",(50000+c.headquarters*c.headquarters*20000)::bigint AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
 // Fixed targets per UTC period. Existing rewards retain their original keys.
 // Capped rewards keep high-income clans from gaining unlimited XP.
 // Shared clan perk: only the free daily treasury contribution is boosted.
@@ -487,6 +497,31 @@ async function checkAdmissionIncome(c,playerId,minimum){
  if(clanIncome(save.rows[0])<min)fail('Для вступления требуется базовый доход не менее '+min.toLocaleString('ru-RU')+' монет в час',403);
 }
 export function registerLuckyClans(app,pool,requireAuth){
+ app.get('/api/casino/clans/shop',requireAuth,wrap(async(req,res)=>{
+  await start(pool);
+  const clan=(await pool.query('SELECT cl.id,cl.coins,cl.equipped_style,m.role FROM lucky_clans cl JOIN lucky_clan_members m ON m.clan_id=cl.id WHERE m.player_id=$1',[req.playerId])).rows[0];
+  if(!clan)fail('Сначала вступите в клан',403);
+  const owned=await pool.query('SELECT item_id FROM lucky_clan_shop_owned WHERE clan_id=$1',[clan.id]);
+  res.json({items:CLAN_SHOP,owned:owned.rows.map(x=>x.item_id),equipped:clan.equipped_style,coins:clan.coins,canManage:clan.role==='owner'});
+ }));
+ app.post('/api/casino/clans/shop-buy',requireAuth,wrap(async(req,res)=>{
+  await start(pool);const item=CLAN_SHOP.find(x=>x.id===req.body?.itemId);if(!item)fail('Предмет не найден',404);
+  await tx(pool,async c=>{
+   const clan=(await c.query('SELECT id,coins FROM lucky_clans WHERE owner_id=$1 FOR UPDATE',[req.playerId])).rows[0];
+   if(!clan)fail('Покупать может только глава',403);
+   const added=await c.query('INSERT INTO lucky_clan_shop_owned(clan_id,item_id) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING item_id',[clan.id,item.id]);
+   if(!added.rowCount)fail('Предмет уже приобретён',409);
+   const paid=await c.query('UPDATE lucky_clans SET coins=coins-$1 WHERE id=$2 AND coins>=$1 RETURNING id',[item.price,clan.id]);
+   if(!paid.rowCount)fail('Недостаточно монет в казне');
+   await c.query("INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins) VALUES($1,$2,'shop',$3)",[clan.id,req.playerId,-item.price]);
+  });res.json({ok:true});
+ }));
+ app.post('/api/casino/clans/shop-equip',requireAuth,wrap(async(req,res)=>{
+  await start(pool);const itemId=req.body?.itemId;if(typeof itemId!=='string'||(itemId!==''&&!CLAN_SHOP.some(x=>x.id===itemId)))fail('Предмет не найден');
+  const updated=await pool.query("UPDATE lucky_clans cl SET equipped_style=$1 WHERE owner_id=$2 AND ($1='' OR EXISTS(SELECT 1 FROM lucky_clan_shop_owned o WHERE o.clan_id=cl.id AND o.item_id=$1)) RETURNING id",[itemId,req.playerId]);
+  if(!updated.rowCount)fail('Нет прав или предмет не приобретён',403);res.json({ok:true});
+ }));
+
  app.post('/api/casino/clans/min-income',requireAuth,wrap(async(req,res)=>{
   await start(pool);const minimum=req.body?.minimum;
   if(!Number.isSafeInteger(minimum)||minimum<0||minimum>10000000)fail('Укажите доход от 0 до 10 000 000 монет в час');
