@@ -524,7 +524,7 @@ export const CLAN_SEAT_BASE=10;
 export const clanSeatCapacity=tier=>CLAN_SEAT_BASE+Math.min(8,Math.max(0,Number(tier)||0))*5;
 export const PREMIUM_LEVELS=Object.freeze({headquarters:Object.freeze([5,10,15,20,30,40]),wall:Object.freeze([5,10,15,20,30,40])});
 const premiumUpgrade=(kind,nextLevel)=>PREMIUM_LEVELS[kind]?.includes(nextLevel)||false;
-export function upgradeCost(kind,level){return Math.ceil((kind==='headquarters'?10000:7000)*Math.pow(1.16,Math.min(level-1,20))*Math.pow(1.09,Math.max(0,level-21))/100)*100}
+export function upgradeCost(kind,level){return Math.ceil((kind==='headquarters'?1:0.75)*(10000+30000*Math.pow(level-1,2)+600*Math.pow(level-1,3))/100)*100}
 async function checkAdmissionIncome(c,playerId,minimum){
  const min=Number(minimum)||0;if(min<=0)return;
  const save=await c.query("SELECT save->'buildings' AS buildings, save->'businesses' AS businesses, save->'businessStaff' AS \"businessStaff\", save->'businessManagers' AS \"businessManagers\", save->'businessLicenses' AS \"businessLicenses\" FROM public.casino_city_saves WHERE vk_id=$1",[String(playerId).replace(/^vk:/,'')]);
