@@ -19,6 +19,8 @@ for(const [id,type,name,price] of wardrobeProducts){goods['character_'+id]={id:+
 // A single verified purchase grants one server-owned clan construction permit.
  // It is not credited into an editable browser cloud snapshot.
 goods.clan_build_permit={id:++n,price:5,name:'Строительный пропуск для клана',clanPermit:1};
+goods.season_world_1={id:++n,price:99,name:'Lucky City · Премиум первого сезона',seasonPass:true};
+const season=require('./casino-season-pass.cjs');
 const byId=new Map(Object.entries(goods).map(([key,item])=>[String(item.id),{key,...item}]));
 const error=(code,msg)=>({error:{error_code:code,error_msg:msg,critical:true}});
 const ready=pool=>!!pool&&process.env.LUCKY_VK_PAYMENTS_ENABLED==='1'&&!!process.env.VK_PAYMENTS_SECRET;
@@ -52,6 +54,7 @@ function apply(save,item){
   save.character33=c;
  }
 
+ if(item.seasonPass)season.premium(save,true);
  if(item.boost){
   const now=Date.now(),old=save.donationIncomeBoost||{};
   save.donationIncomeBoost={percent:old.until>now?Math.max(Number(old.percent)||0,item.boost):item.boost,from:now,until:now+7*86400000};
@@ -70,7 +73,7 @@ function registerCasinoPayments(app,pool){
   // Live-only configuration: never grant rewards from free VK test orders.
   if(type==='get_item_test'||type==='order_status_change_test')return res.json(error(11,'Test purchases are disabled'));
   if(type==='get_item'){
-   const item=goods[b.item];return item?res.json({response:{item_id:item.id,title:item.name,price:item.price,photo_url:''}}):res.json(error(20,'Unknown item'));
+   const item=Object.prototype.hasOwnProperty.call(goods,b.item)?goods[b.item]:null;if(item?.seasonPass&&!season.active(Date.now()))return res.json(error(20,'Season closed'));return item?res.json({response:{item_id:item.id,title:item.name,price:item.price,photo_url:''}}):res.json(error(20,'Unknown item'));
   }
   if(type!=='order_status_change'||b.status!=='chargeable')return res.json(error(11,'Unsupported event'));
   const item=byId.get(String(b.item_id));
