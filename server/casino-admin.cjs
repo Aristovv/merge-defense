@@ -37,8 +37,8 @@ function registerCasinoAdmin(app,pool,requireAuth){
   if(!/^[1-9][0-9]{0,18}$/.test(String(vkId||''))||!['pack','item'].includes(kind)||
     !['grant','revoke'].includes(mode)||typeof id!=='string'||id.length>80||
     !/^[a-zA-Z0-9_-]{12,80}$/.test(String(requestId||''))||
-    (kind==='pack'&&(!DONATION_PACKS[id]||mode!=='grant'))||
-    (kind==='item'&&(!DONATION_ITEMS[id?.split(':')[0]]||!DONATION_ITEMS[id.split(':')[0]].includes(id.slice(id.indexOf(':')+1)))))
+    (kind==='pack'&&(!Object.prototype.hasOwnProperty.call(DONATION_PACKS,id)||mode!=='grant'))||
+    (kind==='item'&&(!Object.prototype.hasOwnProperty.call(DONATION_ITEMS,id.split(':')[0])||!DONATION_ITEMS[id.split(':')[0]].includes(id.slice(id.indexOf(':')+1)))))
    return res.status(400).json({error:'INVALID_DONATION'});
   let client;
   try{
@@ -46,8 +46,13 @@ function registerCasinoAdmin(app,pool,requireAuth){
    await client.query(`CREATE TABLE IF NOT EXISTS public.casino_city_donation_actions(
     request_id TEXT PRIMARY KEY,admin_vk_id BIGINT NOT NULL,target_vk_id BIGINT NOT NULL,
     payload JSONB NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
-   const previous=await client.query('SELECT payload FROM public.casino_city_donation_actions WHERE request_id=$1',[requestId]);
-   if(previous.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'ALREADY_PROCESSED'})}
+   await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',['casino-admin-donation:'+requestId]);
+   const previous=await client.query('SELECT payload,target_vk_id::text AS target FROM public.casino_city_donation_actions WHERE request_id=$1',[requestId]);
+   if(previous.rowCount){
+    const prior=previous.rows[0];
+    if(prior.target!==String(vkId)||prior.payload?.kind!==kind||prior.payload?.id!==id||prior.payload?.mode!==mode){await client.query('ROLLBACK');return res.status(409).json({error:'REQUEST_ID_REUSED'})}
+    await client.query('COMMIT');return res.json({ok:true,alreadyProcessed:true,vkId,kind,id,mode});
+   }
    const q=await client.query('SELECT save FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vkId]);
    if(!q.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'CLOUD_SAVE_NOT_FOUND'})}
    const save=q.rows[0].save;if(save.pendingMiniRound){await client.query('ROLLBACK');return res.status(409).json({error:'ROUND_PENDING'});}const inventory=save.donationInventory&&typeof save.donationInventory==='object'?save.donationInventory:{};
