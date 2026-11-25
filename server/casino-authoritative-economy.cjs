@@ -8,9 +8,10 @@ function buildingCost(i,level){
  if(!Number.isSafeInteger(cost))throw Error('BUILDING_COST_LIMIT');
  return cost;
 }
+function buildingPaybackHours(level){return level<5?36:level<10?48:level<15?72:level<20?120:level<25?168:level<30?240:336}
 function hourlyRate(save){
  return save.buildings.reduce((sum,level,i)=>{
-  for(let n=0;n<level;n++)sum+=buildingCost(i,n)/36;
+  for(let n=0;n<level;n++)sum+=buildingCost(i,n)/buildingPaybackHours(n);
   return sum;
  },0);
 }
@@ -69,4 +70,4 @@ function upgradeBuilding(save,i,now){
  if(!Number.isSafeInteger(next.chips))throw Error('BALANCE_LIMIT');
  return {save:next,price};
 }
-module.exports={buildingCost,hourlyRate,collectIncome,claimMilestone,upgradeBuilding};
+module.exports={buildingPaybackHours,buildingCost,hourlyRate,collectIncome,claimMilestone,upgradeBuilding};
