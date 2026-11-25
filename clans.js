@@ -63,6 +63,23 @@
  .lc-clan-select .lc-clan-img{width:50px;height:50px}
  .lc-clan-select small{display:block;color:#bcb0cd;margin-top:4px;font-size:11px}
  .lc-clan-premium-list{display:grid;gap:12px;margin:14px 0}.lc-clan-premium-group{background:#20172f;border:1px solid #704a90;border-radius:13px;padding:12px}.lc-clan-premium-group>strong{display:block;margin-bottom:8px;color:#f5daff}.lc-clan-premium-row{display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap;padding:10px 0;border-top:1px solid #50375f;font-size:13px}.lc-clan-premium-row strong{color:#ebcbff}.lc-clan-premium-row small{width:100%;font-size:11px;color:#b8a2c7}
+ 
+ /* NEON clan visual refresh */
+ #lucky-clan-root .lc-clan-head,.lc-clan-detail-hero{background:radial-gradient(ellipse at top right,#7045a35c,transparent 65%),linear-gradient(145deg,#32204e,#171126);border-color:#bd94ed88;box-shadow:0 8px 24px #09051288}
+ #lucky-clan-root .lc-clan-title{font-size:25px;overflow-wrap:anywhere}
+ #lucky-clan-root .lc-clan-panel{background:linear-gradient(145deg,#2c2043,#171225);border-color:#a17bd65c;border-radius:19px;box-shadow:0 6px 18px #09051255}
+ #lucky-clan-root .lc-clan-tabs{gap:5px;scrollbar-width:thin;padding:3px 0}
+ #lucky-clan-root .lc-clan-tabs .btn{flex:1 0 auto;min-height:44px;padding:8px 10px}
+ #lucky-clan-root .lc-clan-visual{background:radial-gradient(ellipse at 50% 80%,#8050b088,#171127 75%);border:1px solid #a47bd555;min-height:120px}
+ #lucky-clan-root .lc-clan-roster{border-top-color:#a17bd533;padding:13px 0}
+ #lucky-clan-root .lc-clan-person-photo,.lc-clan-detail-member img{border:2px solid #b48be4;box-shadow:0 0 8px #b48be433}
+ .lc-clan-detail-stat{background:linear-gradient(145deg,#302044,#191327);border-color:#aa83dd66}
+ .lc-clan-detail-stat strong{overflow-wrap:anywhere;color:#ffe0a4}
+ .lc-clan-rank,.lc-clan-detail-member{background:linear-gradient(145deg,#2c2043,#181327);border-color:#9874c45c}
+ .lc-clan-detail-action{background:linear-gradient(135deg,#8751c4,#4b2b78);border-color:#c49aef}
+ #lucky-clan-root .lc-clan-input{box-sizing:border-box;min-height:46px}
+ #lucky-clan-root .lc-clan-premium-group{border-color:#d1ad765c;background:linear-gradient(145deg,#32253e,#1c152a)}
+ @media(max-width:360px){#lucky-clan-root .lc-clan-panel{padding:10px}#lucky-clan-root .lc-clan-grid{gap:6px}#lucky-clan-root .lc-clan-title{font-size:21px}}
  `;
  document.head.append(style);
  async function api(path='',body){
