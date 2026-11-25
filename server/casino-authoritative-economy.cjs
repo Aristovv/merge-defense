@@ -18,7 +18,12 @@ function businessStaff(save,i){const n=save.businessStaff?.[i];return Number.isI
 function businessManager(save,i){return save.businessManagers?.[i]===true}
 function businessStaffCost(i,n){return Math.floor(BUSINESS_CATALOG[i][2]*(.4+n*.2))}
 function businessManagerCost(i){return BUSINESS_CATALOG[i][2]*2}
-function businessManagedIncome(save,i,n){return Math.floor(businessIncome(i,n)*(100+businessStaff(save,i)*3+(businessManager(save,i)?6:0))/100)}
+function businessReputation(save,i){const n=save.businessReputation?.[i];return Number.isSafeInteger(n)&&n>=0?Math.min(n,100000):0}
+function businessLicense(save,i){const n=save.businessLicenses?.[i];return Number.isInteger(n)&&n>=0&&n<=3?n:0}
+const BUSINESS_LICENSES=[{name:'Городская',need:5,level:4,bonus:2},{name:'Региональная',need:15,level:7,bonus:4},{name:'Федеральная',need:30,level:10,bonus:6}];
+function businessLicenseCost(i,n){return Math.floor(BUSINESS_CATALOG[i][2]*[.5,1,2][n])}
+function businessLicenseBonus(save,i){return businessLicense(save,i)*2}
+function businessManagedIncome(save,i,n){return Math.floor(businessIncome(i,n)*(100+businessStaff(save,i)*3+(businessManager(save,i)?6:0)+businessLicenseBonus(save,i))/100)}
 function businessContractTerms(save,i){const income=businessManagedIncome(save,i,businessLevels(save)[i]);return {cost:Math.max(1,income*3),reward:Math.max(1,Math.floor(income*3.3)),duration:86400000}}
 function businessRate(save){return businessLevels(save).reduce((sum,n,i)=>sum+businessManagedIncome(save,i,n),0)}
 function manageBusiness(save,i,action,now){
@@ -27,6 +32,7 @@ function manageBusiness(save,i,action,now){
  const next=collectIncome(save,now).save;
  const staff=BUSINESS_CATALOG.map((_,j)=>businessStaff(next,j)),managers=BUSINESS_CATALOG.map((_,j)=>businessManager(next,j));
  const contracts=BUSINESS_CATALOG.map((_,j)=>next.businessContracts?.[j]||null);
+ const reputation=BUSINESS_CATALOG.map((_,j)=>businessReputation(next,j)),licenses=BUSINESS_CATALOG.map((_,j)=>businessLicense(next,j));
  let price=0,reward=0;
  if(action==='hire_business_staff'){
   if(staff[i]>=3||level<(staff[i]+1)*2)throw Error('BUSINESS_STAFF_LOCKED');
@@ -34,17 +40,21 @@ function manageBusiness(save,i,action,now){
  }else if(action==='hire_business_manager'){
   if(managers[i]||level<8||staff[i]<3)throw Error('BUSINESS_MANAGER_LOCKED');
   price=businessManagerCost(i);managers[i]=true;
+ }else if(action==='buy_business_license'){
+  const n=licenses[i],lic=BUSINESS_LICENSES[n];
+  if(!lic||level<lic.level||reputation[i]<lic.need)throw Error('BUSINESS_LICENSE_LOCKED');
+  price=businessLicenseCost(i,n);licenses[i]++;
  }else if(action==='start_business_contract'){
   if(contracts[i]||level<3)throw Error('BUSINESS_CONTRACT_LOCKED');
   const terms=businessContractTerms(next,i);price=terms.cost;
   contracts[i]={endsAt:now+terms.duration,reward:terms.reward};
  }else if(action==='claim_business_contract'){
   const c=contracts[i];if(!c||now<c.endsAt)throw Error('BUSINESS_CONTRACT_NOT_READY');
-  reward=c.reward;contracts[i]=null;
+  reward=c.reward;contracts[i]=null;reputation[i]=Math.min(100000,reputation[i]+1);
  }else throw Error('INVALID_BUSINESS');
  if(next.coins<price)throw Error('INSUFFICIENT_COINS');
  if(!Number.isSafeInteger(next.coins-price+reward))throw Error('BALANCE_LIMIT');
- next.coins+=reward-price;next.businessStaff=staff;next.businessManagers=managers;next.businessContracts=contracts;
+ next.coins+=reward-price;next.businessStaff=staff;next.businessManagers=managers;next.businessContracts=contracts;next.businessReputation=reputation;next.businessLicenses=licenses;
  return {save:next,price,reward};
 }
 function upgradeBusiness(save,i,now){
@@ -118,4 +128,4 @@ function upgradeBuilding(save,i,now){
  if(!Number.isSafeInteger(next.chips))throw Error('BALANCE_LIMIT');
  return {save:next,price};
 }
-module.exports={manageBusiness,businessStaff,businessManager,businessManagedIncome,businessContractTerms,businessLevels,businessCost,businessPayback,businessIncome,businessRate,upgradeBusiness,buildingPaybackHours,buildingCost,hourlyRate,collectIncome,claimMilestone,upgradeBuilding};
+module.exports={businessReputation,businessLicense,businessLicenseCost,manageBusiness,businessStaff,businessManager,businessManagedIncome,businessContractTerms,businessLevels,businessCost,businessPayback,businessIncome,businessRate,upgradeBusiness,buildingPaybackHours,buildingCost,hourlyRate,collectIncome,claimMilestone,upgradeBuilding};
