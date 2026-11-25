@@ -29,7 +29,7 @@ function businessRate(save){return businessLevels(save).reduce((sum,n,i)=>sum+bu
 function manageBusiness(save,i,action,now){
  if(!Number.isInteger(i)||!BUSINESS_CATALOG[i])throw Error('INVALID_BUSINESS');
  const level=businessLevels(save)[i];if(!level)throw Error('BUSINESS_LOCKED');
- const next=collectIncome(save,now).save;
+ const next=collectIncome(save,now,true).save;
  const staff=BUSINESS_CATALOG.map((_,j)=>businessStaff(next,j)),managers=BUSINESS_CATALOG.map((_,j)=>businessManager(next,j));
  const contracts=BUSINESS_CATALOG.map((_,j)=>next.businessContracts?.[j]||null);
  const reputation=BUSINESS_CATALOG.map((_,j)=>businessReputation(next,j)),licenses=BUSINESS_CATALOG.map((_,j)=>businessLicense(next,j));
@@ -62,7 +62,7 @@ function upgradeBusiness(save,i,now){
  const levels=businessLevels(save),n=levels[i];
  if(n>=10)throw Error('BUSINESS_LEVEL_LIMIT');
  if(save.level<BUSINESS_CATALOG[i][3])throw Error('BUSINESS_LOCKED');
- const next=collectIncome(save,now).save,price=businessCost(i,n);
+ const next=collectIncome(save,now,true).save,price=businessCost(i,n);
  if(next.coins<price)throw Error('INSUFFICIENT_COINS');
  next.coins-=price;levels[i]++;next.businesses=levels;
  return {save:next,price};
@@ -73,11 +73,11 @@ function hourlyRate(save){
   return sum;
  },0)+businessRate(save);
 }
-function collectIncome(save,now){
+function collectIncome(save,now,force=false){
  const next=structuredClone(save);
  if(!Number.isSafeInteger(now)||!Number.isFinite(next.lastIncome))throw Error('INVALID_INCOME_TIME');
  const hours=Math.max(0,Math.min(8,(now-next.lastIncome)/3600000));
- if(hours<.0025)return {save:next,amount:0};
+ if(hours===0||(!force&&hours<.0025))return {save:next,amount:0};
  const start=now-hours*3600000,x=next.liveCity14||{},expire=Number(x.boosts?.income)||0;
  const from=Number(x.boostsStarted?.income)||expire-1800000;
  const overlap=(a,b)=>Math.max(0,Math.min(now,b)-Math.max(start,a))/3600000;
@@ -98,7 +98,7 @@ function claimMilestone(save,level){
  return {save:next,alreadyClaimed:false};
 }
 function upgradeBuilding(save,i,now){
- const next=collectIncome(save,now).save;
+ const next=collectIncome(save,now,true).save;
  const price=buildingCost(i,next.buildings[i]);
  if(next.coins<price)throw Error('INSUFFICIENT_COINS');
  if(next.buildings[i]>=1000)throw Error('BUILDING_LEVEL_LIMIT');
