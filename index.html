@@ -6732,6 +6732,7 @@ function casinoAchievementValue(type){
  return 0;
 }
 function claimCasinoPeriodQuest(scope,index){
+ if(casinoServerEconomy){void casinoRunEconomyAction('claim_period_quest',{index:index+(scope==='weekly'?3:0)}).then(r=>{if(r)message('Задание выполнено')});return;}
  if(!Object.prototype.hasOwnProperty.call(CASINO_PERIOD_QUESTS,scope))return;
  const quest=CASINO_PERIOD_QUESTS[scope][index],p=casinoQuestState(scope);
  if(!quest||p.claimed.includes(index)||Math.max(0,Number(p.counts[quest.type])||0)<quest.goal)return;
@@ -6768,8 +6769,8 @@ function casinoClaimableRewards(){
  return items;
 }
 async function claimAllCasinoRewards(){
- if(casinoServerEconomy){for(const item of casinoClaimableRewards().filter(x=>x.kind==='achievement')){const r=await casinoRunEconomyAction('claim_achievement',{index:item.index});if(!r)return;}}
- const items=casinoClaimableRewards().filter(x=>!casinoServerEconomy||x.kind!=='achievement');
+ if(casinoServerEconomy){for(const item of casinoClaimableRewards().filter(x=>x.kind==='achievement'||x.kind==='period')){const r=await casinoRunEconomyAction(item.kind==='achievement'?'claim_achievement':'claim_period_quest',{index:item.index+(item.scope==='weekly'?3:0)});if(!r)return;}}
+ const items=casinoClaimableRewards().filter(x=>!casinoServerEconomy||!['achievement','period'].includes(x.kind));
  if(!items.length){message('Пока нет наград для получения');return}
  let chips=0,coins=0;
  for(const item of items){
