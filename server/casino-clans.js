@@ -41,7 +41,14 @@ const CLAN_PROJECTS=Object.freeze([
 ]);
 function projectBonus(rows){return rows.reduce((sum,row)=>sum+(CLAN_PROJECTS.find(p=>p.id===row.project_id)?.percent||0)*Number(row.level||0),0)}
 export function personalClanTarget(income){return Math.min(5000000,Math.max(1000,Math.ceil((Number(income)||0)*0.5/100)*100))}
+const CLAN_ACHIEVEMENTS=Object.freeze([
+ {days:7,title:'Новобранец',reward:5000},
+ {days:30,title:'Активист',reward:25000},
+ {days:100,title:'Ветеран',reward:100000},
+ {days:365,title:'Легенда клана',reward:500000}
+]);
 const ECONOMY_SQL=[
+ `CREATE TABLE IF NOT EXISTS lucky_clan_personal_achievements(player_id TEXT NOT NULL,days INTEGER NOT NULL,clan_id BIGINT NOT NULL,claimed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),prize BIGINT NOT NULL CHECK(prize>0),PRIMARY KEY(player_id,days))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_personal_weekly(player_id TEXT NOT NULL,week DATE NOT NULL,clan_id BIGINT NOT NULL,claimed_at TIMESTAMPTZ,prize BIGINT NOT NULL DEFAULT 0,PRIMARY KEY(player_id,week))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_personal_daily(player_id TEXT NOT NULL,day DATE NOT NULL,clan_id BIGINT NOT NULL,target BIGINT NOT NULL CHECK(target>0),claimed_at TIMESTAMPTZ,prize BIGINT NOT NULL DEFAULT 0,PRIMARY KEY(player_id,day))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_projects(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,project_id TEXT NOT NULL,level INTEGER NOT NULL DEFAULT 0 CHECK(level BETWEEN 0 AND 5),PRIMARY KEY(clan_id,project_id))`,
@@ -533,6 +540,32 @@ async function personalWeekly(c,playerId){
  return {week,clanId:member.clan_id,progress:Number(counts.weekly),target:5,lifetime:Number(counts.lifetime),reward:Number(counts.weekly)>=5?Math.min(250000,Math.floor(Number(counts.effort)*0.02)):null,claimed:!!task.claimed_at,prize:Number(task.prize)};
 }
 export function registerLuckyClans(app,pool,requireAuth){
+ app.get('/api/casino/clans/personal-achievements',requireAuth,wrap(async(req,res)=>{
+  await start(pool);
+  const member=(await pool.query('SELECT clan_id FROM lucky_clan_members WHERE player_id=$1',[req.playerId])).rows[0];
+  if(!member)fail('Сначала вступите в клан',403);
+  const progress=Number((await pool.query('SELECT COUNT(*)::int AS n FROM lucky_clan_personal_daily WHERE player_id=$1 AND claimed_at IS NOT NULL',[req.playerId])).rows[0].n);
+  const claimed=(await pool.query('SELECT days,prize FROM lucky_clan_personal_achievements WHERE player_id=$1',[req.playerId])).rows;
+  res.json({progress,items:CLAN_ACHIEVEMENTS.map(a=>({...a,claimed:claimed.some(x=>Number(x.days)===a.days),prize:Number(claimed.find(x=>Number(x.days)===a.days)?.prize||0)}))});
+ }));
+ app.post('/api/casino/clans/personal-achievement-claim',requireAuth,wrap(async(req,res)=>{
+  await start(pool);const a=CLAN_ACHIEVEMENTS.find(x=>x.days===req.body?.days);if(!a)fail('Неизвестное достижение');
+  const result=await tx(pool,async c=>{
+   const member=(await c.query('SELECT clan_id FROM lucky_clan_members WHERE player_id=$1 FOR UPDATE',[req.playerId])).rows[0];
+   if(!member)fail('Сначала вступите в клан',403);
+   const progress=Number((await c.query('SELECT COUNT(*)::int AS n FROM lucky_clan_personal_daily WHERE player_id=$1 AND claimed_at IS NOT NULL',[req.playerId])).rows[0].n);
+   if(progress<a.days)fail('Достижение ещё не выполнено');
+   const clan=(await c.query('SELECT coins,headquarters FROM lucky_clans WHERE id=$1 FOR UPDATE',[member.clan_id])).rows[0];if(!clan)fail('Клан не найден',404);
+   const free=50000+20000*Number(clan.headquarters)**2-Number(clan.coins);
+   if(free<a.reward)fail('Освободите в казне место для всей награды: '+a.reward.toLocaleString('ru-RU')+' монет');
+   const claimed=await c.query('INSERT INTO lucky_clan_personal_achievements(player_id,days,clan_id,prize) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING RETURNING days',[req.playerId,a.days,member.clan_id,a.reward]);
+   if(!claimed.rowCount)fail('Награда уже получена',409);
+   await c.query('UPDATE lucky_clans SET coins=coins+$1 WHERE id=$2',[a.reward,member.clan_id]);
+   await c.query("INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins) VALUES($1,$2,'personal_achievement',$3)",[member.clan_id,req.playerId,a.reward]);
+   return {ok:true,prize:a.reward};
+  });res.json(result);
+ }));
+
  app.get('/api/casino/clans/personal-weekly',requireAuth,wrap(async(req,res)=>{
   await start(pool);res.json(await tx(pool,async c=>personalWeekly(c,req.playerId)));
  }));
