@@ -4963,7 +4963,7 @@ async function casinoRunEconomyAction(action,args={}){
   const result=await response.json();
   if(!response.ok){
    if([400,401,404,409,422].includes(response.status))localStorage.removeItem(key);
-   throw Error(result.error||'Сервер отклонил действие');
+   throw Error(result.error==='BOOSTER_QUEUE_LIMIT'?'Максимум 2 часа действия усилителя':result.error||'Сервер отклонил действие');
   }
   if(!result.ok||!result.save||!Number.isSafeInteger(result.revision)||result.revision<revision)throw Error('Ответ сервера не подтверждён');
   if(casinoStableJSON(state)!==snapshot){
@@ -6380,6 +6380,7 @@ function cc14ActivateBooster(kind){
 
  if(busy||round)return message('Заверши текущую игру');
  if(!Object.prototype.hasOwnProperty.call(CC14_BOOSTERS,kind))return;
+ if(kind!=='chest'&&Number(cc14Data().boosts[kind])>Date.now()+90*60000)return message('Максимум 2 часа действия усилителя');
  const x=cc14Data(),i=x.inventory.indexOf(kind);
  if(i<0)return message('Нет этого бустера');
  if(kind==='chest')return cc14OpenChest(true);
@@ -6455,7 +6456,7 @@ function cc14CityWidgets(){
 }
 function cc14BoosterWidget(){
  const x=cc14Data();
- return '<section class="cc14-boosters"><h3>Усилители и находки</h3><p>Бустеры ускоряют развитие и не меняют вероятность выигрыша в мини-играх.</p><div class="cc14-booster-list">'+Object.entries(CC14_BOOSTERS).map(([key,b])=>{
+ return '<section class="cc14-boosters"><h3>Усилители и находки</h3><p>Бустеры ускоряют развитие и не меняют вероятность выигрыша в мини-играх. Можно накопить до 2 часов действия каждого усилителя.</p><div class="cc14-booster-list">'+Object.entries(CC14_BOOSTERS).map(([key,b])=>{
  const amount=x.inventory.filter(v=>v===key).length;
  const active=key!=='chest'&&cc14BoostActive(key);
  return '<div class="cc14-booster"><div><b>'+b.title+'</b><small>'+b.desc+(active?' · ещё '+cc14Time(x.boosts[key]-Date.now()):'')+'</small></div><button data-cc14-booster="'+key+'" '+(!amount?'disabled':'')+'>'+(amount?'Применить · '+amount:'Нет')+'</button></div>';
