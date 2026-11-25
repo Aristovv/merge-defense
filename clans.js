@@ -292,7 +292,7 @@
     nav.style.cssText='display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:12px 0';
     nav.innerHTML=tabs.map(([key,emoji,label])=>'<button type="button" class="btn '+(clanTab===key?'purple':'ghost')+'" data-clan="tab" data-tab="'+key+'" aria-pressed="'+(clanTab===key)+'" style="min-width:0;white-space:normal;padding:9px 2px;font-size:12px;line-height:1.4"><span style="display:block;font-size:19px">'+emoji+'</span>'+label+'</button>').join('');
     head.after(nav);
-    const season=document.createElement('div');season.className='lc-clan-panel';season.innerHTML='<h3>🏆 Сезонные лиги</h3><p class="lc-clan-note">Текущий сезон, рейтинг и награды прошлых сезонов.</p><button class="btn purple" data-clan="season-inline">Загрузить сезонный рейтинг</button><div id="lc-clan-season-inline"></div>';page.appendChild(season);
+    const season=document.createElement('div');season.className='lc-clan-panel';season.innerHTML='<h3>🏆 Сезонные лиги</h3><p class="lc-clan-note">Текущий сезон, рейтинг и награды прошлых сезонов.</p><button class="btn purple" data-clan="season-inline">Обновить рейтинг</button><div id="lc-clan-season-inline"></div>';page.appendChild(season);
     for(const node of [...page.children]){
      if(node===season){node.hidden=clanTab!=='season';}
      else if(node.classList.contains('lc-clan-panel')||node.classList.contains('lc-clan-grid'))node.hidden=classify(node)!==clanTab;
@@ -302,6 +302,7 @@
    html=view.innerHTML;
   }
   el.innerHTML=html;
+  if(data?.mine&&clanTab==='season')paintInlineSeason();
  }
  function clanDetailUI(info){
   const c=info.clan,stats=c.stats||{},fmt=n=>Number(n||0).toLocaleString('ru-RU');
@@ -351,6 +352,27 @@
     '<p class="lc-clan-note">Текущая вместимость: '+fmt(slots)+' из 50 мест. '+(nextHq?'Вместимость казны после следующего уровня штаба: '+fmt(nextHq)+' 🪙.':'Штаб максимально прокачан.')+'</p></div>'+
    '<div class="lc-clan-panel"><h3>👥 Состав клана · '+fmt(c.memberCount)+'</h3><p class="lc-clan-note">Сначала руководство, затем участники по сумме взносов. Нажмите на имя или аватарку, чтобы открыть профиль VK.</p>'+
    '<div class="lc-clan-detail-members">'+(memberMarkup||'<p class="lc-clan-note">Участников пока нет.</p>')+'</div></div>';
+ }
+
+ let inlineSeason=null,inlineLeague=null,inlineLoading=false,inlineError='';
+ function paintInlineSeason(){
+  const host=document.getElementById('lc-clan-season-inline');if(!host)return;
+  if(inlineLoading){host.textContent='Загрузка сезона…';return;}
+  if(inlineError){host.textContent=inlineError;return;}
+  const result=inlineSeason;if(!result)return;
+  const groups=Object.entries(result.leagues||{}),mineId=String(data?.mine?.id);
+  const own=groups.flatMap(([league,rows])=>rows.filter(x=>String(x.id)===mineId).map(x=>({...x,league})))[0];
+  if(!inlineLeague)inlineLeague=own?.league||'bronze';
+  const rows=result.leagues?.[inlineLeague]||[],winners=(result.previousWinners||[]).filter(x=>x.league===inlineLeague);
+  const start=Date.parse(result.start),end=Date.parse(result.end),remaining=Math.max(0,end-Date.now()),days=Math.floor(remaining/86400000),hours=Math.floor(remaining/3600000)%24;
+  const progress=end>start?Math.max(0,Math.min(100,Math.round((Date.now()-start)/(end-start)*100))):0;
+  const medals=['','🥇','🥈','🥉'];
+  const row=x=>'<button type="button" data-clan="season-inline-profile" data-id="'+esc(x.id)+'" class="lc-clan-rank lc-clan-rank-button" style="width:100%;text-align:left;'+(String(x.id)===mineId?'border:1px solid #d9b674;background:#39284b;':'')+'"><strong>'+ (medals[Number(x.rank)]||'#'+esc(x.rank))+'</strong>'+(x.avatar?'<img src="'+esc(x.avatar)+'" alt="">':'<span>🛡️</span>')+'<div style="min-width:0;overflow-wrap:anywhere"><strong>'+esc(x.name)+'</strong><small>'+fmtTop(x.points)+' оч. '+(String(x.id)===mineId?'· Ваш клан':'')+'</small></div><span>›</span></button>';
+  host.innerHTML='<div style="padding:14px;border:1px solid #9971c9;border-radius:14px;margin:12px 0;background:linear-gradient(135deg,#352049,#20162f)"><strong style="color:#f1d19a">СЕЗОН '+esc(result.number)+'</strong><p class="lc-clan-note">'+esc(result.start)+' — '+esc(result.end)+' UTC</p><strong>'+(remaining?'До конца: '+days+' д. '+hours+' ч.':'Сезон завершён')+'</strong><div style="height:8px;background:#171126;border-radius:8px;margin:10px 0"><div style="height:100%;width:'+progress+'%;background:linear-gradient(90deg,#8651d4,#edc681);border-radius:8px"></div></div>'+(own?'<p>Ваш клан · '+esc(leagueNames[own.league])+' · #'+esc(own.rank)+' · '+fmtTop(own.points)+' оч.</p>':'')+'</div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px">'+Object.entries(leagueNames).map(([key,label])=>'<button class="btn '+(inlineLeague===key?'purple':'ghost')+'" style="min-width:0;padding:8px 2px;font-size:12px" data-clan="season-inline-league" data-league="'+key+'">'+label+'</button>').join('')+'</div><h4>'+esc(leagueNames[inlineLeague])+' · '+rows.length+' кланов</h4>'+(rows.length?rows.map(row).join(''):'<p class="lc-clan-note">В этой лиге пока нет кланов.</p>')+'<h4>🏅 Зал славы прошлого сезона</h4>'+(winners.length?winners.map(row).join(''):'<p class="lc-clan-note">Пока нет призёров.</p>');
+ }
+ async function loadInlineSeason(){
+  if(inlineLoading)return;inlineLoading=true;inlineError='';paintInlineSeason();
+  try{inlineSeason=await api('/season')}catch(error){inlineError=error.message||'Не удалось загрузить сезон'}finally{inlineLoading=false;paintInlineSeason()}
  }
  let seasonData=null,seasonMode=false,seasonLeague='bronze',seasonLoading=false,seasonError='';
  const leagueNames={bronze:'Бронза',silver:'Серебро',gold:'Золото',platinum:'Платина',diamond:'Алмаз',legend:'Легенда'};
@@ -414,14 +436,17 @@
  document.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-clan]');if(!btn||!root()?.contains(btn)||btn.disabled)return;
   const action=btn.dataset.clan;if(action==='reload'||action==='refresh-permits')return load();
-  if(action==='tab'){clanTab=btn.dataset.tab;paint();return;}
-  if(action==='season-inline'){
+  if(action==='tab'){clanTab=btn.dataset.tab;paint();if(clanTab==='season')void loadInlineSeason();return;}
+  if(action==='season-inline'){await loadInlineSeason();return;}
+  if(action==='season-inline-league'){inlineLeague=btn.dataset.league;paintInlineSeason();return;}
+  if(action==='season-inline-profile'){
+   const id=String(btn.dataset.id||'');if(!/^[0-9]+$/.test(id))return;
    const host=document.getElementById('lc-clan-season-inline');if(!host)return;
-   btn.disabled=true;host.textContent='Загрузка…';
-   try{const result=await api('/season');const mineId=String(data?.mine?.id);const groups=Object.entries(result.leagues||{});const own=groups.flatMap(([league,rows])=>rows.filter(x=>String(x.id)===mineId).map(x=>({...x,league})))[0];
-    host.innerHTML='<p class="lc-clan-note">Сезон '+esc(result.number)+' · '+esc(result.start)+' — '+esc(result.end)+'</p>'+(own?'<p>Ваш клан: '+esc(leagueNames[own.league]||own.league)+' · #'+esc(own.rank)+' · '+fmtTop(own.points)+' оч.</p>':'')+groups.map(([league,rows])=>'<h4>'+esc(leagueNames[league]||league)+'</h4>'+rows.slice(0,3).map(x=>'<div class="lc-clan-roster"><span>#'+esc(x.rank)+' '+esc(x.name)+'</span><strong>'+fmtTop(x.points)+'</strong></div>').join('')).join('');
-   }catch(error){host.textContent=error.message||'Не удалось загрузить сезон'}finally{btn.disabled=false}return;
+   host.textContent='Загрузка профиля…';
+   try{const info=await api('/'+id);if(!host.isConnected)return;host.innerHTML=clanDetailUI(info);const back=host.querySelector('[data-clan-top-back]');if(back){back.removeAttribute('data-clan-top-back');back.dataset.clan='season-inline-back';}}
+   catch(error){if(host.isConnected){host.textContent=error.message;const back=document.createElement('button');back.className='btn ghost';back.dataset.clan='season-inline-back';back.textContent='Назад';host.appendChild(back);}}return;
   }
+  if(action==='season-inline-back'){paintInlineSeason();return;}
   if(action==='duel')return loadDuel();
   if(action==='mission-rewards'){btn.disabled=true;try{const result=await api('/mission-rewards',{});await load();notice=Number(result.xp)>0?'Клан получил '+Number(result.xp)+' XP':'Нет новых выполненных заданий';}catch(e){notice=e.message}finally{btn.disabled=false;paint()}return;}
   if(!launch){notice='Откройте Lucky City через VK';return paint()}
