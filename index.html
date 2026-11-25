@@ -4067,10 +4067,15 @@ async function casinoDonationSubmit(){
  const token=JSON.stringify({vkId,kind,id,mode});
  if(button.dataset.confirmToken!==token){button.dataset.confirmToken=token;button.textContent='Подтвердить выдачу';host.textContent='Подтверди '+mode+' '+id+' для VK '+vkId+' повторным нажатием.';return}
  button.disabled=true;host.textContent='Записываем выдачу в облако…';
- const requestId='donation_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,14);
+ const pendingKey='lucky_admin_donation_pending_v1';
+ let pending;
+ try{pending=JSON.parse(localStorage.getItem(pendingKey)||'null');}catch(_){}
+ if(pending&&pending.token!==token){host.textContent='Сначала повтори предыдущую неподтверждённую операцию: '+pending.token;button.disabled=false;return}
+ const requestId=pending?.requestId||'donation_'+crypto.randomUUID();
+ try{localStorage.setItem(pendingKey,JSON.stringify({token,requestId}));}catch(_){host.textContent='Не удалось сохранить номер операции. Выдача отменена.';button.disabled=false;return}
  try{
   const response=await fetch(CASINO_API_BASE+'/api/casino/admin/donation',{method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},body:JSON.stringify({vkId,kind,id,mode,requestId}),cache:'no-store'});
-  const data=await response.json();if(!response.ok)throw Error(data.error||'HTTP '+response.status);
+  const data=await response.json();if(!response.ok){if([400,401,403,404,409,422].includes(response.status))localStorage.removeItem(pendingKey);throw Error(data.error||'HTTP '+response.status);}if(data.ok!==true)throw Error('Ответ не подтверждён');localStorage.removeItem(pendingKey);
   host.textContent='✓ Сервер подтвердил операцию: '+id+' игроку VK '+vkId+'.';
   const me=new URLSearchParams(CASINO_LAUNCH_PARAMS||'').get('vk_user_id');
   if(me===vkId){
