@@ -9,6 +9,7 @@
  let topSelectedClan=null,topClanDetails=null,topClanLoading=false,topClanError='';
  // Keep opened sections open after clan operations, without localStorage or save mutations.
  const expandedSections=new Set();
+ let clanTab='overview',tabClanId=null;
  const hqNames=['Гнилой сарай','Обшитый сарай','Небольшой сарай','Старый гараж с мусором','Убранный гараж','Оштукатуренный гараж','Гараж с ровным полом','Гараж с белыми стенами','Гараж с ламинатом','Освещённый гараж','Гараж с мебелью','Гараж с сейфом','Гараж с крепкой дверью','Гараж с кодовым замком','Заброшенный дом'];
  const wallNames=['Куча листьев','Листья и палки','Большая куча веток','Вкопанные колья','Колья и верёвки','Укреплённые колья','Колючая проволока','Забор и яма','Ров с мостиком','Начало бревенчатого забора','Бревенчатый забор — треть','Бревенчатый забор — две трети','Готовый бревенчатый забор','Бревенчатый забор с рвом','Ров с водой','Металлический каркас'];
  const description=(kind,level)=>kind==='headquarters'?(hqNames[level-1]||(level<=25?'Отремонтированный дом':level<=35?'Клановый особняк':level<=45?'Охраняемая резиденция':'Элитный клановый комплекс')):(wallNames[level-1]||(level<=25?'Металлический забор':level<=35?'Бетонная стена':level<=40?'Серебряная оборона':level<=44?'Золотая оборона':level<=47?'Алмазная оборона':'Изумрудная крепость'));
@@ -262,6 +263,34 @@
     fold.appendChild(content);
     panel.replaceWith(fold);
    }
+   const page=view.querySelector('.page'),head=page?.querySelector(':scope > .lc-clan-head');
+   if(page&&head){
+    if(tabClanId!==String(clan.id)){tabClanId=String(clan.id);clanTab='overview'}
+    const tabs=[['overview','🏠','Обзор'],['development','🏰','Развитие'],['battle','⚔️','Битвы'],['treasury','🪙','Казна'],['members','👥','Участники'],['missions','📋','Задания'],['season','🏆','Сезоны'],['management','⚙️','Управление'],['history','📜','История']];
+    const sectionMap={seats:'development',permits:'development',treasury:'treasury',management:'history',history:'history',members:'members'};
+    const classify=node=>{
+     if(node.dataset.clanSection)return sectionMap[node.dataset.clanSection]||'overview';
+     if(node.classList.contains('lc-clan-grid'))return 'development';
+     if(node.querySelector('[data-clan="leave"]'))return 'management';
+     const h=node.querySelector(':scope > h3')?.textContent||'';
+     if(/Клановая битва|История битв/.test(h))return 'battle';
+     if(/Клановые задания/.test(h))return 'missions';
+     if(/Лидеры по взносам/.test(h))return 'members';
+     if(/Пополнить казну/.test(h))return 'treasury';
+     if(/Требования для вступления|Приглашения игроков|Настройки вступления/.test(h))return 'management';
+     return 'overview';
+    };
+    const nav=document.createElement('div');nav.setAttribute('role','group');nav.setAttribute('aria-label','Разделы клана');
+    nav.style.cssText='display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:12px 0';
+    nav.innerHTML=tabs.map(([key,emoji,label])=>'<button type="button" class="btn '+(clanTab===key?'purple':'ghost')+'" data-clan="tab" data-tab="'+key+'" aria-pressed="'+(clanTab===key)+'" style="min-width:0;white-space:normal;padding:9px 2px;font-size:12px;line-height:1.4"><span style="display:block;font-size:19px">'+emoji+'</span>'+label+'</button>').join('');
+    head.after(nav);
+    const season=document.createElement('div');season.className='lc-clan-panel';season.innerHTML='<h3>🏆 Сезонные лиги</h3><p class="lc-clan-note">Текущий сезон, рейтинг и награды прошлых сезонов.</p><button class="btn purple" data-clan="season-inline">Загрузить сезонный рейтинг</button><div id="lc-clan-season-inline"></div>';page.appendChild(season);
+    for(const node of [...page.children]){
+     if(node===season){node.hidden=clanTab!=='season';}
+     else if(node.classList.contains('lc-clan-panel')||node.classList.contains('lc-clan-grid'))node.hidden=classify(node)!==clanTab;
+     if(node.hidden)node.style.display='none';
+    }
+   }
    html=view.innerHTML;
   }
   el.innerHTML=html;
@@ -377,6 +406,14 @@
  document.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-clan]');if(!btn||!root()?.contains(btn)||btn.disabled)return;
   const action=btn.dataset.clan;if(action==='reload'||action==='refresh-permits')return load();
+  if(action==='tab'){clanTab=btn.dataset.tab;paint();return;}
+  if(action==='season-inline'){
+   const host=document.getElementById('lc-clan-season-inline');if(!host)return;
+   btn.disabled=true;host.textContent='Загрузка…';
+   try{const result=await api('/season');const mineId=String(data?.mine?.id);const groups=Object.entries(result.leagues||{});const own=groups.flatMap(([league,rows])=>rows.filter(x=>String(x.id)===mineId).map(x=>({...x,league})))[0];
+    host.innerHTML='<p class="lc-clan-note">Сезон '+esc(result.number)+' · '+esc(result.start)+' — '+esc(result.end)+'</p>'+(own?'<p>Ваш клан: '+esc(leagueNames[own.league]||own.league)+' · #'+esc(own.rank)+' · '+fmtTop(own.points)+' оч.</p>':'')+groups.map(([league,rows])=>'<h4>'+esc(leagueNames[league]||league)+'</h4>'+rows.slice(0,3).map(x=>'<div class="lc-clan-roster"><span>#'+esc(x.rank)+' '+esc(x.name)+'</span><strong>'+fmtTop(x.points)+'</strong></div>').join('')).join('');
+   }catch(error){host.textContent=error.message||'Не удалось загрузить сезон'}finally{btn.disabled=false}return;
+  }
   if(action==='duel')return loadDuel();
   if(action==='mission-rewards'){btn.disabled=true;try{const result=await api('/mission-rewards',{});await load();notice=Number(result.xp)>0?'Клан получил '+Number(result.xp)+' XP':'Нет новых выполненных заданий';}catch(e){notice=e.message}finally{btn.disabled=false;paint()}return;}
   if(!launch){notice='Откройте Lucky City через VK';return paint()}
