@@ -7192,19 +7192,21 @@ function casinoCloudCanRefresh(){
 async function casinoCloudRefresh(){
  if(casinoCloudRefreshBusy||!casinoCloudCanRefresh())return false;
  casinoCloudRefreshBusy=true;
- const revision=casinoCloudRevision,snapshot=casinoStableJSON(state);
  try{
+  const revision=casinoCloudRevision,snapshot=casinoStableJSON(state);
   const remote=await casinoCloudFetch('GET');
   if(!casinoCloudCanRefresh()||casinoCloudRevision!==revision||casinoStableJSON(state)!==snapshot||
    !remote?.save||!Number.isSafeInteger(remote.revision)||remote.revision<=revision||remote.save.pendingMiniRound)return false;
   const next={...fresh(),...remote.save};
   const backup='casino_city_refresh_backup';
-  localStorage.setItem(backup,JSON.stringify({vkId:casinoCloudVKId(),revision,save:state}));
-  if(!localStorage.getItem(backup))return false;
+  const backupRaw=JSON.stringify({vkId:casinoCloudVKId(),revision,save:state});
+  localStorage.setItem(backup,backupRaw);
+  if(localStorage.getItem(backup)!==backupRaw)throw Error('BACKUP_VERIFY_FAILED');
   const raw=JSON.stringify(next);
   localStorage.setItem(STORAGE,raw);
   if(localStorage.getItem(STORAGE)!==raw)return false;
   state=next;casinoCloudRevision=remote.revision;casinoCloudLastIssue='';
+  try{localStorage.setItem('casino_city_last_cloud_revision',String(casinoCloudRevision))}catch(_){}
   render();return true;
  }catch(e){console.warn('Cloud refresh deferred',e?.message||e);return false}
  finally{casinoCloudRefreshBusy=false}
