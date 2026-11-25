@@ -35,12 +35,12 @@ const CLAN_SHOP=Object.freeze([
  {id:'cosmic',name:'Космическая элита',price:1500000,color:'#d7a8ff',icon:'✧'}
 ]);
 const CLAN_PROJECTS=Object.freeze([
- {id:'bank',name:'Клановый банк',base:50000,step:50000,percent:2},
- {id:'business',name:'Бизнес-центр',base:100000,step:100000,percent:3},
- {id:'tower',name:'Небоскрёб',base:200000,step:200000,percent:5}
+ {id:'bank',name:'Клановый банк',base:75000,step:125000,percent:2},
+ {id:'business',name:'Бизнес-центр',base:150000,step:250000,percent:3},
+ {id:'tower',name:'Небоскрёб',base:300000,step:500000,percent:5}
 ]);
 function projectBonus(rows){return rows.reduce((sum,row)=>sum+(CLAN_PROJECTS.find(p=>p.id===row.project_id)?.percent||0)*Number(row.level||0),0)}
-export function personalClanTarget(income){return Math.min(5000000,Math.max(1000,Math.ceil((Number(income)||0)*0.5/100)*100))}
+export function personalClanTarget(income){return Math.min(25000000,Math.max(1000,Math.ceil((Number(income)||0)*0.5/100)*100))}
 const CLAN_ACHIEVEMENTS=Object.freeze([
  {days:7,title:'Новобранец',reward:5000},
  {days:30,title:'Активист',reward:25000},
@@ -524,7 +524,7 @@ export const CLAN_SEAT_BASE=10;
 export const clanSeatCapacity=tier=>CLAN_SEAT_BASE+Math.min(8,Math.max(0,Number(tier)||0))*5;
 export const PREMIUM_LEVELS=Object.freeze({headquarters:Object.freeze([5,10,15,20,30,40]),wall:Object.freeze([5,10,15,20,30,40])});
 const premiumUpgrade=(kind,nextLevel)=>PREMIUM_LEVELS[kind]?.includes(nextLevel)||false;
-export function upgradeCost(kind,level){return Math.ceil((kind==='headquarters'?5000:3500)*Math.pow(1.13,level-1)/100)*100}
+export function upgradeCost(kind,level){return Math.ceil((kind==='headquarters'?10000:7000)*Math.pow(1.16,Math.min(level-1,20))*Math.pow(1.09,Math.max(0,level-21))/100)*100}
 async function checkAdmissionIncome(c,playerId,minimum){
  const min=Number(minimum)||0;if(min<=0)return;
  const save=await c.query("SELECT save->'buildings' AS buildings, save->'businesses' AS businesses, save->'businessStaff' AS \"businessStaff\", save->'businessManagers' AS \"businessManagers\", save->'businessLicenses' AS \"businessLicenses\" FROM public.casino_city_saves WHERE vk_id=$1",[String(playerId).replace(/^vk:/,'')]);
@@ -540,7 +540,7 @@ async function personalDaily(c,playerId){
  if(String(task.clan_id)!==String(member.clan_id))fail('Сегодня задание закреплено за прежним кланом. Новое будет завтра.');
  const progress=(await c.query("SELECT COALESCE(SUM(coins),0)::bigint AS total FROM lucky_clan_transactions WHERE clan_id=$1 AND player_id=$2 AND action='deposit' AND (created_at AT TIME ZONE 'UTC')::date=$3::date",[member.clan_id,playerId,day])).rows[0];
  const target=Number(task.target);
- return {day,clanId:member.clan_id,target,progress:Number(progress.total),reward:Math.min(100000,Math.floor(target*0.05)),claimed:!!task.claimed_at,prize:Number(task.prize)};
+ return {day,clanId:member.clan_id,target,progress:Number(progress.total),reward:Math.min(500000,Math.floor(target*0.05)),claimed:!!task.claimed_at,prize:Number(task.prize)};
 }
 async function personalWeekly(c,playerId){
  const member=(await c.query('SELECT clan_id FROM lucky_clan_members WHERE player_id=$1 FOR UPDATE',[playerId])).rows[0];
@@ -551,7 +551,7 @@ async function personalWeekly(c,playerId){
  if(String(task.clan_id)!==String(member.clan_id))fail('Задание недели закреплено за прежним кланом');
  const counts=(await c.query(`SELECT COUNT(*) FILTER(WHERE day >= $3::date AND day < $3::date+7)::int AS weekly,COUNT(*)::int AS lifetime,COALESCE(SUM(target) FILTER(WHERE day >= $3::date AND day < $3::date+7),0)::bigint AS effort
  FROM lucky_clan_personal_daily WHERE player_id=$1 AND clan_id=$2 AND claimed_at IS NOT NULL`,[playerId,member.clan_id,week])).rows[0];
- return {week,clanId:member.clan_id,progress:Number(counts.weekly),target:5,lifetime:Number(counts.lifetime),reward:Number(counts.weekly)>=5?Math.min(250000,Math.floor(Number(counts.effort)*0.02)):null,claimed:!!task.claimed_at,prize:Number(task.prize)};
+ return {week,clanId:member.clan_id,progress:Number(counts.weekly),target:5,lifetime:Number(counts.lifetime),reward:Number(counts.weekly)>=5?Math.min(1250000,Math.floor(Number(counts.effort)*0.02)):null,claimed:!!task.claimed_at,prize:Number(task.prize)};
 }
 export function registerLuckyClans(app,pool,requireAuth){
  app.get('/api/casino/clans/reputation',requireAuth,wrap(async(req,res)=>{
