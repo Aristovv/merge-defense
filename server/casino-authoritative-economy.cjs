@@ -14,7 +14,39 @@ function businessLevels(save){return BUSINESS_CATALOG.map((_,i)=>{const n=save.b
 function businessCost(i,n){return Math.floor(BUSINESS_CATALOG[i][2]*(1+n*.5))}
 function businessPayback(i,n){return BUSINESS_CATALOG[i][4]+n*24}
 function businessIncome(i,level){let total=0;for(let n=0;n<level;n++)total+=Math.floor(businessCost(i,n)/businessPayback(i,n));return total}
-function businessRate(save){return businessLevels(save).reduce((sum,n,i)=>sum+businessIncome(i,n),0)}
+function businessStaff(save,i){const n=save.businessStaff?.[i];return Number.isInteger(n)&&n>=0&&n<=3?n:0}
+function businessManager(save,i){return save.businessManagers?.[i]===true}
+function businessStaffCost(i,n){return Math.floor(BUSINESS_CATALOG[i][2]*(.4+n*.2))}
+function businessManagerCost(i){return BUSINESS_CATALOG[i][2]*2}
+function businessManagedIncome(save,i,n){return Math.floor(businessIncome(i,n)*(100+businessStaff(save,i)*3+(businessManager(save,i)?6:0))/100)}
+function businessContractTerms(save,i){const income=businessManagedIncome(save,i,businessLevels(save)[i]);return {cost:Math.max(1,income*3),reward:Math.max(1,Math.floor(income*3.3)),duration:86400000}}
+function businessRate(save){return businessLevels(save).reduce((sum,n,i)=>sum+businessManagedIncome(save,i,n),0)}
+function manageBusiness(save,i,action,now){
+ if(!Number.isInteger(i)||!BUSINESS_CATALOG[i])throw Error('INVALID_BUSINESS');
+ const level=businessLevels(save)[i];if(!level)throw Error('BUSINESS_LOCKED');
+ const next=collectIncome(save,now).save;
+ const staff=BUSINESS_CATALOG.map((_,j)=>businessStaff(next,j)),managers=BUSINESS_CATALOG.map((_,j)=>businessManager(next,j));
+ const contracts=BUSINESS_CATALOG.map((_,j)=>next.businessContracts?.[j]||null);
+ let price=0,reward=0;
+ if(action==='hire_business_staff'){
+  if(staff[i]>=3||level<(staff[i]+1)*2)throw Error('BUSINESS_STAFF_LOCKED');
+  price=businessStaffCost(i,staff[i]);staff[i]++;
+ }else if(action==='hire_business_manager'){
+  if(managers[i]||level<8||staff[i]<3)throw Error('BUSINESS_MANAGER_LOCKED');
+  price=businessManagerCost(i);managers[i]=true;
+ }else if(action==='start_business_contract'){
+  if(contracts[i]||level<3)throw Error('BUSINESS_CONTRACT_LOCKED');
+  const terms=businessContractTerms(next,i);price=terms.cost;
+  contracts[i]={endsAt:now+terms.duration,reward:terms.reward};
+ }else if(action==='claim_business_contract'){
+  const c=contracts[i];if(!c||now<c.endsAt)throw Error('BUSINESS_CONTRACT_NOT_READY');
+  reward=c.reward;contracts[i]=null;
+ }else throw Error('INVALID_BUSINESS');
+ if(next.coins<price)throw Error('INSUFFICIENT_COINS');
+ if(!Number.isSafeInteger(next.coins-price+reward))throw Error('BALANCE_LIMIT');
+ next.coins+=reward-price;next.businessStaff=staff;next.businessManagers=managers;next.businessContracts=contracts;
+ return {save:next,price,reward};
+}
 function upgradeBusiness(save,i,now){
  if(!Number.isInteger(i)||!BUSINESS_CATALOG[i])throw Error('INVALID_BUSINESS');
  const levels=businessLevels(save),n=levels[i];
@@ -86,4 +118,4 @@ function upgradeBuilding(save,i,now){
  if(!Number.isSafeInteger(next.chips))throw Error('BALANCE_LIMIT');
  return {save:next,price};
 }
-module.exports={businessLevels,businessCost,businessPayback,businessIncome,businessRate,upgradeBusiness,buildingPaybackHours,buildingCost,hourlyRate,collectIncome,claimMilestone,upgradeBuilding};
+module.exports={manageBusiness,businessStaff,businessManager,businessManagedIncome,businessContractTerms,businessLevels,businessCost,businessPayback,businessIncome,businessRate,upgradeBusiness,buildingPaybackHours,buildingCost,hourlyRate,collectIncome,claimMilestone,upgradeBuilding};
