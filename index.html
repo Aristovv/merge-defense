@@ -7165,8 +7165,40 @@ document.addEventListener('click',function(e){
 },false);
 // Offline gameplay is allowed. The first local change is saved under the
 // signed VK account and never uploaded without explicit conflict recovery.
-window.addEventListener('online',()=>{if(casinoCloudRevision===null&&CASINO_LAUNCH_PARAMS)casinoCloudStart()});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&casinoCloudRevision===null&&CASINO_LAUNCH_PARAMS)casinoCloudStart()});
+// Pull confirmed server changes while idle, without overwriting pending actions.
+let casinoCloudRefreshBusy=false;
+function casinoCloudCanRefresh(){
+ if(!CASINO_LAUNCH_PARAMS||!navigator.onLine||document.hidden||
+ !Number.isSafeInteger(casinoCloudRevision)||casinoCloudRevision<1||
+ casinoCloudLocalOnly||casinoCloudDirty||casinoCloudBusy||casinoCloudStarting||
+ casinoEconomyActionBusy||casinoDailyClaiming||casinoCardRequestBusy||busy||round||
+ state.pendingMiniRound||casinoCloudPendingRead())return false;
+ try{const id=casinoCloudVKId();return !!id&&!localStorage.getItem('casino_economy_pending_'+id)&&!localStorage.getItem('casino_card_pending_'+id)}catch(_){return false}
+}
+async function casinoCloudRefresh(){
+ if(casinoCloudRefreshBusy||!casinoCloudCanRefresh())return false;
+ casinoCloudRefreshBusy=true;
+ const revision=casinoCloudRevision,snapshot=casinoStableJSON(state);
+ try{
+  const remote=await casinoCloudFetch('GET');
+  if(!casinoCloudCanRefresh()||casinoCloudRevision!==revision||casinoStableJSON(state)!==snapshot||
+   !remote?.save||!Number.isSafeInteger(remote.revision)||remote.revision<=revision||remote.save.pendingMiniRound)return false;
+  const next={...fresh(),...remote.save};
+  const backup='casino_city_refresh_backup';
+  localStorage.setItem(backup,JSON.stringify({vkId:casinoCloudVKId(),revision,save:state}));
+  if(!localStorage.getItem(backup))return false;
+  const raw=JSON.stringify(next);
+  localStorage.setItem(STORAGE,raw);
+  if(localStorage.getItem(STORAGE)!==raw)return false;
+  state=next;casinoCloudRevision=remote.revision;casinoCloudLastIssue='';
+  render();return true;
+ }catch(e){console.warn('Cloud refresh deferred',e?.message||e);return false}
+ finally{casinoCloudRefreshBusy=false}
+}
+function casinoCloudResume(){if(casinoCloudRevision===null)void casinoCloudStart();else void casinoCloudRefresh()}
+window.addEventListener('online',casinoCloudResume);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)casinoCloudResume()});
+setInterval(()=>{if(!document.hidden)void casinoCloudRefresh()},30000);
 window.addEventListener('pagehide',()=>{if(casinoCloudRevision!==null||casinoCloudLocalOnly)try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch(_){}});
 setInterval(()=>{if(tab==='city'||tab==='profile'){let gained=collectPassive();if(gained&&tab==='city')render()}},30000);
 render();
