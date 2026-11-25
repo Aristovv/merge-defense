@@ -40,7 +40,9 @@ const CLAN_PROJECTS=Object.freeze([
  {id:'tower',name:'Небоскрёб',base:200000,step:200000,percent:5}
 ]);
 function projectBonus(rows){return rows.reduce((sum,row)=>sum+(CLAN_PROJECTS.find(p=>p.id===row.project_id)?.percent||0)*Number(row.level||0),0)}
+export function personalClanTarget(income){return Math.min(5000000,Math.max(1000,Math.ceil((Number(income)||0)*0.5/100)*100))}
 const ECONOMY_SQL=[
+ `CREATE TABLE IF NOT EXISTS lucky_clan_personal_daily(player_id TEXT NOT NULL,day DATE NOT NULL,clan_id BIGINT NOT NULL,target BIGINT NOT NULL CHECK(target>0),claimed_at TIMESTAMPTZ,prize BIGINT NOT NULL DEFAULT 0,PRIMARY KEY(player_id,day))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_projects(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,project_id TEXT NOT NULL,level INTEGER NOT NULL DEFAULT 0 CHECK(level BETWEEN 0 AND 5),PRIMARY KEY(clan_id,project_id))`,
  `ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS equipped_style TEXT NOT NULL DEFAULT ''`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_shop_owned(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,item_id TEXT NOT NULL,purchased_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(clan_id,item_id))`,
@@ -506,7 +508,42 @@ async function checkAdmissionIncome(c,playerId,minimum){
  const save=await c.query("SELECT save->'buildings' AS buildings FROM public.casino_city_saves WHERE vk_id=$1",[String(playerId).replace(/^vk:/,'')]);
  if(clanIncome(save.rows[0])<min)fail('Для вступления требуется базовый доход не менее '+min.toLocaleString('ru-RU')+' монет в час',403);
 }
+async function personalDaily(c,playerId){
+ const member=(await c.query('SELECT clan_id FROM lucky_clan_members WHERE player_id=$1 FOR UPDATE',[playerId])).rows[0];
+ if(!member)fail('Сначала вступите в клан',403);
+ const day=(await c.query("SELECT (NOW() AT TIME ZONE 'UTC')::date::text AS day")).rows[0].day;
+ const save=(await c.query("SELECT save->'buildings' AS buildings FROM public.casino_city_saves WHERE vk_id=$1",[String(playerId).replace(/^vk:/,'')])).rows[0];
+ await c.query('INSERT INTO lucky_clan_personal_daily(player_id,day,clan_id,target) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING',[playerId,day,member.clan_id,personalClanTarget(clanIncome(save))]);
+ const task=(await c.query('SELECT clan_id,target,claimed_at,prize FROM lucky_clan_personal_daily WHERE player_id=$1 AND day=$2 FOR UPDATE',[playerId,day])).rows[0];
+ if(String(task.clan_id)!==String(member.clan_id))fail('Сегодня задание закреплено за прежним кланом. Новое будет завтра.');
+ const progress=(await c.query("SELECT COALESCE(SUM(coins),0)::bigint AS total FROM lucky_clan_transactions WHERE clan_id=$1 AND player_id=$2 AND action='deposit' AND (created_at AT TIME ZONE 'UTC')::date=$3::date",[member.clan_id,playerId,day])).rows[0];
+ const target=Number(task.target);
+ return {day,clanId:member.clan_id,target,progress:Number(progress.total),reward:Math.min(100000,Math.floor(target*0.05)),claimed:!!task.claimed_at,prize:Number(task.prize)};
+}
 export function registerLuckyClans(app,pool,requireAuth){
+ app.get('/api/casino/clans/personal-daily',requireAuth,wrap(async(req,res)=>{
+  await start(pool);
+  const task=await tx(pool,async c=>personalDaily(c,req.playerId));
+  res.json(task);
+ }));
+ app.post('/api/casino/clans/personal-daily-claim',requireAuth,wrap(async(req,res)=>{
+  await start(pool);
+  const result=await tx(pool,async c=>{
+   const task=await personalDaily(c,req.playerId);
+   if(task.claimed)fail('Награда уже получена',409);
+   if(task.progress<task.target)fail('Задание ещё не выполнено');
+   const clan=(await c.query('SELECT coins,headquarters FROM lucky_clans WHERE id=$1 FOR UPDATE',[task.clanId])).rows[0];
+   if(!clan)fail('Клан не найден',404);
+   const prize=Math.min(task.reward,50000+20000*Number(clan.headquarters)**2-Number(clan.coins));
+   if(prize<=0)fail('Казна заполнена');
+   const claimed=await c.query('UPDATE lucky_clan_personal_daily SET claimed_at=NOW(),prize=$3 WHERE player_id=$1 AND day=$2 AND claimed_at IS NULL RETURNING player_id',[req.playerId,task.day,prize]);
+   if(!claimed.rowCount)fail('Награда уже получена',409);
+   await c.query('UPDATE lucky_clans SET coins=coins+$1 WHERE id=$2',[prize,task.clanId]);
+   await c.query("INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins) VALUES($1,$2,'personal_daily',$3)",[task.clanId,req.playerId,prize]);
+   return {ok:true,prize};
+  });res.json(result);
+ }));
+
  app.get('/api/casino/clans/projects',requireAuth,wrap(async(req,res)=>{
   await start(pool);const clan=(await pool.query('SELECT cl.id,cl.coins,m.role FROM lucky_clans cl JOIN lucky_clan_members m ON m.clan_id=cl.id WHERE m.player_id=$1',[req.playerId])).rows[0];
   if(!clan)fail('Сначала вступите в клан',403);
