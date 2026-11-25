@@ -9,11 +9,27 @@ function buildingCost(i,level){
  return cost;
 }
 function buildingPaybackHours(level){return level<5?36:level<10?48:level<15?72:level<20?120:level<25?168:level<30?240:336}
+const BUSINESS_CATALOG=[["Кофейня","☕",6000,1,72],["Автомойка","🚘",30000,5,96],["Ресторан","🍽️",150000,10,120],["Логистический центр","🚚",750000,20,168],["Торговый комплекс","🏬",3000000,35,240],["Технологический парк","🏙️",15000000,50,336]];
+function businessLevels(save){return BUSINESS_CATALOG.map((_,i)=>{const n=save.businesses?.[i];return Number.isInteger(n)&&n>=0&&n<=10?n:0})}
+function businessCost(i,n){return Math.floor(BUSINESS_CATALOG[i][2]*(1+n*.5))}
+function businessPayback(i,n){return BUSINESS_CATALOG[i][4]+n*24}
+function businessIncome(i,level){let total=0;for(let n=0;n<level;n++)total+=Math.floor(businessCost(i,n)/businessPayback(i,n));return total}
+function businessRate(save){return businessLevels(save).reduce((sum,n,i)=>sum+businessIncome(i,n),0)}
+function upgradeBusiness(save,i,now){
+ if(!Number.isInteger(i)||!BUSINESS_CATALOG[i])throw Error('INVALID_BUSINESS');
+ const levels=businessLevels(save),n=levels[i];
+ if(n>=10)throw Error('BUSINESS_LEVEL_LIMIT');
+ if(save.level<BUSINESS_CATALOG[i][3])throw Error('BUSINESS_LOCKED');
+ const next=collectIncome(save,now).save,price=businessCost(i,n);
+ if(next.coins<price)throw Error('INSUFFICIENT_COINS');
+ next.coins-=price;levels[i]++;next.businesses=levels;
+ return {save:next,price};
+}
 function hourlyRate(save){
  return save.buildings.reduce((sum,level,i)=>{
   for(let n=0;n<level;n++)sum+=buildingCost(i,n)/buildingPaybackHours(n);
   return sum;
- },0);
+ },0)+businessRate(save);
 }
 function collectIncome(save,now){
  const next=structuredClone(save);
@@ -70,4 +86,4 @@ function upgradeBuilding(save,i,now){
  if(!Number.isSafeInteger(next.chips))throw Error('BALANCE_LIMIT');
  return {save:next,price};
 }
-module.exports={buildingPaybackHours,buildingCost,hourlyRate,collectIncome,claimMilestone,upgradeBuilding};
+module.exports={businessLevels,businessCost,businessPayback,businessIncome,businessRate,upgradeBusiness,buildingPaybackHours,buildingCost,hourlyRate,collectIncome,claimMilestone,upgradeBuilding};
