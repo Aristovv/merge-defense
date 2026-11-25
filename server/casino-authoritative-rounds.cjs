@@ -39,7 +39,7 @@ function applyCompletedRound(save,{game,stake,payout,description,now,freeSpin=fa
  next.casinoGameHistory=[{game,stake,payout,result:String(description||'').slice(0,130),at:now},...(next.casinoGameHistory||[])].slice(0,40);
  if(!Array.isArray(next.collect))next.collect=[];
  const existing=new Set(next.collect);
- for(let i=1;i<=Math.min(10000,Math.floor(next.plays/12));i++){const k='slot-'+i;if(!existing.has(k)){next.collect.push(k);existing.add(k);next.vip=add(next.vip,1)}}
+ for(let i=1;i<=Math.min(10000,Math.floor(next.plays/12));i++){if(i>8&&i%5!==0)continue;const k='slot-'+i;if(!existing.has(k)){next.collect.push(k);existing.add(k);next.vip=add(next.vip,1)}}
  next.stamp=now;
  return next;
 }
