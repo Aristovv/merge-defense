@@ -2,9 +2,10 @@
 // Pure server-side economy rules. Not wired into the legacy client yet.
 const BASE=[1200,1600,2400,3400,4200,5400,8200,10000,13800,17500,21000,27000,34000,43000];
 const REWARDS=new Map([[5,[180,350]],[10,[300,500]],[20,[450,700]],[35,[650,900]],[50,[900,1200]],[75,[1300,1700]],[100,[1800,2200]],[150,[2500,3000]],[200,[3500,4200]],[250,[4500,5000]],[300,[5500,6500]],[350,[6500,7500]],[400,[8000,9000]],[450,[10000,11000]],[500,[15000,18000]]]);
+function buildingGrowth(level){return Math.pow(1.75,Math.min(level,5))*Math.pow(1.35,Math.min(Math.max(0,level-5),10))*Math.pow(1.18,Math.min(Math.max(0,level-15),15))*Math.pow(1+Math.max(0,level-30)/10,2)}
 function buildingCost(i,level){
  if(!Number.isInteger(i)||i<0||i>=BASE.length||!Number.isInteger(level)||level<0)throw Error('INVALID_BUILDING');
- const cost=Math.floor(BASE[i]*1.2*Math.pow(1.75,level));
+ const cost=Math.floor(BASE[i]*1.2*buildingGrowth(level));
  if(!Number.isSafeInteger(cost))throw Error('BUILDING_COST_LIMIT');
  return cost;
 }
