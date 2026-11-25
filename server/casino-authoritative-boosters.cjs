@@ -20,6 +20,8 @@ function activateBooster(save,kind,now=Date.now()){
 
  if(index<0)throw Error('NO_BOOSTER');
 
+ const activeUntil=Number(x.boosts?.[kind])||0;
+ if(activeUntil>now+90*60000)throw Error('BOOSTER_QUEUE_LIMIT');
  x.inventory.splice(index,1);
  x.boosts??={};
  x.boostsStarted??={};
