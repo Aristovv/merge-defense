@@ -298,7 +298,7 @@ const safeVkPhoto=value=>{
   return u.protocol==='https:'&&/(^|\.)(userapi\.com|vkcdn\.ru|vk\.com|vk\.ru)$/.test(u.hostname.toLowerCase())?u.href:'';
  }catch(_){return ''}
 };
-export export function clanReputation(days){
+export function clanReputation(days){
  const n=Math.max(0,Number(days)||0);
  const tiers=[{days:0,title:'Новобранец',icon:'🌱'},{days:7,title:'Активист',icon:'🥉'},{days:30,title:'Опора клана',icon:'🥈'},{days:100,title:'Ветеран',icon:'🥇'},{days:365,title:'Легенда клана',icon:'👑'}];
  const index=tiers.reduce((best,t,i)=>n>=t.days?i:best,0);
