@@ -10,7 +10,7 @@ function exchangeChips(save,amount,now=Date.now()){
   throw Error('INSUFFICIENT_CHIPS');
 
  const next=collectIncome(save,now).save;
- const coins=Math.floor(amount*1.6);
+ const coins=amount;
 
  if(!Number.isSafeInteger(coins)||
     !Number.isSafeInteger(next.coins+coins))
