@@ -34,7 +34,14 @@ const CLAN_SHOP=Object.freeze([
  {id:'royal',name:'Королевский орден',price:750000,color:'#9edcff',icon:'♜'},
  {id:'cosmic',name:'Космическая элита',price:1500000,color:'#d7a8ff',icon:'✧'}
 ]);
+const CLAN_PROJECTS=Object.freeze([
+ {id:'bank',name:'Клановый банк',base:50000,step:50000,percent:2},
+ {id:'business',name:'Бизнес-центр',base:100000,step:100000,percent:3},
+ {id:'tower',name:'Небоскрёб',base:200000,step:200000,percent:5}
+]);
+function projectBonus(rows){return rows.reduce((sum,row)=>sum+(CLAN_PROJECTS.find(p=>p.id===row.project_id)?.percent||0)*Number(row.level||0),0)}
 const ECONOMY_SQL=[
+ `CREATE TABLE IF NOT EXISTS lucky_clan_projects(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,project_id TEXT NOT NULL,level INTEGER NOT NULL DEFAULT 0 CHECK(level BETWEEN 0 AND 5),PRIMARY KEY(clan_id,project_id))`,
  `ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS equipped_style TEXT NOT NULL DEFAULT ''`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_shop_owned(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,item_id TEXT NOT NULL,purchased_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(clan_id,item_id))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_tournament_entries(kind TEXT NOT NULL,period_start DATE NOT NULL,clan_id BIGINT NOT NULL,league TEXT NOT NULL,band INTEGER NOT NULL,name TEXT NOT NULL,avatar TEXT NOT NULL,members INTEGER NOT NULL,PRIMARY KEY(kind,period_start,clan_id))`,
@@ -384,9 +391,12 @@ async function mine(pool,playerId){
  const rewards=await pool.query(`SELECT COALESCE(SUM(xp),0)::bigint AS xp FROM lucky_clan_mission_rewards WHERE clan_id=$1`,[rows[0].id]);
  const own=await pool.query(`SELECT s.save->'buildings' AS buildings FROM public.casino_city_saves s WHERE s.vk_id=$1`,[String(playerId).replace(/^vk:/,'')]);
  const depositLimit=clanDepositLimit(own.rows[0]);
+ const projectRows=(await pool.query('SELECT project_id,level FROM lucky_clan_projects WHERE clan_id=$1',[rows[0].id])).rows;
+ const levelBonus=clanLevelBonus(rewards.rows[0]?.xp);levelBonus.projectPercent=projectBonus(projectRows);levelBonus.dailyReward=Math.floor(levelBonus.dailyReward*(100+levelBonus.projectPercent)/100);
+
  const applications=['owner','officer'].includes(rows[0].role)?await pool.query(`SELECT a.player_id AS "playerId",a.created_at AS "createdAt" FROM lucky_clan_applications a WHERE a.clan_id=$1 AND NOT EXISTS(SELECT 1 FROM lucky_clan_members m WHERE m.player_id=a.player_id) ORDER BY a.created_at LIMIT 100`,[rows[0].id]):{rows:[]};
  const managementLog=rows[0].role==='owner'?await pool.query(`SELECT actor_id AS "actorId",target_id AS "targetId",action,created_at AS "createdAt" FROM lucky_clan_management_log WHERE clan_id=$1 ORDER BY id DESC LIMIT 30`,[rows[0].id]):{rows:[]};
- return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,managementLog:managementLog.rows,applications:await vkMemberProfiles(applications.rows),activity:activity.rows[0]||{},missionTargets:targets,missionRewards:clanMissionRewards(targets),depositLimit,missionXp:Number(rewards.rows[0]?.xp||0),levelBonus:clanLevelBonus(rewards.rows[0]?.xp)};
+ return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,managementLog:managementLog.rows,applications:await vkMemberProfiles(applications.rows),activity:activity.rows[0]||{},missionTargets:targets,missionRewards:clanMissionRewards(targets),depositLimit,missionXp:Number(rewards.rows[0]?.xp||0),levelBonus};
 }
 // Seasons are 14 UTC days, starting on a Monday. Points count completed
 // mission periods rather than XP amounts, so higher income alone cannot buy rank.
@@ -497,6 +507,26 @@ async function checkAdmissionIncome(c,playerId,minimum){
  if(clanIncome(save.rows[0])<min)fail('Для вступления требуется базовый доход не менее '+min.toLocaleString('ru-RU')+' монет в час',403);
 }
 export function registerLuckyClans(app,pool,requireAuth){
+ app.get('/api/casino/clans/projects',requireAuth,wrap(async(req,res)=>{
+  await start(pool);const clan=(await pool.query('SELECT cl.id,cl.coins,m.role FROM lucky_clans cl JOIN lucky_clan_members m ON m.clan_id=cl.id WHERE m.player_id=$1',[req.playerId])).rows[0];
+  if(!clan)fail('Сначала вступите в клан',403);
+  const rows=(await pool.query('SELECT project_id,level FROM lucky_clan_projects WHERE clan_id=$1',[clan.id])).rows;
+  res.json({coins:clan.coins,canManage:clan.role==='owner',bonus:projectBonus(rows),items:CLAN_PROJECTS.map(p=>{const level=Number(rows.find(x=>x.project_id===p.id)?.level||0);return {...p,level,nextCost:level<5?p.base+p.step*level:null}})});
+ }));
+ app.post('/api/casino/clans/project-upgrade',requireAuth,wrap(async(req,res)=>{
+  await start(pool);const p=CLAN_PROJECTS.find(x=>x.id===req.body?.projectId),expected=req.body?.expectedLevel;
+  if(!p||!Number.isInteger(expected)||expected<0||expected>=5)fail('Некорректный проект');
+  await tx(pool,async c=>{
+   const clan=(await c.query('SELECT id,coins FROM lucky_clans WHERE owner_id=$1 FOR UPDATE',[req.playerId])).rows[0];if(!clan)fail('Только глава может развивать проекты',403);
+   const current=(await c.query('SELECT level FROM lucky_clan_projects WHERE clan_id=$1 AND project_id=$2',[clan.id,p.id])).rows[0];
+   if(Number(current?.level||0)!==expected)fail('Уровень уже изменился',409);
+   const cost=p.base+p.step*expected;
+   const paid=await c.query('UPDATE lucky_clans SET coins=coins-$1 WHERE id=$2 AND coins>=$1 RETURNING id',[cost,clan.id]);if(!paid.rowCount)fail('Недостаточно монет в казне');
+   await c.query('INSERT INTO lucky_clan_projects(clan_id,project_id,level) VALUES($1,$2,$3) ON CONFLICT(clan_id,project_id) DO UPDATE SET level=EXCLUDED.level',[clan.id,p.id,expected+1]);
+   await c.query("INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins) VALUES($1,$2,'project',$3)",[clan.id,req.playerId,-cost]);
+  });res.json({ok:true});
+ }));
+
  app.get('/api/casino/clans/shop',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   const clan=(await pool.query('SELECT cl.id,cl.coins,cl.equipped_style,m.role FROM lucky_clans cl JOIN lucky_clan_members m ON m.clan_id=cl.id WHERE m.player_id=$1',[req.playerId])).rows[0];
@@ -815,7 +845,8 @@ export function registerLuckyClans(app,pool,requireAuth){
    const clan=await c.query('SELECT coins,headquarters FROM lucky_clans WHERE id=$1 FOR UPDATE',[m.rows[0].clan_id]);
    const cap=50000+clan.rows[0].headquarters**2*20000;
    const xp=await c.query('SELECT COALESCE(SUM(xp),0)::bigint AS xp FROM lucky_clan_mission_rewards WHERE clan_id=$1',[m.rows[0].clan_id]);
-   const reward=Math.min(clanLevelBonus(xp.rows[0]?.xp).dailyReward,cap-Number(clan.rows[0].coins));
+   const projects=(await c.query('SELECT project_id,level FROM lucky_clan_projects WHERE clan_id=$1',[m.rows[0].clan_id])).rows;
+   const reward=Math.min(Math.floor(clanLevelBonus(xp.rows[0]?.xp).dailyReward*(100+projectBonus(projects))/100),cap-Number(clan.rows[0].coins));
    if(reward<=0)fail('Казна заполнена');
    await c.query('UPDATE lucky_clans SET coins=coins+$1 WHERE id=$2',[reward,m.rows[0].clan_id]);
    await c.query('UPDATE lucky_clan_members SET last_claim=$1::date WHERE player_id=$2',[date,req.playerId]);
