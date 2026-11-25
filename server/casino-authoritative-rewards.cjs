@@ -71,4 +71,17 @@ function claimReward(save,kind,index,now=Date.now()){
  return {save:next,chips,coins};
 }
 
-module.exports={claimReward};
+function claimAchievement(save,index,now=Date.now()){
+ const next=structuredClone(save);
+ const goals=[['plays',1,100],['plays',100,700],['plays',500,2500],['plays',1000,5000],['wins',1,100],['wins',50,900],['wins',250,3000],['builds',10,600],['builds',50,2300],['level',25,1400],['level',100,4000],['collect',8,1200]];
+ if(!Number.isInteger(index)||!goals[index])throw Error('INVALID_REWARD');
+ const [type,goal,chips]=goals[index];
+ const value=type==='builds'?(next.buildings||[]).reduce((a,b)=>a+Math.max(0,Number(b)||0),0):type==='collect'?Math.min(8,Math.floor((Number(next.plays)||0)/12)):Number(next[type])||0;
+ next.achievementsClaimed??=[];
+ if(next.achievementsClaimed.includes(index))throw Error('ALREADY_CLAIMED');
+ if(value<goal)throw Error('REWARD_NOT_READY');
+ next.achievementsClaimed.push(index);next.chips+=chips;next.stamp=now;
+ if(!Number.isSafeInteger(next.chips))throw Error('BALANCE_LIMIT');
+ return {save:next,chips,coins:0};
+}
+module.exports={claimReward,claimAchievement};
