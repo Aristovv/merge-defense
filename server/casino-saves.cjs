@@ -83,6 +83,12 @@ function regression(previous,next){
  // Authoritative mode: reject browser edits to server-maintained quest counters.
  if(process.env.CASINO_AUTHORITATIVE_ECONOMY==='1'){
   const canonical=value=>JSON.stringify(value??null,(_key,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
+  // Server round statistics and pending payouts cannot be manufactured by browser saves.
+  for(const key of ['plays','wins','earned','best']){
+   if((Number(previous[key])||0)!==(Number(next[key])||0))return 'SERVER_ROUND_STATS_REQUIRED';
+  }
+  if(canonical(previous.pendingMiniRound)!==canonical(next.pendingMiniRound))return 'SERVER_PENDING_ROUND_REQUIRED';
+  if(canonical(previous.buildings)!==canonical(next.buildings))return 'SERVER_BUILDING_ACTION_REQUIRED';
   for(const scope of ['daily','weekly']){
    const old=previous.questPeriods?.[scope],fresh=next.questPeriods?.[scope];
    if(canonical(old)===canonical(fresh))continue;
