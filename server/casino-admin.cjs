@@ -25,7 +25,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
   ultimate:{coins:30000,chips:12000,nick:'nick-rainbow',frame:'frame-rainbow',title:'Легенда Lucky City',background:'animated',effect:'fireworks',boost:10,vipBadge:true,theme:'ultimate'}
  });
  const DONATION_ITEMS=Object.freeze({
-  outfit:["galaxy-supreme","obsidian-crown","inferno-elite","crystal-monarch","lucky-city-vip"],character:["cap-vip","beanie-stars","bucket-holo","kitty-pink","crown-royal","jacket-neon-vip","hoodie-lunar","jacket-phoenix","coat-royal-vip","pants-vip","cargo-neon-vip","pants-royal-vip","pants-galaxy","shoes-vip","shoes-sakura","shoes-starlight","shoes-phoenix","glasses-vip","phones-holo","chain-royal-vip","glasses-phoenix","kitty","crown","cowboy","goldcoat","royalpants","goldboots","chain"],permit:['clan_build_permit'],boost:['5','8','10'],
+  season:['world-1'],outfit:["galaxy-supreme","obsidian-crown","inferno-elite","crystal-monarch","lucky-city-vip"],character:["cap-vip","beanie-stars","bucket-holo","kitty-pink","crown-royal","jacket-neon-vip","hoodie-lunar","jacket-phoenix","coat-royal-vip","pants-vip","cargo-neon-vip","pants-royal-vip","pants-galaxy","shoes-vip","shoes-sakura","shoes-starlight","shoes-phoenix","glasses-vip","phones-holo","chain-royal-vip","glasses-phoenix","kitty","crown","cowboy","goldcoat","royalpants","goldboots","chain"],permit:['clan_build_permit'],boost:['5','8','10'],
   nick:['nick-white','nick-red','nick-blue','nick-green','nick-purple','nick-gold','nick-neon-blue','nick-neon-pink','nick-fire','nick-legend','nick-galaxy','nick-rainbow'],
   frame:['frame-silver','frame-blue','frame-purple','frame-gold','frame-emerald','frame-neon','frame-fire','frame-rainbow','frame-diamond','frame-royal'],
   title:['Стильный игрок','Король города','Повелитель галактики','Легенда Lucky City'],
@@ -73,6 +73,8 @@ function registerCasinoAdmin(app,pool,requireAuth){
      const old=save.donationIncomeBoost||{};
      save.donationIncomeBoost={percent:old.until>now?Math.max(Number(old.percent)||0,pack.boost):pack.boost,from:now,until:expires};
     }
+   }else if(id==='season:world-1'){
+    require('./casino-season-pass.cjs').premium(save,mode==='grant');
    }else if(id.startsWith('permit:')){
     await client.query('CREATE TABLE IF NOT EXISTS lucky_clan_permits(vk_id BIGINT PRIMARY KEY,balance INTEGER NOT NULL DEFAULT 0 CHECK(balance>=0))');
     if(mode==='grant')await client.query('INSERT INTO lucky_clan_permits(vk_id,balance) VALUES($1,1) ON CONFLICT(vk_id) DO UPDATE SET balance=lucky_clan_permits.balance+1',[vkId]);
@@ -146,7 +148,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
       if(pack.vipBadge)addItem('badges','vip');
      }else if(action.kind==='item'&&typeof action.id==='string'){
       const colon=action.id.indexOf(':'),type=action.id.slice(0,colon),value=action.id.slice(colon+1);
-      if(colon<1||!DONATION_ITEMS[type]?.includes(value)||['outfit','character','permit','boost'].includes(type))continue;
+      if(colon<1||!DONATION_ITEMS[type]?.includes(value)||['outfit','character','permit','boost','season'].includes(type))continue;
       const key=type==='badge'?'badges':type+'s';
       if(action.mode==='grant')addItem(key,value);
       if(action.mode==='revoke')removeItem(key,value);
