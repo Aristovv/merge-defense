@@ -12,7 +12,7 @@ function activateBooster(save,kind,now=Date.now()){
   throw Error('NO_BOOSTER');
 
  if(kind==='income'){
-  next=collectIncome(next,now).save;
+  next=collectIncome(next,now,true).save;
  }
 
  const x=next.liveCity14;
