@@ -78,6 +78,7 @@ function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
             nick: pick('nick', 'nicks'), frame: pick('frame', 'frames'),
             title: pick('title', 'titles'), badge: pick('badge', 'badges')
           },
+          prestige: prestigeIdentity(save),
           vip: Number.isSafeInteger(save.vip) && save.vip > 0 ? save.vip : 0
         };
       });
@@ -87,6 +88,34 @@ function registerCasinoRanking(app, pool, requireAuth, onScoreAdvanced = null) {
       return rows.map(row => ({...row, donationEquipped: {}, vip: 0}));
     }
   }
+  // WORLD 40.7: derive prestige exclusively from server-owned save inventory.
+  const prestigePoints = [10,25,50,100,200,400,750,1250,2215];
+  function prestigeIdentity(save) {
+    const items = [...new Set(Array.isArray(save?.prestige40) ? save.prestige40.filter(i => Number.isInteger(i) && i >= 0 && i < prestigePoints.length) : [])].sort((a,b)=>a-b);
+    const titles = [[9,'Легенда Lucky City'],[7,'Магнат престижа'],[5,'Хранитель сокровищ'],[3,'Ценитель роскоши'],[1,'Коллекционер']];
+    return {items, points:items.reduce((sum,i)=>sum+prestigePoints[i],0), title:titles.find(([n])=>items.length>=n)?.[1] || ''};
+  }
+  app.get('/api/casino/prestige/top', async (_req,res) => {
+    if (!pool) return res.status(503).json({error:'DATABASE_UNAVAILABLE'});
+    try {
+      const mode = await avatarReady;
+      const {rows} = await pool.query(`
+        SELECT p.vk_id::text AS vk_id,p.display_name,
+          ${mode==='column'?'p.avatar_url':mode==='table'?"COALESCE((SELECT a.avatar_url FROM public.casino_city_avatars a WHERE a.vk_id=p.vk_id),'') AS avatar_url":"''::text AS avatar_url"},
+          s.save->'prestige40' AS items
+        FROM public.casino_city_players p JOIN public.casino_city_saves s ON s.vk_id=p.vk_id
+        WHERE jsonb_typeof(s.save->'prestige40')='array'
+      `);
+      const top=rows.map(({items,...row})=>({...row,avatar_url:safeAvatar(row.avatar_url),prestige:prestigeIdentity({prestige40:items})}))
+        .filter(row=>row.prestige.points>0)
+        .sort((a,b)=>b.prestige.points-a.prestige.points || a.vk_id.localeCompare(b.vk_id)).slice(0,100);
+      res.set('Cache-Control','no-store');
+      return res.json({top});
+    } catch(error) {
+      console.warn('Prestige ranking unavailable:',error.code||error.message);
+      return res.status(503).json({error:'PRESTIGE_RANKING_UNAVAILABLE'});
+    }
+  });
   app.get('/api/casino/top', async (_req, res) => {
     if (!pool) return res.status(503).json({ error: 'DATABASE_UNAVAILABLE' });
     try {
