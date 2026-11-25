@@ -4035,7 +4035,7 @@ button:focus-visible,[role="button"]:focus-visible{outline-color:#E5B85C}
 #app>nav.nav.era30-global-nav>button .ic{width:25px!important;height:25px!important;flex:none!important}
 @media(min-width:650px){#app>nav.nav.era30-global-nav{grid-template-columns:repeat(6,minmax(0,1fr))!important;max-width:590px!important;margin-inline:auto!important}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js">
-</script><script src="./character33.js?v=55.3.0"></script><script src="./outfits56.js?v=56.4.2"></script><script src="./clan-scenes.js?v=20261125-2"></script><script src="./clans.js?v=20261125-activity-2"></script><script>
+</script><script src="./character33.js?v=55.3.0"></script><script src="./outfits56.js?v=56.4.2"></script><script src="./clan-scenes.js?v=20261125-2"></script><script src="./clans.js?v=20261125-economy-3"></script><script>
 'use strict';
 try{if(window.vkBridge){window.vkBridge.send('VKWebAppInit').then(function(){return initCasinoLaunchParams()}).catch(function(e){console.warn('VK init failed',e?.message||e)})}else{console.warn('VK Bridge unavailable')}}catch(e){console.warn('VK init failed',e?.message||e)}
 const CASINO_DONATION_OPTIONS={
@@ -5016,9 +5016,9 @@ function xp(amount){
  if(leveled)message(rankChanged?'Новое звание: '+rankAt(state.level)+'!':'Новый уровень '+state.level+'!');
 }
 const CITY_COST_FACTOR=1.2;
-const CITY_PAYBACK_HOURS=36;
+function buildingPaybackHours(level){return level<5?36:level<10?48:level<15?72:level<20?120:level<25?168:level<30?240:336}
 function buildingCostAtLevel(i,level){return Math.floor(BUILDINGS[i][2]*CITY_COST_FACTOR*Math.pow(1.75,level))}
-function buildingHourlyIncome(i){const level=state.buildings[i]||0;let total=0;for(let n=0;n<level;n++)total+=buildingCostAtLevel(i,n)/CITY_PAYBACK_HOURS;return total}
+function buildingHourlyIncome(i){const level=state.buildings[i]||0;let total=0;for(let n=0;n<level;n++)total+=buildingCostAtLevel(i,n)/buildingPaybackHours(n);return total}
 function rate(){return BUILDINGS.reduce((total,_b,i)=>total+buildingHourlyIncome(i),0)}
 function casinoActiveDonationIncomePercent(now=Date.now()){
  const boost=state.donationIncomeBoost||{};
@@ -5040,7 +5040,7 @@ function collectPassive(){if(casinoServerEconomy)return 0;if(((casinoCloudRevisi
  const donationBoost=state.donationIncomeBoost||{};const donationMs=Math.max(0,Math.min(now,Number(donationBoost.until)||0)-Math.max(periodStart,Number(donationBoost.from)||0));const donationPct=Math.max(0,Math.min(10,Number(donationBoost.percent)||0))/100;const gross=rate()*(elapsedHours+boostedMs/3600000*.25+donationMs/3600000*donationPct)+(Number.isFinite(state.incomeRemainder)?state.incomeRemainder:0);const amount=Math.floor(gross);state.incomeRemainder=gross-amount;state.coins+=amount;state.lastIncome=now;save();return amount}
 function cost(i){return buildingCostAtLevel(i,state.buildings[i]||0)}
 function buildingUp(i){if(casinoServerEconomy){void casinoRunEconomyAction('upgrade_building',{index:i}).then(r=>{if(r)message('Здание улучшено')});return;}collectPassive();let c=cost(i);if(state.coins<c){render();return message('Не хватает '+fmt(c-state.coins)+' городских монет')}state.coins-=c;state.buildings[i]++;recordCasinoQuestEvent('builds',1);cc14RecordBuild();xp(25);save();render();message('Здание улучшено')}
-function buildingNextIncome(i){return buildingHourlyIncome(i)+cost(i)/CITY_PAYBACK_HOURS}
+function buildingNextIncome(i){return buildingHourlyIncome(i)+cost(i)/buildingPaybackHours(state.buildings[i]||0)}
 function buildingPayback(i){const added=buildingNextIncome(i)-buildingHourlyIncome(i);return added>0?Math.ceil(cost(i)/added):0}
 const SLOT_THEMES=[
 {name:'CLASSIC 777',scene:'classic',subtitle:'Классические барабаны',tag:'LUCKY SEVENS'},
