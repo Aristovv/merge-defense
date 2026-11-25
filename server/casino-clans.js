@@ -542,10 +542,14 @@ export function registerLuckyClans(app,pool,requireAuth){
    for(const [kind,start,end] of [['daily',dates.today,dates.tomorrow],['weekly',dates.week,dates.weekend]]){
     const created=await c.query('INSERT INTO lucky_clan_tournament_periods(kind,period_start,period_end) VALUES($1,$2,$3) ON CONFLICT DO NOTHING RETURNING kind',[kind,start,end]);
     if(created.rowCount){
-     await c.query(`INSERT INTO lucky_clan_tournament_entries(kind,period_start,clan_id,league,band,name,avatar,members)
-      SELECT $1,$2,e.clan_id,e.league,CASE WHEN COUNT(m.player_id)<=3 THEN 1 WHEN COUNT(m.player_id)<=10 THEN 2 WHEN COUNT(m.player_id)<=20 THEN 3 WHEN COUNT(m.player_id)<=35 THEN 4 ELSE 5 END,cl.name,cl.avatar,COUNT(m.player_id)::int
-      FROM lucky_clan_season_entries e JOIN lucky_clans cl ON cl.id=e.clan_id JOIN lucky_clan_members m ON m.clan_id=cl.id WHERE e.season=$3 GROUP BY e.clan_id,e.league,cl.name,cl.avatar`,[kind,start,season.number]);
-     await c.query(`INSERT INTO lucky_clan_tournament_roster(kind,period_start,player_id,clan_id) SELECT $1,$2,m.player_id,m.clan_id FROM lucky_clan_members m JOIN lucky_clan_tournament_entries e ON e.clan_id=m.clan_id AND e.kind=$1 AND e.period_start=$2::date`,[kind,start]);
+     await c.query(`WITH roster AS MATERIALIZED (
+      SELECT m.player_id,m.clan_id,e.league,cl.name,cl.avatar FROM lucky_clan_members m JOIN lucky_clan_season_entries e ON e.clan_id=m.clan_id AND e.season=$3 JOIN lucky_clans cl ON cl.id=m.clan_id
+     ), entries AS (
+      INSERT INTO lucky_clan_tournament_entries(kind,period_start,clan_id,league,band,name,avatar,members)
+      SELECT $1,$2,clan_id,league,CASE WHEN COUNT(*)<=3 THEN 1 WHEN COUNT(*)<=10 THEN 2 WHEN COUNT(*)<=20 THEN 3 WHEN COUNT(*)<=35 THEN 4 ELSE 5 END,name,avatar,COUNT(*)::int FROM roster GROUP BY clan_id,league,name,avatar RETURNING clan_id
+     )
+     INSERT INTO lucky_clan_tournament_roster(kind,period_start,player_id,clan_id)
+     SELECT $1,$2,r.player_id,r.clan_id FROM roster r JOIN entries e ON e.clan_id=r.clan_id`,[kind,start,season.number]);
     }
     const rows=(await c.query(`WITH scores AS (${pointsSql}) SELECT *,RANK() OVER(PARTITION BY league,band ORDER BY points DESC)::int AS rank FROM scores ORDER BY rank,id`,[kind,start,end])).rows;
     const mine=rows.find(x=>String(x.id)===String(own));
