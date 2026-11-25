@@ -257,8 +257,10 @@ function registerCasinoAdmin(app,pool,requireAuth){
     pool.query('SELECT display_name,score::text AS score,level,plays::text AS plays,wins::text AS wins FROM public.casino_city_players WHERE vk_id=$1',[vkId])
    ]);
    const c=cloud.rows[0],p=rank.rows[0],v=c?.save;
+   const permitTable=await pool.query("SELECT to_regclass('lucky_clan_permits') AS name");
+   const permits=permitTable.rows[0]?.name?Number((await pool.query('SELECT balance FROM lucky_clan_permits WHERE vk_id=$1',[vkId])).rows[0]?.balance||0):0;
    res.set('Cache-Control','no-store');
-   res.json({vkId,cloud:c?{revision:Number(c.revision),updatedAt:c.updated_at,chips:v.chips,coins:v.coins,vip:v.vip,xp:v.xp,level:v.level,plays:v.plays,wins:v.wins,buildings:v.buildings,stamp:v.stamp,donationInventory:v.donationInventory||{},donationEquipped:v.donationEquipped||{},donationIncomeBoost:v.donationIncomeBoost||null}:null,ranking:p||null,reset:{available:false,reason:'RESET_DISABLED_PENDING_SAFE_RECONCILIATION'}});
+   res.json({vkId,cloud:c?{revision:Number(c.revision),updatedAt:c.updated_at,chips:v.chips,coins:v.coins,vip:v.vip,xp:v.xp,level:v.level,plays:v.plays,wins:v.wins,buildings:v.buildings,stamp:v.stamp,donationInventory:v.donationInventory||{},donationEquipped:v.donationEquipped||{},donationIncomeBoost:v.donationIncomeBoost||null,seasonPass40:v.seasonPass40||null,ownedOutfits:Array.isArray(v.character33?.ownedOutfits)?v.character33.ownedOutfits:[],ownedCharacterItems:Array.isArray(v.character33?.owned)?v.character33.owned:[],clanPermits:permits}:null,ranking:p||null,reset:{available:false,reason:'RESET_DISABLED_PENDING_SAFE_RECONCILIATION'}});
   }catch(e){console.error('casino admin player',e.code||e.message);res.status(503).json({error:'PLAYER_READ_UNAVAILABLE'})}
  });
  // Reset only one player's cloud game progress. The reset epoch prevents older
