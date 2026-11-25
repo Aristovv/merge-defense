@@ -8,7 +8,7 @@ function buildingCost(i,level){
  if(!Number.isSafeInteger(cost))throw Error('BUILDING_COST_LIMIT');
  return cost;
 }
-function buildingPaybackHours(level){return level<5?36:level<10?48:level<15?72:level<20?120:level<25?168:level<30?240:336}
+function buildingPaybackHours(level){return level<5?36:level<10?48:level<15?96:level<20?168:level<25?240:level<30?480:720}
 const BUSINESS_CATALOG=[["Кофейня","☕",6000,1,72],["Автомойка","🚘",30000,5,96],["Ресторан","🍽️",150000,10,120],["Логистический центр","🚚",750000,20,168],["Торговый комплекс","🏬",3000000,35,240],["Технологический парк","🏙️",15000000,50,336]];
 function businessLevels(save){return BUSINESS_CATALOG.map((_,i)=>{const n=save.businesses?.[i];return Number.isInteger(n)&&n>=0&&n<=10?n:0})}
 function businessCost(i,n){return Math.floor(BUSINESS_CATALOG[i][2]*(1+n*.5))}
