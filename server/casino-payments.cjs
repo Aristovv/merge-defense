@@ -56,7 +56,7 @@ function apply(save,item){
 
  if(item.seasonPass)season.premium(save,true);
  if(item.boost){
-  const now=Date.now(),old=save.donationIncomeBoost||{};
+  const now=Date.now();Object.assign(save,require('./casino-authoritative-economy.cjs').collectIncome(save,now,true).save);const old=save.donationIncomeBoost||{};
   save.donationIncomeBoost={percent:old.until>now?Math.max(Number(old.percent)||0,item.boost):item.boost,from:now,until:now+7*86400000};
  }
  save.resetEpoch=Math.max(0,Number(save.resetEpoch)||0)+1;save.stamp=Date.now();
