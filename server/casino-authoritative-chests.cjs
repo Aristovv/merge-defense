@@ -6,7 +6,7 @@ function openChest(save,withKey=false,now=Date.now()){
  const next=structuredClone(save);
  const x=next.liveCity14;
 
- if(!x||!x.daily)throw Error('REWARD_NOT_READY');
+ if(!x)throw Error('REWARD_NOT_READY');
  if(typeof withKey!=='boolean')throw Error('INVALID_KEY');
 
  x.inventory??=[];
@@ -14,8 +14,7 @@ function openChest(save,withKey=false,now=Date.now()){
 
  const day=new Date(now).toISOString().slice(0,10);
 
- if(x.daily.key!==day)
-  throw Error('DAILY_SYNC_REQUIRED');
+ if(!x.daily||x.daily.key!==day)x.daily={key:day,games:[],rounds:0,builds:0,hot:0,claims:[]};
 
  if(withKey){
   const i=x.inventory.indexOf('chest');
