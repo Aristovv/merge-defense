@@ -60,3 +60,15 @@ test('day seven receives one-time weekly bonus',async()=>{
  const r=await s.invoke();assert.equal(r.payload.streak,7);
  assert.equal(r.payload.coins,1000);assert.equal(r.payload.chips,1100);
 });
+
+test('unfinished game blocks daily claim without changing progress',async()=>{
+ const s=setup();s.record.save.pendingMiniRound={kind:'server-card'};
+ const before=structuredClone(s.record);const r=await s.invoke();
+ assert.equal(r.status,409);assert.equal(r.payload.error,'UNFINISHED_GAME');
+ assert.deepEqual(s.record,before);
+});
+test('balance overflow rejects daily reward without changing progress',async()=>{
+ const s=setup({coins:Number.MAX_SAFE_INTEGER});const before=structuredClone(s.record);
+ const r=await s.invoke();assert.equal(r.status,409);assert.equal(r.payload.error,'BALANCE_LIMIT');
+ assert.deepEqual(s.record,before);
+});
