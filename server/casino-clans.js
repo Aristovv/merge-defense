@@ -301,8 +301,8 @@ const safeVkPhoto=value=>{
 export export function clanReputation(days){
  const n=Math.max(0,Number(days)||0);
  const tiers=[{days:0,title:'Новобранец',icon:'🌱'},{days:7,title:'Активист',icon:'🥉'},{days:30,title:'Опора клана',icon:'🥈'},{days:100,title:'Ветеран',icon:'🥇'},{days:365,title:'Легенда клана',icon:'👑'}];
- const index=tiers.findLastIndex(t=>n>=t.days);
- return {...tiers[index],completed:n,next:tiers[index+1]?.days??null};
+ const index=tiers.reduce((best,t,i)=>n>=t.days?i:best,0);
+ return {...tiers[index],completed:n,next:tiers[index+1]?.days??null,bonus:[0,5,10,15,25][index],frame:['','#b78aff','#72cdb5','#efc66d','#ed9aff'][index]};
 }
 async function withClanReputation(pool,members){
  if(!members.length)return members;
@@ -414,7 +414,9 @@ async function mine(pool,playerId){
  const own=await pool.query(`SELECT s.save->'buildings' AS buildings FROM public.casino_city_saves s WHERE s.vk_id=$1`,[String(playerId).replace(/^vk:/,'')]);
  const depositLimit=clanDepositLimit(own.rows[0]);
  const projectRows=(await pool.query('SELECT project_id,level FROM lucky_clan_projects WHERE clan_id=$1',[rows[0].id])).rows;
- const levelBonus=clanLevelBonus(rewards.rows[0]?.xp);levelBonus.projectPercent=projectBonus(projectRows);levelBonus.dailyReward=Math.floor(levelBonus.dailyReward*(100+levelBonus.projectPercent)/100);
+ const levelBonus=clanLevelBonus(rewards.rows[0]?.xp);levelBonus.projectPercent=projectBonus(projectRows);
+ const personalDays=(await pool.query('SELECT COUNT(*)::int AS n FROM lucky_clan_personal_daily WHERE player_id=$1 AND claimed_at IS NOT NULL',[playerId])).rows[0].n;
+ const reputation=clanReputation(personalDays);levelBonus.reputationPercent=reputation.bonus;levelBonus.dailyReward=Math.floor(levelBonus.dailyReward*(100+levelBonus.projectPercent+reputation.bonus)/100);
 
  const applications=['owner','officer'].includes(rows[0].role)?await pool.query(`SELECT a.player_id AS "playerId",a.created_at AS "createdAt" FROM lucky_clan_applications a WHERE a.clan_id=$1 AND NOT EXISTS(SELECT 1 FROM lucky_clan_members m WHERE m.player_id=a.player_id) ORDER BY a.created_at LIMIT 100`,[rows[0].id]):{rows:[]};
  const managementLog=rows[0].role==='owner'?await pool.query(`SELECT actor_id AS "actorId",target_id AS "targetId",action,created_at AS "createdAt" FROM lucky_clan_management_log WHERE clan_id=$1 ORDER BY id DESC LIMIT 30`,[rows[0].id]):{rows:[]};
@@ -971,7 +973,9 @@ export function registerLuckyClans(app,pool,requireAuth){
    const cap=50000+clan.rows[0].headquarters**2*20000;
    const xp=await c.query('SELECT COALESCE(SUM(xp),0)::bigint AS xp FROM lucky_clan_mission_rewards WHERE clan_id=$1',[m.rows[0].clan_id]);
    const projects=(await c.query('SELECT project_id,level FROM lucky_clan_projects WHERE clan_id=$1',[m.rows[0].clan_id])).rows;
-   const reward=Math.min(Math.floor(clanLevelBonus(xp.rows[0]?.xp).dailyReward*(100+projectBonus(projects))/100),cap-Number(clan.rows[0].coins));
+   const completed=(await c.query('SELECT COUNT(*)::int AS n FROM lucky_clan_personal_daily WHERE player_id=$1 AND claimed_at IS NOT NULL',[req.playerId])).rows[0].n;
+   const reputation=clanReputation(completed);
+   const reward=Math.min(Math.floor(clanLevelBonus(xp.rows[0]?.xp).dailyReward*(100+projectBonus(projects)+reputation.bonus)/100),cap-Number(clan.rows[0].coins));
    if(reward<=0)fail('Казна заполнена');
    await c.query('UPDATE lucky_clans SET coins=coins+$1 WHERE id=$2',[reward,m.rows[0].clan_id]);
    await c.query('UPDATE lucky_clan_members SET last_claim=$1::date WHERE player_id=$2',[date,req.playerId]);
