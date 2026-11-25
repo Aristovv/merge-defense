@@ -6441,6 +6441,7 @@ function cc14RecordGame(game,paidPayout){
 function cc14RecordBuild(){
  cc14Data().daily.builds++;
 }
+function adaptiveQuestCoins(base,income,weekly=false){return base+Math.floor(Math.min(100000000,Math.max(0,Number(income)||0))*(weekly?0.5:0.05))}
 const CC14_DAILY_GOALS=[
  {name:'Ночная прогулка',desc:'Сыграть в 4 разные мини-игры',goal:4,value:x=>x.games.length,chips:180,coins:80},
  {name:'В центре событий',desc:'Завершить 8 игровых раундов',goal:8,value:x=>x.rounds,chips:220,coins:60},
@@ -6457,7 +6458,7 @@ function cc14ClaimChallenge(i){
  if(busy||round)return message('Заверши текущую игру');
  const item=CC14_DAILY_GOALS[i],x=cc14Data().daily;
  if(!item||x.claims.includes(i)||item.value(x)<item.goal)return;
- x.claims.push(i);state.chips+=item.chips;state.coins+=item.coins;
+ x.claims.push(i);state.chips+=item.chips;state.coins+=adaptiveQuestCoins(item.coins,rate());
  save();render();message('Испытание выполнено: +'+item.chips+' фишек');
 }
 function cc14ClaimTournament(){
@@ -6471,7 +6472,7 @@ function cc14ClaimTournament(){
  if(busy||round)return message('Заверши текущую игру');
  const x=cc14Data().week;
  if(x.claimed||x.rounds<30||x.wins<8)return;
- x.claimed=true;state.chips+=900;state.coins+=400;cc14AddInventory('chest');
+ x.claimed=true;state.chips+=900;state.coins+=adaptiveQuestCoins(400,rate(),true);cc14AddInventory('chest');
  save();render();message('Турнирная неделя: награда получена!');
 }
 function cc14GamePanel(){
@@ -6504,7 +6505,7 @@ function cc14ChallengesWidget(){
  const progress=Math.min(q.goal,q.value(d)),claimed=d.claims.includes(i);
  return '<div class="cc14-challenge"><strong>'+q.name+'</strong><small>'+q.desc+'</small><div class="cc14-challenge-track"><i style="width:'+(progress/q.goal*100)+'%"></i></div><div><span>'+progress+'/'+q.goal+' · +'+q.chips+' фишек / +'+q.coins+' монет</span><button data-cc14-challenge="'+i+'" '+(claimed||progress<q.goal?'disabled':'')+'>'+(claimed?'Получено':'Забрать')+'</button></div></div>';
  }).join('')+
- '<div class="cc14-tournament"><span>🏆 ПЕРСОНАЛЬНАЯ ТУРНИРНАЯ НЕДЕЛЯ</span><strong>Лига ночного города</strong><p>Заверши 30 раундов и получи выплаты в 8 раундах. Награда: 900 фишек, 400 монет и ключ от сундука.</p><small>Раунды '+w.rounds+'/30 · с выплатой '+w.wins+'/8</small><button data-action="cc14-tournament" '+(w.claimed||w.rounds<30||w.wins<8?'disabled':'')+'>'+(w.claimed?'Получено':'Забрать награду')+'</button><em>Личное испытание; общий турнир между игроками пока не подключён.</em></div>'+
+ '<div class="cc14-tournament"><span>🏆 ПЕРСОНАЛЬНАЯ ТУРНИРНАЯ НЕДЕЛЯ</span><strong>Лига ночного города</strong><p>Заверши 30 раундов и получи выплаты в 8 раундах. Награда: 900 фишек, '+fmt(adaptiveQuestCoins(400,rate(),true))+' монет и ключ от сундука.</p><small>Раунды '+w.rounds+'/30 · с выплатой '+w.wins+'/8</small><button data-action="cc14-tournament" '+(w.claimed||w.rounds<30||w.wins<8?'disabled':'')+'>'+(w.claimed?'Получено':'Забрать награду')+'</button><em>Личное испытание; общий турнир между игроками пока не подключён.</em></div>'+
  '</div>';
 }
 
