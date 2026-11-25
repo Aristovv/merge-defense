@@ -4383,6 +4383,10 @@ function renderCasinoLeaderboard(){
   return '<button type="button" class="rank-row casino-rank-button world43-rank-'+(i<3?i+1:0)+' '+(String(p.vk_id)===String(me)?'is-self':'')+'" data-player-id="'+rankEsc(p.vk_id)+'"><span class="rank-place">'+(i+1)+'</span>'+styledAvatar(p,'rank-avatar')+'<span class="casino-rank-name">'+styledName(p)+cosmetics.badge+cosmetics.title+'<small>'+rankEsc(rankAt(p.level))+' · ур. '+rankFmt(p.level)+' · '+rankFmt(p.plays)+' игр · '+rankFmt(p.wins)+' побед</small></span><b>'+rankFmt(p.score)+'</b></button>';
  }).join(''):'<div class="panel"><p class="subline">Пока нет участников. Сыграй несколько игр, чтобы появиться в рейтинге.</p></div>';
 }
+async function casinoRankingRequest(url,options={}){
+ const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),12000);
+ try{const response=await fetch(url,{...options,signal:controller.signal});const body=await response.text();return new Response(body||null,{status:response.status,statusText:response.statusText,headers:response.headers});}finally{clearTimeout(timer)}
+}
 async function loadCasinoRanking(){
  const host=document.getElementById('casino-top-list');
  if(!host||casinoRankingLoading||document.visibilityState==='hidden')return;
@@ -4392,7 +4396,7 @@ async function loadCasinoRanking(){
  try{
   if(CASINO_LAUNCH_PARAMS){
    try{
-    const synced=await fetch(CASINO_API_BASE+'/api/casino/sync',{
+    const synced=await casinoRankingRequest(CASINO_API_BASE+'/api/casino/sync',{ 
      method:'POST',headers:{'Content-Type':'application/json','X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},
      body:JSON.stringify(casinoRankPayload()),cache:'no-store'
     });
@@ -4416,7 +4420,7 @@ async function loadCasinoRanking(){
     }
    }catch(err){casinoRankingAuthIssue='Ошибка подключения: '+String(err?.message||err).slice(0,100)}
   }else{casinoRankingAuthIssue='Нет подписанных параметров VK'}
-  const response=await fetch(CASINO_API_BASE+'/api/casino/top',{cache:'no-store'});
+  const response=await casinoRankingRequest(CASINO_API_BASE+'/api/casino/top',{cache:'no-store'});
   if(!response.ok)throw Error('HTTP '+response.status);
   const data=await response.json();
   casinoLeaderboardPlayers=(Array.isArray(data.top)?data.top:[])
@@ -6625,12 +6629,12 @@ function businessManagement(i,n){
  '<strong>📋 Контракт на 24 часа</strong>'+(contract?'<p class="subline">Выплата '+fmt(contract.reward)+' 🪙 · '+(Date.now()>=contract.endsAt?'Готово':cc14Time(contract.endsAt-Date.now()))+'</p>'+button('claim_business_contract','Забрать выплату',Date.now()<contract.endsAt):'<p class="subline">Вложения '+fmt(terms.cost)+' · чистая прибыль '+fmt(terms.reward-terms.cost)+' 🪙</p>'+button('start_business_contract','Начать контракт · ур. 3',n<3||state.coins<terms.cost))+'</div></details>';
 }
 async function loadBusinessRanking(){
- const host=document.getElementById('business-ranking');if(!host)return;host.textContent='Загрузка…';
+ const host=document.getElementById('business-ranking');if(!host||host.dataset.loading==='1')return;host.dataset.loading='1';host.textContent='Загрузка…';
  try{
-  const r=await fetch(CASINO_API_BASE+'/api/casino/business/top',{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});const data=await r.json();
+  const r=await casinoRankingRequest(CASINO_API_BASE+'/api/casino/business/top',{headers:{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS},cache:'no-store'});const data=await r.json();
   if(!r.ok)throw Error('Рейтинг временно недоступен');if(!host.isConnected)return;
   host.innerHTML='<p>Твоё место: '+(data.me?'#'+data.me.rank+' · '+fmt(data.me.points)+' контрактов':'пока нет выполненных контрактов')+'</p>'+data.ranking.map(p=>'<div style="display:flex;gap:10px;align-items:center;border-bottom:1px solid #ffffff18;padding:9px 0"><b>#'+p.rank+'</b><a style="flex:1;color:inherit" href="https://vk.com/id'+rankEsc(p.id)+'" target="_blank" rel="noopener noreferrer">'+rankEsc(p.name)+'</a><strong>'+fmt(p.points)+'</strong></div>').join('');
- }catch(e){if(host.isConnected)host.textContent='Рейтинг временно недоступен';}
+ }catch(e){if(host.isConnected)host.textContent='Рейтинг временно недоступен';}finally{delete host.dataset.loading}
 }
 function businessScreen(){
  const levels=businessLevels(state);
@@ -7009,12 +7013,12 @@ function casinoTournamentRender(){
  '<p class="cc14-tourney-disclaimer">Результат общий для всех игроков VK. Турнир использует серверный рейтинг с ограничением скорости начисления очков. Призы — только внутриигровые, не денежные.</p>';
 }
 async function casinoTournamentLoad(){
- if(casinoTournamentLoading||tab!=='top')return;
+ if(casinoTournamentLoading||tab!=='top'||document.hidden)return;
  const host=document.getElementById('casino-tournament-content');
  if(!host)return;
  casinoTournamentLoading=true;
  try{
-  const r=await fetch(CASINO_TOURNAMENT_URL+'/api/casino/tournament',{headers:CASINO_LAUNCH_PARAMS?{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS}:{},cache:'no-store'});
+  const r=await casinoRankingRequest(CASINO_TOURNAMENT_URL+'/api/casino/tournament',{headers:CASINO_LAUNCH_PARAMS?{'X-VK-Launch-Params':CASINO_LAUNCH_PARAMS}:{},cache:'no-store'});
   if(!r.ok)throw Error('Турнир пока недоступен (HTTP '+r.status+')');
   casinoTournamentSnapshot=await r.json();
   casinoTournamentRender();
