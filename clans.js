@@ -165,7 +165,7 @@
    if(detail.open)expandedSections.add(detail.dataset.clanSection);
    else expandedSections.delete(detail.dataset.clanSection);
   }
-  let html='<div class="page"><div class="eyebrow">LUCKY CITY · СООБЩЕСТВА</div><h1 class="lc-clan-title">Кланы города</h1><p class="lc-clan-note">Создание бесплатно. Прогресс клана хранится отдельно от личного прогресса игроков.</p>';
+  let html='<div class="page world43-clans"><div class="world43-clan-hero"><div class="eyebrow">WORLD 40.3 · СООБЩЕСТВА</div><h1 class="lc-clan-title">Кланы города</h1><p class="lc-clan-note">Объединяйтесь, развивайте казну и участвуйте в сезонах. Создание бесплатно.</p></div>';
   if(notice)html+='<div class="lc-clan-error">'+esc(notice)+'</div>'+(window.LuckyClanEconomy?.roundStatus?.()&&/игру|раунд|мини-игру/i.test(notice)?'<button class="btn ghost" data-clan="resume-round">Открыть незавершённую игру</button>':'');
   if(!data)html+='<div class="lc-clan-panel">'+(loading?'Загрузка кланов…':'Не удалось загрузить кланы. <button class="btn ghost" data-clan="reload">Повторить</button>')+'</div>';
   else if(data.mine){
