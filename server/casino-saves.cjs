@@ -55,6 +55,7 @@ function clean(s){
  if(!s||typeof s!=='object'||Array.isArray(s))return null;
  for(const k of ['coins','chips','vip','xp','plays','wins','best','earned'])if(!valid(s[k],0,Number.MAX_SAFE_INTEGER))return null;
  if(!valid(s.level,1,500)||s.wins>s.plays||!Array.isArray(s.buildings)||s.buildings.length!==14||s.buildings.some(x=>!valid(x,0,1000)))return null;
+ if(s.businesses!==undefined&&(!Array.isArray(s.businesses)||s.businesses.length!==6||s.businesses.some(n=>!valid(n,0,10))))return null;
  const raw=JSON.stringify(s);if(Buffer.byteLength(raw,'utf8')>90000)return null;
  return JSON.parse(raw);
 }
@@ -76,6 +77,9 @@ function regression(previous,next){
  if(Array.isArray(previous.buildings)&&Array.isArray(next.buildings)){
   if(previous.buildings.some((v,i)=>Number(next.buildings[i])<Number(v)))return 'BUILDING_REGRESSION';
  }
+ // Business ownership can change only through the transactional economy action.
+ const before=previous.businesses||[0,0,0,0,0,0],after=next.businesses||[0,0,0,0,0,0];
+ if(before.some((n,i)=>n!==after[i]))return 'SERVER_BUSINESS_ACTION_REQUIRED';
  // Permanent claims and cosmetics are never silently removed by ordinary play.
  for(const key of ['achievementsClaimed','levelRewards','collect']){
   const old=previous[key],fresh=next[key];
@@ -287,12 +291,13 @@ function registerCasinoSaves(app,pool,requireAuth){
   if(process.env.CASINO_AUTHORITATIVE_ECONOMY!=='1')return res.status(503).json({error:'ECONOMY_NOT_ENABLED'});
   const vk=id(req),{action,revision,requestId,index,level,game,stake,count=1,risk=0,guess,picks,freeSpin=false,withKey=false,kind,amount}=req.body||{};
   if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
-  if(!['collect_income','upgrade_building','claim_milestone','play_round','claim_daily_reward','claim_weekly_reward','open_chest','activate_booster','claim_city_event','exchange_chips'].includes(action)||
+  if(!['collect_income','upgrade_building','upgrade_business','claim_milestone','play_round','claim_daily_reward','claim_weekly_reward','open_chest','activate_booster','claim_city_event','exchange_chips'].includes(action)||
      !valid(revision,1,Number.MAX_SAFE_INTEGER)||typeof requestId!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(requestId)||
      (action==='upgrade_building'&&!valid(index,0,13))||
+     (action==='upgrade_business'&&!valid(index,0,5))||
      (action==='claim_milestone'&&!valid(level,1,500))||
      (action==='play_round'&&(![0,1,2,3,4,5,6,7,10,12,14,15].includes(game)||typeof freeSpin!=='boolean'||(freeSpin?game>5:(!valid(stake,25,100000)||stake%5!==0)))))return res.status(400).json({error:'INVALID_ACTION'});
-  const signature=JSON.stringify([action,action==='exchange_chips'?amount:null,action==='activate_booster'?kind:null,action==='open_chest'?withKey:null,['upgrade_building','claim_daily_reward'].includes(action)?index:action==='claim_milestone'?level:action==='play_round'?[game,freeSpin?null:stake,count,risk,guess??null,picks??null,freeSpin]:null]);
+  const signature=JSON.stringify([action,action==='exchange_chips'?amount:null,action==='activate_booster'?kind:null,action==='open_chest'?withKey:null,['upgrade_building','upgrade_business','claim_daily_reward'].includes(action)?index:action==='claim_milestone'?level:action==='play_round'?[game,freeSpin?null:stake,count,risk,guess??null,picks??null,freeSpin]:null]);
   let client;
   try{
    await ensure(pool);
@@ -318,6 +323,7 @@ function registerCasinoSaves(app,pool,requireAuth){
     const now=Date.now();
     result=action==='collect_income'?economy.collectIncome(current.save,now):
       action==='upgrade_building'?economy.upgradeBuilding(current.save,index,now):
+      action==='upgrade_business'?economy.upgradeBusiness(current.save,index,now):
       action==='claim_milestone'?economy.claimMilestone(current.save,level):
       action==='claim_daily_reward'?require('./casino-authoritative-rewards.cjs').claimReward(current.save,'daily',index,now):
       action==='exchange_chips'?require('./casino-authoritative-exchange.cjs').exchangeChips(current.save,amount,now):
@@ -329,7 +335,7 @@ function registerCasinoSaves(app,pool,requireAuth){
     if(!clean(result.save))throw Error('INVALID_RESULT');
    }catch(e){
     await client.query('ROLLBACK');
-    const known=['INSUFFICIENT_COINS','MILESTONE_NOT_REACHED','BUILDING_LEVEL_LIMIT','BUILDING_COST_LIMIT','BALANCE_LIMIT','INVALID_INCOME_TIME','INVALID_BUILDING','INVALID_RESULT','INVALID_STAKE','INVALID_PLINKO','INVALID_GUESS','INSUFFICIENT_CHIPS','ROUND_PENDING','UNSUPPORTED_GAME','INVALID_PICKS','SLOT_BONUS_PENDING','NO_FREE_SPIN','INVALID_REWARD','ALREADY_CLAIMED','REWARD_NOT_READY','INVALID_KEY','NO_CHEST_KEY','CHEST_COOLDOWN','DAILY_SYNC_REQUIRED','INVALID_BOOSTER','NO_BOOSTER','BOOSTER_QUEUE_LIMIT','INVALID_EXCHANGE_AMOUNT'];
+    const known=['INSUFFICIENT_COINS','MILESTONE_NOT_REACHED','BUILDING_LEVEL_LIMIT','BUILDING_COST_LIMIT','BALANCE_LIMIT','INVALID_INCOME_TIME','INVALID_BUILDING','INVALID_RESULT','INVALID_STAKE','INVALID_PLINKO','INVALID_GUESS','INSUFFICIENT_CHIPS','ROUND_PENDING','UNSUPPORTED_GAME','INVALID_PICKS','SLOT_BONUS_PENDING','NO_FREE_SPIN','INVALID_REWARD','ALREADY_CLAIMED','REWARD_NOT_READY','INVALID_KEY','NO_CHEST_KEY','CHEST_COOLDOWN','DAILY_SYNC_REQUIRED','INVALID_BOOSTER','NO_BOOSTER','BOOSTER_QUEUE_LIMIT','INVALID_EXCHANGE_AMOUNT','INVALID_BUSINESS','BUSINESS_LEVEL_LIMIT','BUSINESS_LOCKED'];
     return res.status(422).json({error:known.includes(e.message)?e.message:'ACTION_REJECTED'});
    }
    const next={...result.save,stamp:Date.now()};
