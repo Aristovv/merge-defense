@@ -343,7 +343,11 @@ async function mine(pool,playerId){
  if(!rows[0])return null;
  const members=await pool.query(`SELECT m.player_id AS "playerId",m.role,m.joined_at AS "joinedAt",
  COALESCE(SUM(t.coins) FILTER(WHERE t.action='deposit'),0)::bigint AS "contributed",
- COUNT(t.id) FILTER(WHERE t.action='deposit')::int AS "deposits"
+ COUNT(t.id) FILTER(WHERE t.action='deposit')::int AS "deposits",
+ COALESCE(SUM(t.coins) FILTER(WHERE t.action='deposit' AND t.created_at>=date_trunc('week',NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AND t.created_at>=m.joined_at),0)::bigint AS "weeklyContribution",
+ COUNT(t.id) FILTER(WHERE t.action='deposit' AND t.created_at>=date_trunc('week',NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AND t.created_at>=m.joined_at)::int AS "weeklyTransfers",
+ COUNT(DISTINCT (t.created_at AT TIME ZONE 'UTC')::date) FILTER(WHERE t.action IN ('deposit','daily','headquarters','wall','seats') AND t.created_at>=date_trunc('week',NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AND t.created_at>=m.joined_at)::int AS "weeklyActiveDays",
+ MAX(t.created_at) FILTER(WHERE t.action IN ('deposit','daily','headquarters','wall','seats') AND t.created_at>=m.joined_at) AS "lastClanAction"
  FROM lucky_clan_members m
  LEFT JOIN lucky_clan_transactions t ON t.clan_id=m.clan_id
   AND t.player_id=m.player_id
