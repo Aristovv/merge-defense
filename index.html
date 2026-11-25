@@ -4057,6 +4057,28 @@ button:focus-visible,[role="button"]:focus-visible{outline-color:#E5B85C}
 #app button:focus-visible,#app a:focus-visible{outline:2px solid #d6b8ff;outline-offset:2px}
 @media(max-width:360px){#app .balance{gap:3px;padding-inline:4px}#app .gamecard h3{font-size:12px}#app .gamecard p{font-size:10px}}
 @media(prefers-reduced-motion:reduce){#app .btn,#app .gamecard{transition:none!important}}
+</style><style id="lucky-city-dashboard-42">
+#app .world40-hero{border-radius:24px;border-color:#c095ff77;box-shadow:0 12px 32px #080410a0;background:#171024}
+#app .world40-cityart{background:linear-gradient(0deg,#120d20 4%,#160e28bb 38%,#160e2822 85%),url('./assets/casino/venue-palace.svg') center top/cover no-repeat}
+#app .world40-hero-content{padding:22px 17px 17px}
+#app .world40-kicker{display:inline-block;font-size:10px;letter-spacing:1.6px;color:#e3c8ff;background:#170e2abf;border:1px solid #b68bff66;border-radius:30px;padding:7px 10px}
+#app .world40-hero h1{margin:22px 0 8px;font-size:clamp(28px,8vw,43px);letter-spacing:-1px;text-shadow:0 3px 16px #090511}
+#app .world40-hero p{margin:0 0 18px;color:#e1d5f1;text-shadow:0 2px 8px #090511}
+#app .world40-income{background:linear-gradient(135deg,#302044ee,#171126f5);border:1px solid #d5b27377;padding:15px;border-radius:17px;box-shadow:inset 0 1px 0 #ffffff14}
+#app .world40-income strong{font-size:clamp(23px,7vw,36px);line-height:1.3;letter-spacing:-.7px}
+#app .world40-collect{width:100%;min-height:48px;background:linear-gradient(135deg,#ffe2a2,#c38c47);color:#2a1930;border-color:#ffe6ac;font-weight:900;box-shadow:0 5px 16px #c28b4733}
+#app .neon42-section-heading{display:flex;align-items:center;justify-content:space-between;margin:19px 2px 8px}
+#app .neon42-section-heading b{font-size:15px;color:#f7eaff}
+#app .neon42-section-heading span{font-size:9px;letter-spacing:1px;color:#b8a4d3}
+#app .world40-shortcuts{gap:9px;margin-top:0}
+#app .world40-shortcuts button{min-height:70px;background:linear-gradient(140deg,#34234e,#1b152e);border-color:#ad83e15c;border-radius:16px}
+#app .world40-shortcuts button:last-child{grid-column:1/-1;min-height:58px}
+#app .world40-shortcuts button .ic{flex:none;width:29px;height:29px;filter:drop-shadow(0 0 6px #ac76ff55)}
+#app .world40-shortcuts b{font-size:13px}
+#app .world40-shortcuts small{font-size:11px}
+#app .world40-summary div{background:linear-gradient(150deg,#2b2040,#181326);border-color:#a07bd14d;border-radius:14px;padding:13px 5px}
+#app .world40-summary b{font-size:19px}
+@media(max-width:360px){#app .world40-hero-content{padding:17px 12px 12px}#app .world40-shortcuts button .ic{width:22px;height:22px}#app .world40-shortcuts small{font-size:10px}}
 </style></head><body><div id="app"></div><div id="toast" class="toast" hidden></div><script src="https://unpkg.com/@vkontakte/vk-bridge@2.15.0/dist/browser.min.js">
 </script><script src="./character33.js?v=55.3.0"></script><script src="./outfits56.js?v=56.4.3"></script><script src="./clan-scenes.js?v=20261125-2"></script><script src="./clans.js?v=world40-3"></script><script>
 'use strict';
@@ -6559,7 +6581,7 @@ function businessScreen(){
 function worldDashboard(have,level){
  const income=casinoCurrentIncomeRate(),business=businessRate(state),pass=state.seasonPass40||{},passLevel=Math.floor((pass.xp||0)/100);
  const shortcuts=[['games','games','Игры','16 игровых залов'],['quests','spark','Задания','Ежедневные награды'],['season','trophy','Сезон','Уровень '+passLevel+'/100'],['clan','tower','Кланы','Командная игра'],['prestige','trophy','Престиж','Коллекционные предметы']];
- return '<section class="world40-hero"><div class="world40-cityart" aria-hidden="true"></div><div class="world40-hero-content"><span class="world40-kicker">✦ WORLD UPDATE 40.9</span><h1>Твой город.<br><em>Твои возможности.</em></h1><p>Управляй городом, развивай бизнес и открывай новые награды.</p><div class="world40-income"><small>ОБЩИЙ ДОХОД / ЧАС</small><strong>'+fmt(income)+' <span>🪙</span></strong><div>Бизнес: '+fmt(business)+' /ч</div></div><button class="btn gold-action world40-collect" data-action="collect">'+ic('coin')+' Собрать доход</button></div></section><section class="world40-shortcuts" aria-label="Быстрый доступ">'+shortcuts.map(([target,icon,label,desc])=>'<button data-tab="'+target+'">'+ic(icon)+'<span><b>'+label+'</b><small>'+desc+'</small></span></button>').join('')+'</section><section class="world40-summary"><div><small>Здания</small><b>'+have+'/14</b></div><div><small>Уровни зданий</small><b>'+level+'</b></div><div><small>Бизнесы</small><b>'+businessLevels(state).filter(n=>n>0).length+'/6</b></div></section>';
+ return '<section class="world40-hero"><div class="world40-cityart" aria-hidden="true"></div><div class="world40-hero-content"><span class="world40-kicker">✦ LUCKY CITY · NEON</span><h1>Твой город.<br><em>Твоя легенда.</em></h1><p>Развивай город и управляй своей коллекцией бизнеса.</p><div class="world40-income"><small>ОБЩИЙ ДОХОД / ЧАС</small><strong>'+fmt(income)+' <span>🪙</span></strong><div>Бизнес: '+fmt(business)+' /ч</div></div><button class="btn gold-action world40-collect" data-action="collect">'+ic('coin')+' Собрать доход</button></div></section><div class="neon42-section-heading"><b>Быстрый доступ</b><span>ТВОЙ ГОРОД</span></div><section class="world40-shortcuts" aria-label="Быстрый доступ">'+shortcuts.map(([target,icon,label,desc])=>'<button data-tab="'+target+'">'+ic(icon)+'<span><b>'+label+'</b><small>'+desc+'</small></span></button>').join('')+'</section><section class="world40-summary"><div><small>Здания</small><b>'+have+'/14</b></div><div><small>Уровни зданий</small><b>'+level+'</b></div><div><small>Бизнесы</small><b>'+businessLevels(state).filter(n=>n>0).length+'/6</b></div></section>';
 }
 function cityScreen(){
 const level=state.buildings.reduce((a,b)=>a+b,0),have=state.buildings.filter(x=>x>0).length;
