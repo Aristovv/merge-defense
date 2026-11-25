@@ -54,6 +54,9 @@ const season=require('./casino-season-pass.cjs');
 const PRESTIGE40=[["Серебряная печать",50000],["Золотой ключ",250000],["Платиновая корона",1000000],["Бриллиант города",5000000],["Императорский кубок",25000000],["Звезда мегаполиса",100000000],["Корона магната",500000000],["Наследие города",2000000000],["Вечный престиж",10000000000]];
 function prestigeBuy(save,index){const next=structuredClone(save),item=PRESTIGE40[index];if(!item)throw Error('INVALID_PRESTIGE');next.prestige40??=[];if(next.prestige40.includes(index))return {save:next,alreadyOwned:true};if(next.coins<item[1])throw Error('INSUFFICIENT_COINS');next.coins-=item[1];next.prestige40.push(index);return {save:next,price:item[1]}}
 const valid=(n,a,b)=>Number.isSafeInteger(n)&&n>=a&&n<=b;
+function initialSave(now=Date.now()){
+ return {coins:2500,chips:1200,vip:0,level:1,xp:0,buildings:[1,...Array(13).fill(0)],plays:0,wins:0,best:0,earned:0,collect:[],quests:[],lastGift:'',stamp:now,lastIncome:now};
+}
 function clean(s){
  if(!s||typeof s!=='object'||Array.isArray(s))return null;
  for(const k of ['coins','chips','vip','xp','plays','wins','best','earned'])if(!valid(s[k],0,Number.MAX_SAFE_INTEGER))return null;
@@ -414,6 +417,12 @@ function registerCasinoSaves(app,pool,requireAuth){
   const vk=id(req);if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
   try{await ensure(pool);let result;
    if(revision===0){
+    if(process.env.CASINO_AUTHORITATIVE_ECONOMY==='1'){
+     const starter=initialSave();
+     const inserted=await pool.query('INSERT INTO public.casino_city_saves(vk_id,save) VALUES($1,$2::jsonb) ON CONFLICT DO NOTHING RETURNING revision::text AS revision',[vk,JSON.stringify(starter)]);
+     if(inserted.rowCount){res.set('Cache-Control','no-store');return res.json({ok:true,revision:Number(inserted.rows[0].revision),save:starter});}
+     const existing=await pool.query('SELECT revision::text AS revision FROM public.casino_city_saves WHERE vk_id=$1',[vk]);return res.status(409).json({error:'REVISION_CONFLICT',revision:Number(existing.rows[0]?.revision||0)});
+    }
     if(save.prestige40!==undefined)return res.status(400).json({error:'SERVER_PRESTIGE_ACTION_REQUIRED'});
     if(save.seasonPass40!==undefined)return res.status(400).json({error:'SERVER_SEASON_ACTION_REQUIRED'});
     result=await pool.query('INSERT INTO public.casino_city_saves(vk_id,save) VALUES($1,$2::jsonb) ON CONFLICT DO NOTHING RETURNING revision::text AS revision',[vk,JSON.stringify(save)]);
