@@ -4924,8 +4924,18 @@ async function casinoCloudUpload(){
   const result=await casinoCloudFetch('PUT',{revision,save:JSON.parse(snapshot)});
   if(result?.ok!==true||!Number.isSafeInteger(result.revision)||result.revision<=revision)
    throw Error('INVALID_SAVE_ACK');
+  if(revision===0&&result.save){
+   if(JSON.stringify(state)!==snapshot){casinoCloudBackup('Local changes during initial cloud creation');casinoCloudPreserveRemote(result,'initial creation conflict');casinoCloudRevision=null;casinoCloudNotice('Найдены разные версии нового профиля. Обе копии сохранены.');return;}
+   const raw=JSON.stringify({...fresh(),...result.save});
+   const key='casino_city_initial_ack_backup_'+Date.now();
+   localStorage.setItem(key,snapshot);
+   if(localStorage.getItem(key)!==snapshot)throw Error('BACKUP_VERIFY_FAILED');
+   localStorage.setItem(STORAGE,raw);
+   if(localStorage.getItem(STORAGE)!==raw)throw Error('LOCAL_WRITE_FAILED');
+   state=JSON.parse(raw);
+  }
   casinoCloudRevision=result.revision;
-  casinoCloudDirty=JSON.stringify(state)!==snapshot;
+  casinoCloudDirty=revision===0&&result.save?false:JSON.stringify(state)!==snapshot;
   casinoCloudLastIssue='';
   casinoCloudRetryMs=2000;
   if(casinoCloudDirty)casinoCloudPendingWrite(casinoCloudRevision);
