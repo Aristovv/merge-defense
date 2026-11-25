@@ -70,6 +70,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
     save.donationEquipped={...(save.donationEquipped||{}),...Object.fromEntries(['nick','frame','title','background','effect','theme'].filter(key=>pack[key]).map(key=>[key,pack[key]])),...(pack.vipBadge?{badge:'vip'}:{})};
     if(pack.boost){
      const now=Date.now(),expires=now+7*86400000;
+     Object.assign(save,require('./casino-authoritative-economy.cjs').collectIncome(save,now,true).save);
      const old=save.donationIncomeBoost||{};
      save.donationIncomeBoost={percent:old.until>now?Math.max(Number(old.percent)||0,pack.boost):pack.boost,from:now,until:expires};
     }
@@ -80,8 +81,8 @@ function registerCasinoAdmin(app,pool,requireAuth){
     if(mode==='grant')await client.query('INSERT INTO lucky_clan_permits(vk_id,balance) VALUES($1,1) ON CONFLICT(vk_id) DO UPDATE SET balance=lucky_clan_permits.balance+1',[vkId]);
     else await client.query('UPDATE lucky_clan_permits SET balance=GREATEST(0,balance-1) WHERE vk_id=$1',[vkId]);
    }else if(id.startsWith('boost:')){
-    if(mode==='grant'){const now=Date.now(),old=save.donationIncomeBoost||{};save.donationIncomeBoost={percent:old.until>now?Math.max(Number(old.percent)||0,Number(id.slice(6))):Number(id.slice(6)),from:now,until:now+7*86400000};}
-    else delete save.donationIncomeBoost;
+    if(mode==='grant'){const now=Date.now();Object.assign(save,require('./casino-authoritative-economy.cjs').collectIncome(save,now,true).save);const old=save.donationIncomeBoost||{};save.donationIncomeBoost={percent:old.until>now?Math.max(Number(old.percent)||0,Number(id.slice(6))):Number(id.slice(6)),from:now,until:now+7*86400000};}
+    else{Object.assign(save,require('./casino-authoritative-economy.cjs').collectIncome(save,Date.now(),true).save);delete save.donationIncomeBoost;}
    }else if(id.startsWith('outfit:')||id.startsWith('character:')){
     const outfit=id.startsWith('outfit:'),value=id.slice(id.indexOf(':')+1),c=save.character33&&typeof save.character33==='object'?save.character33:{};
     const key=outfit?'ownedOutfits':'owned';if(!Array.isArray(c[key]))c[key]=[];
