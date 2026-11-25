@@ -25,6 +25,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
   ultimate:{coins:30000,chips:12000,nick:'nick-rainbow',frame:'frame-rainbow',title:'Легенда Lucky City',background:'animated',effect:'fireworks',boost:10,vipBadge:true,theme:'ultimate'}
  });
  const DONATION_ITEMS=Object.freeze({
+  outfit:["galaxy-supreme","obsidian-crown","inferno-elite","crystal-monarch","lucky-city-vip"],character:["cap-vip","beanie-stars","bucket-holo","kitty-pink","crown-royal","jacket-neon-vip","hoodie-lunar","jacket-phoenix","coat-royal-vip","pants-vip","cargo-neon-vip","pants-royal-vip","pants-galaxy","shoes-vip","shoes-sakura","shoes-starlight","shoes-phoenix","glasses-vip","phones-holo","chain-royal-vip","glasses-phoenix","kitty","crown","cowboy","goldcoat","royalpants","goldboots","chain"],permit:['clan_build_permit'],boost:['5','8','10'],
   nick:['nick-white','nick-red','nick-blue','nick-green','nick-purple','nick-gold','nick-neon-blue','nick-neon-pink','nick-fire','nick-legend','nick-galaxy','nick-rainbow'],
   frame:['frame-silver','frame-blue','frame-purple','frame-gold','frame-emerald','frame-neon','frame-fire','frame-rainbow','frame-diamond','frame-royal'],
   title:['Стильный игрок','Король города','Повелитель галактики','Легенда Lucky City'],
@@ -49,7 +50,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
    if(previous.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'ALREADY_PROCESSED'})}
    const q=await client.query('SELECT save FROM public.casino_city_saves WHERE vk_id=$1 FOR UPDATE',[vkId]);
    if(!q.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'CLOUD_SAVE_NOT_FOUND'})}
-   const save=q.rows[0].save,inventory=save.donationInventory&&typeof save.donationInventory==='object'?save.donationInventory:{};
+   const save=q.rows[0].save;if(save.pendingMiniRound){await client.query('ROLLBACK');return res.status(409).json({error:'ROUND_PENDING'});}const inventory=save.donationInventory&&typeof save.donationInventory==='object'?save.donationInventory:{};
    const ensure=(key)=>{if(!Array.isArray(inventory[key]))inventory[key]=[]};
    const add=(key,value)=>{ensure(key);if(value&&!inventory[key].includes(value))inventory[key].push(value)};
    const remove=(key,value)=>{ensure(key);inventory[key]=inventory[key].filter(x=>x!==value)};
@@ -67,6 +68,19 @@ function registerCasinoAdmin(app,pool,requireAuth){
      const old=save.donationIncomeBoost||{};
      save.donationIncomeBoost={percent:old.until>now?Math.max(Number(old.percent)||0,pack.boost):pack.boost,from:now,until:expires};
     }
+   }else if(id.startsWith('permit:')){
+    await client.query('CREATE TABLE IF NOT EXISTS lucky_clan_permits(vk_id BIGINT PRIMARY KEY,balance INTEGER NOT NULL DEFAULT 0 CHECK(balance>=0))');
+    if(mode==='grant')await client.query('INSERT INTO lucky_clan_permits(vk_id,balance) VALUES($1,1) ON CONFLICT(vk_id) DO UPDATE SET balance=lucky_clan_permits.balance+1',[vkId]);
+    else await client.query('UPDATE lucky_clan_permits SET balance=GREATEST(0,balance-1) WHERE vk_id=$1',[vkId]);
+   }else if(id.startsWith('boost:')){
+    if(mode==='grant'){const now=Date.now(),old=save.donationIncomeBoost||{};save.donationIncomeBoost={percent:old.until>now?Math.max(Number(old.percent)||0,Number(id.slice(6))):Number(id.slice(6)),from:now,until:now+7*86400000};}
+    else delete save.donationIncomeBoost;
+   }else if(id.startsWith('outfit:')||id.startsWith('character:')){
+    const outfit=id.startsWith('outfit:'),value=id.slice(id.indexOf(':')+1),c=save.character33&&typeof save.character33==='object'?save.character33:{};
+    const key=outfit?'ownedOutfits':'owned';if(!Array.isArray(c[key]))c[key]=[];
+    if(mode==='grant'){if(!c[key].includes(value))c[key].push(value);if(outfit){c.activeOutfit=value;c.outfitMigrated56=true;}}
+    else{c[key]=c[key].filter(x=>x!==value);if(outfit&&c.activeOutfit===value)c.activeOutfit='base';if(!outfit&&c.equipped)for(const k of Object.keys(c.equipped))if(c.equipped[k]===value)delete c.equipped[k];}
+    save.character33=c;
    }else{
     const split=id.indexOf(':'),type=id.slice(0,split),value=id.slice(split+1),key=type==='badge'?'badges':type+'s';
     save.donationEquipped={...(save.donationEquipped||{})};
@@ -127,7 +141,7 @@ function registerCasinoAdmin(app,pool,requireAuth){
       if(pack.vipBadge)addItem('badges','vip');
      }else if(action.kind==='item'&&typeof action.id==='string'){
       const colon=action.id.indexOf(':'),type=action.id.slice(0,colon),value=action.id.slice(colon+1);
-      if(colon<1||!DONATION_ITEMS[type]?.includes(value))continue;
+      if(colon<1||!DONATION_ITEMS[type]?.includes(value)||['outfit','character','permit','boost'].includes(type))continue;
       const key=type==='badge'?'badges':type+'s';
       if(action.mode==='grant')addItem(key,value);
       if(action.mode==='revoke')removeItem(key,value);
