@@ -1,0 +1,12 @@
+'use strict';
+const ID='world-1',START=Date.UTC(2026,10,26),END=START+35*86400000,CLAIM_END=END+7*86400000;
+function seasonPass(save){return save.seasonPass40||{id:ID,xp:0,day:'',tasks:[],premium:false,freeClaimed:[],premiumClaimed:[]}}
+function validPass(p){return !!p&&p.id===ID&&Number.isInteger(p.xp)&&p.xp>=0&&p.xp<=10000&&typeof p.premium==='boolean'&&typeof p.day==='string'&&(!p.day||/^\d{4}-\d{2}-\d{2}$/.test(p.day))&&Array.isArray(p.tasks)&&p.tasks.length<=3&&new Set(p.tasks).size===p.tasks.length&&p.tasks.every(t=>['visit','income','chest'].includes(t))&&['freeClaimed','premiumClaimed'].every(k=>Array.isArray(p[k])&&p[k].length<=100&&new Set(p[k]).size===p[k].length&&p[k].every(n=>Number.isInteger(n)&&n>=1&&n<=Math.floor(p.xp/100)))}
+function active(now){return now>=START&&now<END}
+function earn(save,task,now){if(!active(now)||!['visit','income','chest'].includes(task))return save;const p=structuredClone(seasonPass(save)),day=new Date(now).toISOString().slice(0,10);if(p.day!==day){p.day=day;p.tasks=[]}if(!p.tasks.includes(task)){p.tasks.push(task);p.xp=Math.min(10000,p.xp+100)}save.seasonPass40=p;return save}
+function reward(n,premium){const special=n%10===0;return {coins:premium?(special?1500:250):(special?500:100),chips:premium?(special?500:75):(special?150:25),title:n===100?(premium?'Легенда первого сезона':'Участник первого сезона'):null}}
+function premium(save,enabled){const p=structuredClone(seasonPass(save));p.premium=enabled;save.seasonPass40=p;return save}
+function action(save,name,now){const next=structuredClone(save);if(name==='season_visit'){if(!active(now))throw Error('SEASON_CLOSED');return {save:earn(next,'visit',now)}}if(now<START||now>=CLAIM_END)throw Error('SEASON_CLOSED');const p=structuredClone(seasonPass(next));let coins=0,chips=0,count=0;
+ for(const paid of [false,true]){if(paid&&!p.premium)continue;const key=paid?'premiumClaimed':'freeClaimed';for(let n=1;n<=Math.floor(p.xp/100);n++){if(p[key].includes(n))continue;const r=reward(n,paid);coins+=r.coins;chips+=r.chips;p[key].push(n);count++;if(r.title){next.donationInventory??={};next.donationInventory.titles??=[];if(!next.donationInventory.titles.includes(r.title))next.donationInventory.titles.push(r.title)}}}
+ if(!Number.isSafeInteger(next.coins+coins)||!Number.isSafeInteger(next.chips+chips))throw Error('BALANCE_LIMIT');next.coins+=coins;next.chips+=chips;next.seasonPass40=p;return {save:next,coins,chips,count}}
+module.exports={ID,START,END,CLAIM_END,seasonPass,validPass,active,earn,reward,premium,action};
