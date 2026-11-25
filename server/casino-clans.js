@@ -502,6 +502,34 @@ export function registerLuckyClans(app,pool,requireAuth){
   await start(pool);
   res.json(await seasonListing(pool));
  }));
+ // Read-only daily and weekly tournaments. Score one point per unique
+ // participant-day of the free daily clan contribution, normalized by roster band.
+ app.get('/api/casino/clans/tournaments',requireAuth,wrap(async(req,res)=>{
+  await start(pool);
+  const season=await seasonListing(pool);
+  const result=await pool.query(`WITH periods AS (
+   SELECT (NOW() AT TIME ZONE 'UTC')::date AS today,date_trunc('week',NOW() AT TIME ZONE 'UTC')::date AS week
+  ), roster AS (
+   SELECT e.clan_id,e.league,cl.name,cl.avatar,COUNT(m.player_id)::int AS members
+   FROM lucky_clan_season_entries e JOIN lucky_clans cl ON cl.id=e.clan_id
+   JOIN lucky_clan_members m ON m.clan_id=cl.id
+   WHERE e.season=$1 GROUP BY e.clan_id,e.league,cl.name,cl.avatar
+  ), activity AS (
+   SELECT d.clan_id,COUNT(*) FILTER(WHERE d.claim_day=p.today)::int AS daily,COUNT(*)::int AS weekly
+   FROM lucky_clan_daily_claims d CROSS JOIN periods p
+   WHERE d.claim_day>=p.week AND d.claim_day<=p.today GROUP BY d.clan_id
+  )
+  SELECT r.clan_id AS id,r.league,r.name,r.avatar,r.members,
+   COALESCE(a.daily,0) AS daily,COALESCE(a.weekly,0) AS weekly,
+   CASE WHEN r.members<=3 THEN 1 WHEN r.members<=10 THEN 2 WHEN r.members<=20 THEN 3 WHEN r.members<=35 THEN 4 ELSE 5 END AS band,
+   p.today::text AS today,p.week::text AS week,(p.today+1)::text AS "dailyEnd",(p.week+7)::text AS "weeklyEnd"
+  FROM roster r CROSS JOIN periods p LEFT JOIN activity a ON a.clan_id=r.clan_id`,[season.number]);
+  const own=await pool.query('SELECT clan_id FROM lucky_clan_members WHERE player_id=$1',[req.playerId]);
+  const mine=result.rows.find(x=>String(x.id)===String(own.rows[0]?.clan_id));
+  const peers=mine?result.rows.filter(x=>x.league===mine.league&&x.band===mine.band):[];
+  const ranking=key=>peers.slice().sort((a,b)=>Number(b[key])-Number(a[key])||(BigInt(a.id)<BigInt(b.id)?-1:BigInt(a.id)>BigInt(b.id)?1:0)).map((x,i)=>({id:x.id,name:x.name,avatar:x.avatar,members:x.members,points:x[key],rank:i+1}));
+  res.json({mine:mine?{id:mine.id,league:mine.league,band:mine.band}:null,today:mine?.today,week:mine?.week,dailyEnd:mine?.dailyEnd,weeklyEnd:mine?.weeklyEnd,daily:ranking('daily'),weekly:ranking('weekly'),preview:true});
+ }));
  app.get('/api/casino/clans/duel',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   res.json(await clanDuels(pool,req.playerId));
