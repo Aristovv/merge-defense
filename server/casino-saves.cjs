@@ -50,6 +50,7 @@ async function ensure(pool){
  }
  await ready;
 }
+const season=require('./casino-season-pass.cjs');
 const valid=(n,a,b)=>Number.isSafeInteger(n)&&n>=a&&n<=b;
 function clean(s){
  if(!s||typeof s!=='object'||Array.isArray(s))return null;
@@ -61,6 +62,7 @@ function clean(s){
  if(s.businessContracts!==undefined&&(!Array.isArray(s.businessContracts)||s.businessContracts.length!==6||s.businessContracts.some(c=>c!==null&&(!c||!valid(c.endsAt,1,Number.MAX_SAFE_INTEGER)||!valid(c.reward,1,Number.MAX_SAFE_INTEGER)))))return null;
  if(s.businessReputation!==undefined&&(!Array.isArray(s.businessReputation)||s.businessReputation.length!==6||s.businessReputation.some(n=>!valid(n,0,100000))))return null;
  if(s.businessLicenses!==undefined&&(!Array.isArray(s.businessLicenses)||s.businessLicenses.length!==6||s.businessLicenses.some(n=>!valid(n,0,3))))return null;
+ if(s.seasonPass40!==undefined&&!season.validPass(s.seasonPass40))return null;
  const raw=JSON.stringify(s);if(Buffer.byteLength(raw,'utf8')>90000)return null;
  return JSON.parse(raw);
 }
@@ -73,6 +75,7 @@ function regression(previous,next){
     (Number(next.giftStreak)||0)!==(Number(previous.giftStreak)||0)||
     (Number(next.giftBestStreak)||0)!==(Number(previous.giftBestStreak)||0))
   return 'SERVER_DAILY_CLAIM_REQUIRED';
+ if(JSON.stringify(Object.entries(season.seasonPass(previous)).sort())!==JSON.stringify(Object.entries(season.seasonPass(next)).sort()))return 'SERVER_SEASON_ACTION_REQUIRED';
  const epoch=Number(previous.resetEpoch)||0;
  if((Number(next.resetEpoch)||0)!==epoch)return 'RESET_EPOCH_MISMATCH';
  for(const key of ['level','plays','wins','earned','best','giftBestStreak']){
@@ -314,7 +317,7 @@ function registerCasinoSaves(app,pool,requireAuth){
   if(process.env.CASINO_AUTHORITATIVE_ECONOMY!=='1')return res.status(503).json({error:'ECONOMY_NOT_ENABLED'});
   const vk=id(req),{action,revision,requestId,index,level,game,stake,count=1,risk=0,guess,picks,freeSpin=false,withKey=false,kind,amount}=req.body||{};
   if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
-  if(!['collect_income','upgrade_building','upgrade_business','hire_business_staff','hire_business_manager','start_business_contract','claim_business_contract','buy_business_license','claim_milestone','play_round','claim_daily_reward','claim_weekly_reward','open_chest','activate_booster','claim_city_event','exchange_chips'].includes(action)||
+  if(!['season_visit','season_claim','collect_income','upgrade_building','upgrade_business','hire_business_staff','hire_business_manager','start_business_contract','claim_business_contract','buy_business_license','claim_milestone','play_round','claim_daily_reward','claim_weekly_reward','open_chest','activate_booster','claim_city_event','exchange_chips'].includes(action)||
      !valid(revision,1,Number.MAX_SAFE_INTEGER)||typeof requestId!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(requestId)||
      (action==='upgrade_building'&&!valid(index,0,13))||
      (['upgrade_business','hire_business_staff','hire_business_manager','start_business_contract','claim_business_contract','buy_business_license'].includes(action)&&!valid(index,0,5))||
@@ -344,7 +347,8 @@ function registerCasinoSaves(app,pool,requireAuth){
    let result;
    try{
     const now=Date.now();
-    result=action==='collect_income'?economy.collectIncome(current.save,now):
+    result=['season_visit','season_claim'].includes(action)?season.action(current.save,action,now):
+      action==='collect_income'?economy.collectIncome(current.save,now):
       action==='upgrade_building'?economy.upgradeBuilding(current.save,index,now):
       action==='upgrade_business'?economy.upgradeBusiness(current.save,index,now):
       ['hire_business_staff','hire_business_manager','start_business_contract','claim_business_contract','buy_business_license'].includes(action)?economy.manageBusiness(current.save,index,action,now):
@@ -356,10 +360,12 @@ function registerCasinoSaves(app,pool,requireAuth){
       action==='open_chest'?require('./casino-authoritative-chests.cjs').openChest(current.save,withKey,now):
       action==='claim_weekly_reward'?require('./casino-authoritative-rewards.cjs').claimReward(current.save,'weekly',null,now):
       require('./casino-authoritative-outcomes.cjs').resolveRound(current.save,{game,stake,count,risk,guess,picks,freeSpin},now);
+    if(action==='collect_income'&&result.amount>0)season.earn(result.save,'income',now);
+    if(action==='open_chest')season.earn(result.save,'chest',now);
     if(!clean(result.save))throw Error('INVALID_RESULT');
    }catch(e){
     await client.query('ROLLBACK');
-    const known=['INSUFFICIENT_COINS','MILESTONE_NOT_REACHED','BUILDING_LEVEL_LIMIT','BUILDING_COST_LIMIT','BALANCE_LIMIT','INVALID_INCOME_TIME','INVALID_BUILDING','INVALID_RESULT','INVALID_STAKE','INVALID_PLINKO','INVALID_GUESS','INSUFFICIENT_CHIPS','ROUND_PENDING','UNSUPPORTED_GAME','INVALID_PICKS','SLOT_BONUS_PENDING','NO_FREE_SPIN','INVALID_REWARD','ALREADY_CLAIMED','REWARD_NOT_READY','INVALID_KEY','NO_CHEST_KEY','CHEST_COOLDOWN','DAILY_SYNC_REQUIRED','INVALID_BOOSTER','NO_BOOSTER','BOOSTER_QUEUE_LIMIT','INVALID_EXCHANGE_AMOUNT','INVALID_BUSINESS','BUSINESS_LEVEL_LIMIT','BUSINESS_LOCKED','BUSINESS_STAFF_LOCKED','BUSINESS_MANAGER_LOCKED','BUSINESS_CONTRACT_LOCKED','BUSINESS_CONTRACT_NOT_READY','BUSINESS_LICENSE_LOCKED'];
+    const known=['INSUFFICIENT_COINS','MILESTONE_NOT_REACHED','BUILDING_LEVEL_LIMIT','BUILDING_COST_LIMIT','BALANCE_LIMIT','INVALID_INCOME_TIME','INVALID_BUILDING','INVALID_RESULT','INVALID_STAKE','INVALID_PLINKO','INVALID_GUESS','INSUFFICIENT_CHIPS','ROUND_PENDING','UNSUPPORTED_GAME','INVALID_PICKS','SLOT_BONUS_PENDING','NO_FREE_SPIN','INVALID_REWARD','ALREADY_CLAIMED','REWARD_NOT_READY','INVALID_KEY','NO_CHEST_KEY','CHEST_COOLDOWN','DAILY_SYNC_REQUIRED','INVALID_BOOSTER','NO_BOOSTER','BOOSTER_QUEUE_LIMIT','INVALID_EXCHANGE_AMOUNT','INVALID_BUSINESS','BUSINESS_LEVEL_LIMIT','BUSINESS_LOCKED','BUSINESS_STAFF_LOCKED','BUSINESS_MANAGER_LOCKED','BUSINESS_CONTRACT_LOCKED','BUSINESS_CONTRACT_NOT_READY','BUSINESS_LICENSE_LOCKED','SEASON_CLOSED'];
     return res.status(422).json({error:known.includes(e.message)?e.message:'ACTION_REJECTED'});
    }
    const next={...result.save,stamp:Date.now()};
@@ -381,6 +387,7 @@ function registerCasinoSaves(app,pool,requireAuth){
   const vk=id(req);if(!vk)return res.status(401).json({error:'INVALID_PLAYER'});
   try{await ensure(pool);let result;
    if(revision===0){
+    if(save.seasonPass40!==undefined)return res.status(400).json({error:'SERVER_SEASON_ACTION_REQUIRED'});
     result=await pool.query('INSERT INTO public.casino_city_saves(vk_id,save) VALUES($1,$2::jsonb) ON CONFLICT DO NOTHING RETURNING revision::text AS revision',[vk,JSON.stringify(save)]);
    }else{
     // Lock the row so validation and revision increment are atomic.
