@@ -3,6 +3,7 @@
 // Uses existing casino_city_saves row and optimistic revision to prevent double claims.
 function registerCasinoDaily(app,pool,requireAuth){
  app.post('/api/casino/daily/claim',requireAuth,async(req,res)=>{
+  res.set('Cache-Control','no-store');
   if(!pool)return res.status(503).json({error:'DATABASE_UNAVAILABLE'});
   const vkId=String(req.playerId||'').replace(/^vk:/,'');
   if(!/^[1-9][0-9]{0,18}$/.test(vkId))return res.status(401).json({error:'INVALID_PLAYER'});
