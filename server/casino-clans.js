@@ -27,6 +27,10 @@ CREATE TABLE IF NOT EXISTS lucky_clan_members (
 CREATE INDEX IF NOT EXISTS lucky_clan_members_clan_idx ON lucky_clan_members(clan_id);
 `;
 const ECONOMY_SQL=[
+ `CREATE TABLE IF NOT EXISTS lucky_clan_tournament_entries(kind TEXT NOT NULL,period_start DATE NOT NULL,clan_id BIGINT NOT NULL,league TEXT NOT NULL,band INTEGER NOT NULL,name TEXT NOT NULL,avatar TEXT NOT NULL,members INTEGER NOT NULL,PRIMARY KEY(kind,period_start,clan_id))`,
+ `CREATE TABLE IF NOT EXISTS lucky_clan_tournament_roster(kind TEXT NOT NULL,period_start DATE NOT NULL,player_id TEXT NOT NULL,clan_id BIGINT NOT NULL,PRIMARY KEY(kind,period_start,player_id))`,
+ `CREATE TABLE IF NOT EXISTS lucky_clan_tournament_periods(kind TEXT NOT NULL,period_start DATE NOT NULL,period_end DATE NOT NULL,finished BOOLEAN NOT NULL DEFAULT FALSE,PRIMARY KEY(kind,period_start))`,
+ `CREATE TABLE IF NOT EXISTS lucky_clan_tournament_results(kind TEXT NOT NULL,period_start DATE NOT NULL,clan_id BIGINT NOT NULL,league TEXT NOT NULL,band INTEGER NOT NULL,name TEXT NOT NULL,points INTEGER NOT NULL,rank INTEGER NOT NULL,prize BIGINT NOT NULL DEFAULT 0,PRIMARY KEY(kind,period_start,clan_id))`,
  `ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS min_income INTEGER NOT NULL DEFAULT 0 CHECK(min_income BETWEEN 0 AND 10000000)`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_invites(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,player_id TEXT NOT NULL,inviter_id TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(clan_id,player_id))`,
  `ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS join_policy TEXT NOT NULL DEFAULT 'open' CHECK(join_policy IN ('open','request','closed'))`,
@@ -502,33 +506,56 @@ export function registerLuckyClans(app,pool,requireAuth){
   await start(pool);
   res.json(await seasonListing(pool));
  }));
- // Read-only daily and weekly tournaments. Score one point per unique
- // participant-day of the free daily clan contribution, normalized by roster band.
+ // Tournament roster and league are frozen on first access in each UTC period.
  app.get('/api/casino/clans/tournaments',requireAuth,wrap(async(req,res)=>{
-  await start(pool);
-  const season=await seasonListing(pool);
-  const result=await pool.query(`WITH periods AS (
-   SELECT (NOW() AT TIME ZONE 'UTC')::date AS today,date_trunc('week',NOW() AT TIME ZONE 'UTC')::date AS week
-  ), roster AS (
-   SELECT e.clan_id,e.league,cl.name,cl.avatar,COUNT(m.player_id)::int AS members
-   FROM lucky_clan_season_entries e JOIN lucky_clans cl ON cl.id=e.clan_id
-   JOIN lucky_clan_members m ON m.clan_id=cl.id
-   WHERE e.season=$1 GROUP BY e.clan_id,e.league,cl.name,cl.avatar
-  ), activity AS (
-   SELECT d.clan_id,COUNT(*) FILTER(WHERE d.claim_day=p.today)::int AS daily,COUNT(*)::int AS weekly
-   FROM lucky_clan_daily_claims d CROSS JOIN periods p
-   WHERE d.claim_day>=p.week AND d.claim_day<=p.today GROUP BY d.clan_id
-  )
-  SELECT r.clan_id AS id,r.league,r.name,r.avatar,r.members,
-   COALESCE(a.daily,0) AS daily,COALESCE(a.weekly,0) AS weekly,
-   CASE WHEN r.members<=3 THEN 1 WHEN r.members<=10 THEN 2 WHEN r.members<=20 THEN 3 WHEN r.members<=35 THEN 4 ELSE 5 END AS band,
-   p.today::text AS today,p.week::text AS week,(p.today+1)::text AS "dailyEnd",(p.week+7)::text AS "weeklyEnd"
-  FROM roster r CROSS JOIN periods p LEFT JOIN activity a ON a.clan_id=r.clan_id`,[season.number]);
-  const own=await pool.query('SELECT clan_id FROM lucky_clan_members WHERE player_id=$1',[req.playerId]);
-  const mine=result.rows.find(x=>String(x.id)===String(own.rows[0]?.clan_id));
-  const peers=mine?result.rows.filter(x=>x.league===mine.league&&x.band===mine.band):[];
-  const ranking=key=>peers.slice().sort((a,b)=>Number(b[key])-Number(a[key])||(BigInt(a.id)<BigInt(b.id)?-1:BigInt(a.id)>BigInt(b.id)?1:0)).map((x,i)=>({id:x.id,name:x.name,avatar:x.avatar,members:x.members,points:x[key],rank:i+1}));
-  res.json({mine:mine?{id:mine.id,league:mine.league,band:mine.band}:null,today:mine?.today,week:mine?.week,dailyEnd:mine?.dailyEnd,weeklyEnd:mine?.weeklyEnd,daily:ranking('daily'),weekly:ranking('weekly'),preview:true});
+  await start(pool);const season=await seasonListing(pool);
+  const result=await tx(pool,async c=>{
+   await c.query('SELECT pg_advisory_xact_lock(74826533)');
+   const dates=(await c.query("SELECT (NOW() AT TIME ZONE 'UTC')::date::text AS today,date_trunc('week',NOW() AT TIME ZONE 'UTC')::date::text AS week,((NOW() AT TIME ZONE 'UTC')::date+1)::text AS tomorrow,(date_trunc('week',NOW() AT TIME ZONE 'UTC')::date+7)::text AS weekend")).rows[0];
+   const own=(await c.query('SELECT clan_id FROM lucky_clan_members WHERE player_id=$1',[req.playerId])).rows[0]?.clan_id;
+   const pointsSql=`SELECT e.clan_id AS id,e.league,e.band,e.name,e.avatar,e.members,COUNT(d.vk_id)::int AS points
+    FROM lucky_clan_tournament_entries e LEFT JOIN lucky_clan_tournament_roster r ON r.kind=e.kind AND r.period_start=e.period_start AND r.clan_id=e.clan_id
+    LEFT JOIN lucky_clan_daily_claims d ON d.vk_id::text=regexp_replace(r.player_id,'^vk:','') AND d.clan_id=e.clan_id AND d.claim_day >= e.period_start AND d.claim_day < $3::date
+    WHERE e.kind=$1 AND e.period_start=$2::date GROUP BY e.clan_id,e.league,e.band,e.name,e.avatar,e.members`;
+   const expired=await c.query('SELECT kind,period_start::text AS start,period_end::text AS end FROM lucky_clan_tournament_periods WHERE NOT finished AND period_end <= $1::date ORDER BY period_start,kind',[dates.today]);
+   for(const p of expired.rows){
+    const ranked=await c.query(`WITH scores AS (${pointsSql}), ranks AS (SELECT *,RANK() OVER(PARTITION BY league,band ORDER BY points DESC)::int AS rank,COUNT(*) OVER(PARTITION BY league,band) AS competitors,COUNT(*) FILTER(WHERE points>0) OVER(PARTITION BY league,band) AS active FROM scores) SELECT * FROM ranks ORDER BY id`,[p.kind,p.start,p.end]);
+    for(const row of ranked.rows){
+     let prize=0;
+     // Require at least two scoring clans. Tied ranks share the same nominal prize.
+     if(row.points>0&&Number(row.active)>=2&&row.rank<=3){
+      const nominal=([0,10000,6000,3000][row.rank]||0)*(p.kind==='weekly'?5:1);
+      const cl=(await c.query('SELECT coins,headquarters FROM lucky_clans WHERE id=$1 FOR UPDATE',[row.id])).rows[0];
+      if(cl){
+       prize=Math.max(0,Math.min(nominal,50000+20000*Number(cl.headquarters)**2-Number(cl.coins)));
+       if(prize>0){
+        await c.query('UPDATE lucky_clans SET coins=coins+$1 WHERE id=$2',[prize,row.id]);
+        await c.query("INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins,request_id) VALUES($1,'system','tournament',$2,$3)",[row.id,prize,'tournament:'+p.kind+':'+p.start+':'+row.id]);
+       }
+      }
+     }
+     await c.query('INSERT INTO lucky_clan_tournament_results(kind,period_start,clan_id,league,band,name,points,rank,prize) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',[p.kind,p.start,row.id,row.league,row.band,row.name,row.points,row.rank,prize]);
+    }
+    await c.query('UPDATE lucky_clan_tournament_periods SET finished=TRUE WHERE kind=$1 AND period_start=$2',[p.kind,p.start]);
+   }
+   const output={today:dates.today,week:dates.week,dailyEnd:dates.tomorrow,weeklyEnd:dates.weekend,preview:false,mine:null};
+   for(const [kind,start,end] of [['daily',dates.today,dates.tomorrow],['weekly',dates.week,dates.weekend]]){
+    const created=await c.query('INSERT INTO lucky_clan_tournament_periods(kind,period_start,period_end) VALUES($1,$2,$3) ON CONFLICT DO NOTHING RETURNING kind',[kind,start,end]);
+    if(created.rowCount){
+     await c.query(`INSERT INTO lucky_clan_tournament_entries(kind,period_start,clan_id,league,band,name,avatar,members)
+      SELECT $1,$2,e.clan_id,e.league,CASE WHEN COUNT(m.player_id)<=3 THEN 1 WHEN COUNT(m.player_id)<=10 THEN 2 WHEN COUNT(m.player_id)<=20 THEN 3 WHEN COUNT(m.player_id)<=35 THEN 4 ELSE 5 END,cl.name,cl.avatar,COUNT(m.player_id)::int
+      FROM lucky_clan_season_entries e JOIN lucky_clans cl ON cl.id=e.clan_id JOIN lucky_clan_members m ON m.clan_id=cl.id WHERE e.season=$3 GROUP BY e.clan_id,e.league,cl.name,cl.avatar`,[kind,start,season.number]);
+     await c.query(`INSERT INTO lucky_clan_tournament_roster(kind,period_start,player_id,clan_id) SELECT $1,$2,m.player_id,m.clan_id FROM lucky_clan_members m JOIN lucky_clan_tournament_entries e ON e.clan_id=m.clan_id AND e.kind=$1 AND e.period_start=$2::date`,[kind,start]);
+    }
+    const rows=(await c.query(`WITH scores AS (${pointsSql}) SELECT *,RANK() OVER(PARTITION BY league,band ORDER BY points DESC)::int AS rank FROM scores ORDER BY rank,id`,[kind,start,end])).rows;
+    const mine=rows.find(x=>String(x.id)===String(own));
+    output[kind]=mine?rows.filter(x=>x.league===mine.league&&x.band===mine.band):[];
+    output[kind+'Category']=mine?{league:mine.league,band:mine.band}:null;
+    if(mine&&!output.mine)output.mine={id:mine.id,league:mine.league,band:mine.band};
+   }
+   output.history=own?(await c.query('SELECT kind,period_start::text AS start,points,rank,prize FROM lucky_clan_tournament_results WHERE clan_id=$1 ORDER BY period_start DESC,kind LIMIT 20',[own])).rows:[];
+   return output;
+  });res.json(result);
  }));
  app.get('/api/casino/clans/duel',requireAuth,wrap(async(req,res)=>{
   await start(pool);
