@@ -170,6 +170,8 @@
   if(!data)html+='<div class="lc-clan-panel">'+(loading?'Загрузка кланов…':'Не удалось загрузить кланы. <button class="btn ghost" data-clan="reload">Повторить</button>')+'</div>';
   else if(data.mine){
    const c=data.mine,canEdit=c.role==='owner'||c.role==='officer';
+   html+='<div class="lc-clan-panel"><h3>🏅 Личные достижения</h3><p class="lc-clan-note">Прогресс сохраняется при смене клана. Каждая награда выдаётся один раз за всё время, в казну текущего клана.</p><button class="btn ghost" data-clan="achievements-load">Обновить достижения</button><div id="lc-personal-achievements"></div></div>';
+
    html+='<div class="lc-clan-panel"><h3>📅 Личное задание недели</h3><p class="lc-clan-note">Получи награды за 5 ежедневных личных заданий с понедельника по воскресенье (UTC). Награда недели — 2% от суммы выполненных целей, до 250 000 монет в казну.</p><button class="btn purple" data-clan="personal-weekly-load">Обновить прогресс</button><div id="lc-personal-weekly"></div></div>';
 
    html+='<div class="lc-clan-panel"><h3>🎯 Личное задание дня</h3><p class="lc-clan-note">Цель зависит от базового дохода и фиксируется при первом открытии задания за день (UTC). Награда в казну: 5% от цели, максимум 100 000 монет, не больше свободного места.</p><button class="btn purple" data-clan="personal-load">Обновить задание</button><div id="lc-personal-daily"></div></div>';
@@ -228,7 +230,7 @@
    html+='<div class="lc-clan-panel"><h3>Как растёт лимит казны?</h3><p class="lc-clan-note">Вместимость зависит только от уровня штаба: 50 000 + 20 000 × уровень штаба². Стена не увеличивает казну.</p><p class="lc-clan-note">Сейчас: '+Number(c.treasuryCapacity).toLocaleString('ru-RU')+' 🪙. После следующего уровня штаба: '+(c.headquarters<50?(50000+20000*Math.pow(c.headquarters+1,2)).toLocaleString('ru-RU')+' 🪙':'максимум достигнут')+'.</p></div>';
    html+='<div class="lc-clan-panel"><h3>Пополнить казну монетами</h3><p class="lc-clan-note">Перевод из твоего личного баланса. Минимум 100 монет, шаг 100; твой суточный лимит — '+Number(c.depositLimit||100000).toLocaleString('ru-RU')+' монет (зависит от базового дохода). Отменить перевод нельзя.</p><input id="lc-deposit-amount" type="number" min="100" max="'+Number(c.depositLimit||100000)+'" step="100" class="lc-clan-input" placeholder="Например, 10000"><button class="btn purple" data-clan="deposit">Перевести монеты</button>'+(depositFeedback?'<p class="lc-clan-note" role="status">'+esc(depositFeedback)+'</p>':'')+'</div>';
    html+='<div class="lc-clan-grid">'+[['headquarters','🏚️','Штаб'],['wall','🛡️','Стена']].map(([key,emoji,label])=>'<div class="lc-clan-panel"><strong>'+label+' · '+c[key]+'/50</strong><div class="lc-clan-visual">'+(window.LuckyClanScene?.[key]?.(c[key])||'🏰')+'</div><p class="lc-clan-note">'+esc(description(key,c[key]))+'</p>'+(canEdit&&c[key]<50?(premiumNext(key,c[key]+1)?(Number(data?.permits||0)>0?'<button class="btn purple" data-clan="upgrade" data-kind="'+key+'">Строительный пропуск · 1 🎟️</button>':'<button class="btn purple" data-clan="buy-permit">Улучшить за 5 голосов VK</button>'):'<button class="btn purple" data-clan="upgrade" data-kind="'+key+'">Улучшить · '+upgradeCost(key,c[key])+' 🪙</button>'):'')+'</div>').join('')+'</div>';
-   html+='<div class="lc-clan-panel"><h3>История казны</h3>'+((c.history||[]).length?(c.history||[]).map(entry=>'<div class="lc-clan-roster"><span>'+({deposit:'Взнос игрока',daily:'Ежедневный бонус',headquarters:'Улучшение штаба',wall:'Улучшение стены',seats:'Расширение мест',tournament:'Приз турнира',shop:'Покупка оформления',project:'Улучшение проекта',personal_daily:'Личное задание',personal_weekly:'Личное задание недели'}[entry.action]||'Операция')+'</span><strong>'+(Number(entry.coins)>0?'+':'')+(Number(entry.coins)===0&&['headquarters','wall'].includes(entry.action)?'1 🎟️':Number(entry.coins).toLocaleString('ru-RU')+' 🪙')+'</strong></div>').join(''):'<p class="lc-clan-note">Операций пока нет</p>')+'</div>';
+   html+='<div class="lc-clan-panel"><h3>История казны</h3>'+((c.history||[]).length?(c.history||[]).map(entry=>'<div class="lc-clan-roster"><span>'+({deposit:'Взнос игрока',daily:'Ежедневный бонус',headquarters:'Улучшение штаба',wall:'Улучшение стены',seats:'Расширение мест',tournament:'Приз турнира',shop:'Покупка оформления',project:'Улучшение проекта',personal_daily:'Личное задание',personal_weekly:'Личное задание недели',personal_achievement:'Награда за достижение'}[entry.action]||'Операция')+'</span><strong>'+(Number(entry.coins)>0?'+':'')+(Number(entry.coins)===0&&['headquarters','wall'].includes(entry.action)?'1 🎟️':Number(entry.coins).toLocaleString('ru-RU')+' 🪙')+'</strong></div>').join(''):'<p class="lc-clan-note">Операций пока нет</p>')+'</div>';
    html+='<div class="lc-clan-panel"><h3>Участники клана</h3><p class="lc-clan-note">Взносы за всё время в текущем клане. Назначать заместителей и исключать участников может только глава.</p>'+
     [...(c.members||[])].sort((a,b)=>(({owner:0,officer:1,member:2}[a.role]??3)-({owner:0,officer:1,member:2}[b.role]??3))||Number(b.contributed||0)-Number(a.contributed||0)).map(m=>'<div class="lc-clan-roster"><a class="lc-clan-person" href="'+esc(m.profileUrl||'https://vk.com/id'+String(m.playerId).replace('vk:',''))+'" target="_blank" rel="noopener noreferrer" aria-label="Открыть страницу '+esc(m.profileName||'игрока')+' во ВКонтакте">'+(m.profileAvatar?'<img class="lc-clan-person-photo" src="'+esc(m.profileAvatar)+'" alt="">':'<span class="lc-clan-person-placeholder" aria-hidden="true">👤</span>')+'<span class="lc-clan-person-info"><strong class="lc-clan-person-name">'+esc(m.profileName||'Профиль VK')+'</strong><span class="lc-clan-note">'+(m.role==='owner'?'Глава':m.role==='officer'?'Заместитель':'Участник')+' · Внесено: '+Number(m.contributed||0).toLocaleString('ru-RU')+' 🪙 ('+Number(m.deposits||0)+' взн.)</span></span></a>'+
     (c.role==='owner'&&m.role!=='owner'?'<div style="display:flex;flex-wrap:wrap;gap:5px"><button class="btn ghost" data-clan="role" data-user="'+esc(m.playerId)+'" data-role="'+(m.role==='officer'?'member':'officer')+'">'+(m.role==='officer'?'Снять роль':'В заместители')+'</button><button class="btn ghost" data-clan="kick" data-user="'+esc(m.playerId)+'">Исключить</button></div>':'')+'</div>').join('')+'</div>';
@@ -296,7 +298,7 @@
      if(/Клановый магазин/.test(h))return 'shop';
      if(/Совместные проекты/.test(h))return 'development';
      if(/Клановая битва|История битв|Клановые турниры/.test(h))return 'battle';
-     if(/Клановые задания|Личное задание дня|Личное задание недели/.test(h))return 'missions';
+     if(/Клановые задания|Личное задание дня|Личное задание недели|Личные достижения/.test(h))return 'missions';
      if(/Лидеры по взносам|Активность участников/.test(h))return 'members';
      if(/Пополнить казну/.test(h))return 'treasury';
      if(/Требования для вступления|Приглашения игроков|Настройки вступления/.test(h))return 'management';
@@ -372,12 +374,22 @@
 
 
 
+
+ async function loadPersonalAchievements(){
+  const host=document.getElementById('lc-personal-achievements');if(!host)return;host.textContent='Загрузка…';
+  try{const t=await api('/personal-achievements');if(!host.isConnected)return;
+   const icons={7:'🥉',30:'🥈',100:'🥇',365:'👑'};
+   host.innerHTML='<p>Выполнено за всё время: <b>'+fmtTop(t.progress)+'</b></p>'+t.items.map(a=>{
+    const pct=Math.min(100,Math.floor(100*t.progress/a.days));
+    return '<div style="border:1px solid #9d79d54d;border-radius:12px;padding:10px;margin:8px 0"><strong>'+icons[a.days]+' '+esc(a.title)+'</strong><p>'+fmtTop(Math.min(t.progress,a.days))+' / '+fmtTop(a.days)+' заданий</p><div style="height:7px;background:#493858;border-radius:7px"><div style="height:100%;width:'+pct+'%;background:#b58af0;border-radius:7px"></div></div><p>'+fmtTop(a.reward)+' 🪙 в казну</p>'+(a.claimed?'<p>✓ Получено</p>':'<button class="btn purple" data-clan="achievement-claim" data-days="'+a.days+'" '+(pct<100?'disabled':'')+'>Получить награду</button>')+'</div>';
+   }).join('');
+  }catch(error){if(host.isConnected)host.textContent=error.message||'Достижения недоступны';}
+ }
  async function loadPersonalWeekly(){
   const host=document.getElementById('lc-personal-weekly');if(!host)return;host.textContent='Загрузка…';
   try{const t=await api('/personal-weekly');if(!host.isConnected)return;
    const progress=Math.max(0,Math.min(7,Number(t.progress)||0));
-   const milestones=[7,30,100,365];
-   host.innerHTML='<p>Задания недели: <b>'+progress+' / 5</b></p><div style="display:flex;gap:5px;margin:10px 0">'+Array.from({length:5},(_,i)=>'<span style="flex:1;height:9px;border-radius:5px;background:'+(i<progress?'#b58af0':'#493858')+'"></span>').join('')+'</div>'+(t.claimed?'<p>Получено: '+fmtTop(t.prize)+' 🪙</p>':progress>=5?'<p>Награда: до '+fmtTop(t.reward)+' 🪙</p><button class="btn purple" data-clan="personal-weekly-claim">Получить награду</button>':'<p>Осталось заданий: '+(5-progress)+'</p>')+'<h4>Долгосрочные достижения</h4><p>Всего получено ежедневных наград в этом клане: '+fmtTop(t.lifetime)+'</p>'+milestones.map(n=>'<div class="lc-clan-roster"><span>'+ (Number(t.lifetime)>=n?'✓ ':'')+n+' заданий</span><strong>'+fmtTop(Math.min(n,Number(t.lifetime)||0))+' / '+n+'</strong></div>').join('');
+   host.innerHTML='<p>Задания недели: <b>'+progress+' / 5</b></p><div style="display:flex;gap:5px;margin:10px 0">'+Array.from({length:5},(_,i)=>'<span style="flex:1;height:9px;border-radius:5px;background:'+(i<progress?'#b58af0':'#493858')+'"></span>').join('')+'</div>'+(t.claimed?'<p>Получено: '+fmtTop(t.prize)+' 🪙</p>':progress>=5?'<p>Награда: до '+fmtTop(t.reward)+' 🪙</p><button class="btn purple" data-clan="personal-weekly-claim">Получить награду</button>':'<p>Осталось заданий: '+(5-progress)+'</p>');
   }catch(error){if(host.isConnected)host.textContent=error.message||'Задание недоступно';}
  }
  async function loadPersonalDaily(){
@@ -490,7 +502,7 @@
  document.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-clan]');if(!btn||!root()?.contains(btn)||btn.disabled)return;
   const action=btn.dataset.clan;if(action==='reload'||action==='refresh-permits')return load();
-  if(action==='tab'){clanTab=btn.dataset.tab;paint();if(clanTab==='season')void loadInlineSeason();if(clanTab==='shop')void loadClanShop();if(clanTab==='missions'){void loadPersonalDaily();void loadPersonalWeekly();}return;}
+  if(action==='tab'){clanTab=btn.dataset.tab;paint();if(clanTab==='season')void loadInlineSeason();if(clanTab==='shop')void loadClanShop();if(clanTab==='missions'){void loadPersonalDaily();void loadPersonalWeekly();void loadPersonalAchievements();}return;}
   if(action==='season-inline'){await loadInlineSeason();return;}
   if(action==='season-inline-league'){inlineLeague=btn.dataset.league;paintInlineSeason();return;}
   if(action==='season-inline-profile'){
@@ -501,15 +513,20 @@
    catch(error){if(host.isConnected){host.textContent=error.message;const back=document.createElement('button');back.className='btn ghost';back.dataset.clan='season-inline-back';back.textContent='Назад';host.appendChild(back);}}return;
   }
   if(action==='season-inline-back'){paintInlineSeason();return;}
+  if(action==='achievements-load'){await loadPersonalAchievements();return;}
+  if(action==='achievement-claim'){
+   btn.disabled=true;try{const result=await api('/personal-achievement-claim',{days:Number(btn.dataset.days)});data=await api();notice='В казну начислено '+fmtTop(result.prize)+' монет';paint();await Promise.all([loadPersonalDaily(),loadPersonalWeekly(),loadPersonalAchievements()]);}
+   catch(error){notice=error.message;paint();await Promise.all([loadPersonalDaily(),loadPersonalWeekly(),loadPersonalAchievements()]);}finally{btn.disabled=false}return;
+  }
   if(action==='personal-weekly-load'){await loadPersonalWeekly();return;}
   if(action==='personal-weekly-claim'){
-   btn.disabled=true;try{const result=await api('/personal-weekly-claim',{});data=await api();notice='В казну начислено '+fmtTop(result.prize)+' монет';paint();await Promise.all([loadPersonalDaily(),loadPersonalWeekly()]);}
-   catch(error){notice=error.message;paint();await Promise.all([loadPersonalDaily(),loadPersonalWeekly()]);}finally{btn.disabled=false}return;
+   btn.disabled=true;try{const result=await api('/personal-weekly-claim',{});data=await api();notice='В казну начислено '+fmtTop(result.prize)+' монет';paint();await Promise.all([loadPersonalDaily(),loadPersonalWeekly(),loadPersonalAchievements()]);}
+   catch(error){notice=error.message;paint();await Promise.all([loadPersonalDaily(),loadPersonalWeekly(),loadPersonalAchievements()]);}finally{btn.disabled=false}return;
   }
   if(action==='personal-load'){await loadPersonalDaily();return;}
   if(action==='personal-daily-claim'){
-   btn.disabled=true;try{const result=await api('/personal-daily-claim',{});data=await api();notice='В казну начислено '+fmtTop(result.prize)+' монет';paint();await Promise.all([loadPersonalDaily(),loadPersonalWeekly()]);}
-   catch(error){notice=error.message;paint();await Promise.all([loadPersonalDaily(),loadPersonalWeekly()]);}finally{btn.disabled=false}return;
+   btn.disabled=true;try{const result=await api('/personal-daily-claim',{});data=await api();notice='В казну начислено '+fmtTop(result.prize)+' монет';paint();await Promise.all([loadPersonalDaily(),loadPersonalWeekly(),loadPersonalAchievements()]);}
+   catch(error){notice=error.message;paint();await Promise.all([loadPersonalDaily(),loadPersonalWeekly(),loadPersonalAchievements()]);}finally{btn.disabled=false}return;
   }
   if(action==='projects-load'){await loadClanProjects();return;}
   if(action==='project-upgrade'){
