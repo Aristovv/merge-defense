@@ -4693,6 +4693,11 @@ async function casinoCloudReconcilePlinko(knownRemote=null){
   return false;
  }
 }
+function casinoCloudSameProgress(a,b){
+ if(!a||!b)return false;
+ const normalize=value=>{const copy={...value};delete copy.stamp;return casinoStableJSON(copy)};
+ return normalize(a)===normalize(b);
+}
 async function casinoCloudReconnectIdentical(){
  // Safe automatic reconnection: never accept a newer/different cloud copy here.
  // Local-only progress is not silently sent to the server.
@@ -4702,7 +4707,7 @@ async function casinoCloudReconnectIdentical(){
   const snapshot=casinoStableJSON(state);
   const remote=await casinoCloudFetch('GET');
   if(!remote?.save||!Number.isSafeInteger(remote.revision)||remote.revision<1||
-      casinoStableJSON(state)!==snapshot||casinoStableJSON(remote.save)!==snapshot)return false;
+      casinoStableJSON(state)!==snapshot||!casinoCloudSameProgress(remote.save,state))return false;
   const marker=localStorage.getItem(CASINO_LOCAL_ONLY_KEY);
   if(marker===casinoCloudLocalOwner())localStorage.removeItem(CASINO_LOCAL_ONLY_KEY);
   casinoCloudLocalOnly=false;
@@ -4723,7 +4728,9 @@ async function casinoCloudStart(){
  }
  if(casinoCloudLocalOnly){
   if(await casinoCloudReconcilePlinko())return;
-  return casinoCloudReconnectIdentical();
+  const connected=await casinoCloudReconnectIdentical();
+  if(!connected)casinoCloudRetryStart();
+  return connected;
  }
  casinoCloudStarting=true;
  const startingSnapshot=JSON.stringify(state);
