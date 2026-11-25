@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS lucky_clan_members (
 CREATE INDEX IF NOT EXISTS lucky_clan_members_clan_idx ON lucky_clan_members(clan_id);
 `;
 const ECONOMY_SQL=[
+ `ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS join_policy TEXT NOT NULL DEFAULT 'open' CHECK(join_policy IN ('open','request','closed'))`,
+ `CREATE TABLE IF NOT EXISTS lucky_clan_applications(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,player_id TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(clan_id,player_id))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_management_log(id BIGSERIAL PRIMARY KEY,clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,actor_id TEXT NOT NULL,target_id TEXT NOT NULL,action TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`,
  `CREATE INDEX IF NOT EXISTS lucky_clan_management_log_idx ON lucky_clan_management_log(clan_id,id DESC)`,
  "ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS coins BIGINT CHECK(coins>=0)",
@@ -290,7 +292,7 @@ export async function vkMemberProfiles(members,token=process.env.VK_GROUP_SERVIC
    profileAvatar:profile?.until>now?profile.avatar:'',profileUrl:/^[1-9][0-9]{0,18}$/.test(id)?'https://vk.com/id'+id:''};
  });
 }
-const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.coins,c.seat_tier AS "seatTier",(10+c.seat_tier*5)::int AS "memberCapacity",(50000+c.headquarters*c.headquarters*20000)::bigint AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
+const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.coins,c.join_policy AS "joinPolicy",c.seat_tier AS "seatTier",(10+c.seat_tier*5)::int AS "memberCapacity",(50000+c.headquarters*c.headquarters*20000)::bigint AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
 // Fixed targets per UTC period. Existing rewards retain their original keys.
 // Capped rewards keep high-income clans from gaining unlimited XP.
 // Shared clan perk: only the free daily treasury contribution is boosted.
@@ -362,8 +364,9 @@ async function mine(pool,playerId){
  const rewards=await pool.query(`SELECT COALESCE(SUM(xp),0)::bigint AS xp FROM lucky_clan_mission_rewards WHERE clan_id=$1`,[rows[0].id]);
  const own=await pool.query(`SELECT s.save->'buildings' AS buildings FROM public.casino_city_saves s WHERE s.vk_id=$1`,[String(playerId).replace(/^vk:/,'')]);
  const depositLimit=clanDepositLimit(own.rows[0]);
+ const applications=rows[0].role==='owner'?await pool.query(`SELECT a.player_id AS "playerId",a.created_at AS "createdAt" FROM lucky_clan_applications a WHERE a.clan_id=$1 AND NOT EXISTS(SELECT 1 FROM lucky_clan_members m WHERE m.player_id=a.player_id) ORDER BY a.created_at LIMIT 100`,[rows[0].id]):{rows:[]};
  const managementLog=rows[0].role==='owner'?await pool.query(`SELECT actor_id AS "actorId",target_id AS "targetId",action,created_at AS "createdAt" FROM lucky_clan_management_log WHERE clan_id=$1 ORDER BY id DESC LIMIT 30`,[rows[0].id]):{rows:[]};
- return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,managementLog:managementLog.rows,activity:activity.rows[0]||{},missionTargets:targets,missionRewards:clanMissionRewards(targets),depositLimit,missionXp:Number(rewards.rows[0]?.xp||0),levelBonus:clanLevelBonus(rewards.rows[0]?.xp)};
+ return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,managementLog:managementLog.rows,applications:await vkMemberProfiles(applications.rows),activity:activity.rows[0]||{},missionTargets:targets,missionRewards:clanMissionRewards(targets),depositLimit,missionXp:Number(rewards.rows[0]?.xp||0),levelBonus:clanLevelBonus(rewards.rows[0]?.xp)};
 }
 // Seasons are 14 UTC days, starting on a Monday. Points count completed
 // mission periods rather than XP amounts, so higher income alone cannot buy rank.
@@ -558,16 +561,46 @@ export function registerLuckyClans(app,pool,requireAuth){
   console.info('[clans-create] success');
   res.status(201).json({ok:true,...result});
  }));
+ app.post('/api/casino/clans/join-policy',requireAuth,wrap(async(req,res)=>{
+  await start(pool);const policy=req.body?.policy;if(!['open','request','closed'].includes(policy))fail('Некорректный режим');
+  const changed=await pool.query('UPDATE lucky_clans SET join_policy=$1 WHERE owner_id=$2 RETURNING id',[policy,req.playerId]);
+  if(!changed.rowCount)fail('Только глава может менять настройки',403);res.json({ok:true});
+ }));
+ app.post('/api/casino/clans/application',requireAuth,wrap(async(req,res)=>{
+  await start(pool);const target=req.body?.playerId,decision=req.body?.decision;
+  if(typeof target!=='string'||!/^vk:[1-9]\\d{0,18}$/.test(target)||!['accept','reject'].includes(decision))fail('Некорректная заявка');
+  await tx(pool,async c=>{
+   const own=await c.query('SELECT id,seat_tier,join_policy FROM lucky_clans WHERE owner_id=$1 FOR UPDATE',[req.playerId]);
+   if(!own.rowCount)fail('Только глава может рассматривать заявки',403);
+   const clan=own.rows[0],application=await c.query('SELECT 1 FROM lucky_clan_applications WHERE clan_id=$1 AND player_id=$2 FOR UPDATE',[clan.id,target]);
+   if(!application.rowCount)fail('Заявка не найдена',404);
+   if(decision==='accept'){
+    if(clan.join_policy==='closed')fail('Сначала откройте приём участников');
+    const count=await c.query('SELECT COUNT(*)::int AS n FROM lucky_clan_members WHERE clan_id=$1',[clan.id]);
+    if(count.rows[0].n>=clanSeatCapacity(clan.seat_tier))fail('Нет свободных мест');
+    const added=await c.query("INSERT INTO lucky_clan_members(player_id,clan_id,role) VALUES($1,$2,'member') ON CONFLICT(player_id) DO NOTHING RETURNING player_id",[target,clan.id]);
+    if(!added.rowCount)fail('Игрок уже состоит в клане');
+    await c.query('DELETE FROM lucky_clan_applications WHERE player_id=$1',[target]);
+   }else await c.query('DELETE FROM lucky_clan_applications WHERE clan_id=$1 AND player_id=$2',[clan.id,target]);
+   await c.query('INSERT INTO lucky_clan_management_log(clan_id,actor_id,target_id,action) VALUES($1,$2,$3,$4)',[clan.id,req.playerId,target,decision==='accept'?'accept':'reject']);
+  });res.json({ok:true});
+ }));
  app.post('/api/casino/clans/join',requireAuth,wrap(async(req,res)=>{
   await start(pool);if(!validId(req.body?.id))fail('Некорректный клан');
-  await tx(pool,async c=>{
-   const found=await c.query('SELECT id,seat_tier FROM lucky_clans WHERE id=$1 FOR UPDATE',[req.body.id]);
+  const result=await tx(pool,async c=>{
+   const found=await c.query('SELECT id,seat_tier,join_policy FROM lucky_clans WHERE id=$1 FOR UPDATE',[req.body.id]);
    if(!found.rowCount)fail('Клан не найден',404);
    const count=await c.query('SELECT COUNT(*)::int AS n FROM lucky_clan_members WHERE clan_id=$1',[req.body.id]);
    if(count.rows[0].n>=clanSeatCapacity(found.rows[0].seat_tier))fail('В клане нет свободных мест. Глава может расширить вместимость до 50.');
+   if(found.rows[0].join_policy==='closed')fail('Клан закрыт для вступления',403);
+   if(found.rows[0].join_policy==='request'){
+    const member=await c.query('SELECT 1 FROM lucky_clan_members WHERE player_id=$1',[req.playerId]);if(member.rowCount)fail('Вы уже состоите в клане');
+    await c.query('INSERT INTO lucky_clan_applications(clan_id,player_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[req.body.id,req.playerId]);return {pending:true};
+   }
    const added=await c.query("INSERT INTO lucky_clan_members(player_id,clan_id,role) VALUES($1,$2,'member') ON CONFLICT(player_id) DO NOTHING RETURNING player_id",[req.playerId,req.body.id]);
    if(!added.rowCount)fail('Вы уже состоите в клане');
-  });res.json({ok:true});
+   await c.query('DELETE FROM lucky_clan_applications WHERE player_id=$1',[req.playerId]);return {pending:false};
+  });res.json({ok:true,...result});
  }));
  app.post('/api/casino/clans/leave',requireAuth,wrap(async(req,res)=>{
   await start(pool);
