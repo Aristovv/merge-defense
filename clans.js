@@ -191,6 +191,8 @@
     const tasks=t?[['Ежедневные','Участники с ежедневным взносом',activity.dailyClaims,t.dailyParticipants],['Ежедневные','Пополнить казну монетами',activity.dailyDeposits,t.dailyCoins,activity.dailyContributors,t.dailyParticipants],['Еженедельные','Пополнить казну монетами',activity.weeklyDeposits,t.weeklyCoins,activity.weeklyContributors,t.weeklyParticipants],['Еженедельные','Провести 3 улучшения клана',activity.weeklyUpgrades,3]]:[];
     html+='<div class="lc-clan-panel"><h3>📋 Клановые задания</h3><p class="lc-clan-note">Цели зависят от состава, развития и базового дохода участников, фиксируются при первом обращении в периоде. Для взносов нужна коллективная активность. День обновляется в 00:00 UTC, неделя — в понедельник. За выполненные задания начисляется клановый опыт.</p>'+['Ежедневные','Еженедельные'].map(period=>'<strong style="display:block;margin-top:14px">'+period+'</strong>'+tasks.filter(t=>t[0]===period).map(t=>clanMeter(t[1]+(Number(t[2])>=t[3]&&(t[5]===undefined||Number(t[4])>=t[5])?' ✓':''),Math.min(Number(t[2])||0,t[3]),t[3])+(t[5]!==undefined?clanMeter('Разные вкладчики',Math.min(Number(t[4])||0,t[5]),t[5]):'')).join('')).join('')+'</div>';
    }
+   const activeMembers=[...(c.members||[])].sort((a,b)=>Number(b.weeklyActiveDays||0)-Number(a.weeklyActiveDays||0)||Number(b.weeklyContribution||0)-Number(a.weeklyContribution||0));
+   if(activeMembers.some(m=>m.weeklyActiveDays!==undefined))html+='<div class="lc-clan-panel"><h3>Активность участников</h3><p class="lc-clan-note">Текущая неделя с понедельника (UTC). Учитываются действия в клане после последнего вступления, а не просто вход в игру.</p><p>Активных: <b>'+activeMembers.filter(m=>Number(m.weeklyActiveDays)>0).length+' / '+activeMembers.length+'</b></p>'+activeMembers.map(m=>'<div style="padding:9px 0;border-bottom:1px solid #ffffff18"><a class="lc-clan-person" href="https://vk.com/id'+esc(String(m.playerId).replace(/^vk:/,''))+'" target="_blank" rel="noopener noreferrer">'+(m.profileAvatar?'<img class="lc-clan-person-photo" src="'+esc(m.profileAvatar)+'" alt="">':'<span>👤</span>')+'<strong>'+esc(m.profileName||'Профиль VK')+'</strong></a>'+clanMeter('Активные дни',m.weeklyActiveDays,7)+'<div class="lc-clan-note">Взносы за неделю: '+fmtProgress(m.weeklyContribution)+' 🪙 · Переводов: '+fmtProgress(m.weeklyTransfers)+'</div><small class="lc-clan-note">Последнее действие: '+(m.lastClanAction?esc(new Date(m.lastClanAction).toLocaleString('ru-RU')):'нет данных')+'</small></div>').join('')+'</div>';
    const contributors=[...(c.members||[])].filter(m=>Number(m.contributed)>0).sort((a,b)=>Number(b.contributed)-Number(a.contributed)||Number(b.deposits||0)-Number(a.deposits||0));
    const totalContributions=contributors.reduce((sum,m)=>sum+Number(m.contributed),0);
    const topContribution=Number(contributors[0]?.contributed||0);
@@ -281,7 +283,7 @@
      const h=node.querySelector(':scope > h3')?.textContent||'';
      if(/Клановая битва|История битв/.test(h))return 'battle';
      if(/Клановые задания/.test(h))return 'missions';
-     if(/Лидеры по взносам/.test(h))return 'members';
+     if(/Лидеры по взносам|Активность участников/.test(h))return 'members';
      if(/Пополнить казну/.test(h))return 'treasury';
      if(/Требования для вступления|Приглашения игроков|Настройки вступления/.test(h))return 'management';
      return 'overview';
