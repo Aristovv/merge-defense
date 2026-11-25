@@ -229,8 +229,8 @@
       [5,10,15,20,30,40].map(level=>'<div class="lc-clan-premium-row"><span>Уровень '+level+'</span><strong>5 голосов VK</strong><small>'+(c[kind]>=level?'Пройден':c[kind]===level-1?'Следующий':'Впереди')+'</small></div>').join('')+'</div>').join('')+'</div>'+
     '<p class="lc-clan-note">Всего: 30 голосов на штаб и 30 на стену, 60 голосов за все 12 этапов. Остальные уровни — за монеты.</p>'+
     '<button class="btn ghost" data-clan="refresh-permits">Проверить оплаченные пропуска</button></div>';
-   html+='<div class="lc-clan-panel"><h3>Как растёт лимит казны?</h3><p class="lc-clan-note">Вместимость зависит только от уровня штаба: 50 000 + 20 000 × уровень штаба². Стена не увеличивает казну.</p><p class="lc-clan-note">Сейчас: '+Number(c.treasuryCapacity).toLocaleString('ru-RU')+' 🪙. После следующего уровня штаба: '+(c.headquarters<50?(50000+20000*Math.pow(c.headquarters+1,2)).toLocaleString('ru-RU')+' 🪙':'максимум достигнут')+'.</p></div>';
-   html+='<div class="lc-clan-panel"><h3>Пополнить казну монетами</h3><p class="lc-clan-note">Перевод из твоего личного баланса. Минимум 100 монет, шаг 100; твой суточный лимит — '+Number(c.depositLimit||100000).toLocaleString('ru-RU')+' монет (зависит от базового дохода). Отменить перевод нельзя.</p><input id="lc-deposit-amount" type="number" min="100" max="'+Number(c.depositLimit||100000)+'" step="100" class="lc-clan-input" placeholder="Например, 10000"><button class="btn purple" data-clan="deposit">Перевести монеты</button>'+(depositFeedback?'<p class="lc-clan-note" role="status">'+esc(depositFeedback)+'</p>':'')+'</div>';
+   html+='<div class="lc-clan-panel"><h3>Как растёт лимит казны?</h3><p class="lc-clan-note">Вместимость зависит только от уровня штаба: 50 000 + 80 000 × уровень штаба². Стена не увеличивает казну.</p><p class="lc-clan-note">Сейчас: '+Number(c.treasuryCapacity).toLocaleString('ru-RU')+' 🪙. После следующего уровня штаба: '+(c.headquarters<50?(50000+80000*Math.pow(c.headquarters+1,2)).toLocaleString('ru-RU')+' 🪙':'максимум достигнут')+'.</p></div>';
+   html+='<div class="lc-clan-panel"><h3>Пополнить казну монетами</h3><p class="lc-clan-note">Перевод из твоего личного баланса. Минимум 100 монет, шаг 100; твой суточный лимит — '+Number(c.depositLimit||10000).toLocaleString('ru-RU')+' монет (зависит от базового дохода). Отменить перевод нельзя.</p><input id="lc-deposit-amount" type="number" min="100" max="'+Number(c.depositLimit||10000)+'" step="100" class="lc-clan-input" placeholder="Например, 10000"><button class="btn purple" data-clan="deposit">Перевести монеты</button>'+(depositFeedback?'<p class="lc-clan-note" role="status">'+esc(depositFeedback)+'</p>':'')+'</div>';
    html+='<div class="lc-clan-grid">'+[['headquarters','🏚️','Штаб'],['wall','🛡️','Стена']].map(([key,emoji,label])=>'<div class="lc-clan-panel"><strong>'+label+' · '+c[key]+'/50</strong><div class="lc-clan-visual">'+(window.LuckyClanScene?.[key]?.(c[key])||'🏰')+'</div><p class="lc-clan-note">'+esc(description(key,c[key]))+'</p>'+(canEdit&&c[key]<50?(premiumNext(key,c[key]+1)?(Number(data?.permits||0)>0?'<button class="btn purple" data-clan="upgrade" data-kind="'+key+'">Строительный пропуск · 1 🎟️</button>':'<button class="btn purple" data-clan="buy-permit">Улучшить за 5 голосов VK</button>'):'<button class="btn purple" data-clan="upgrade" data-kind="'+key+'">Улучшить · '+upgradeCost(key,c[key])+' 🪙</button>'):'')+'</div>').join('')+'</div>';
    html+='<div class="lc-clan-panel"><h3>История казны</h3>'+((c.history||[]).length?(c.history||[]).map(entry=>'<div class="lc-clan-roster"><span>'+({deposit:'Взнос игрока',daily:'Ежедневный бонус',headquarters:'Улучшение штаба',wall:'Улучшение стены',seats:'Расширение мест',tournament:'Приз турнира',shop:'Покупка оформления',project:'Улучшение проекта',personal_daily:'Личное задание',personal_weekly:'Личное задание недели',personal_achievement:'Награда за достижение'}[entry.action]||'Операция')+'</span><strong>'+(Number(entry.coins)>0?'+':'')+(Number(entry.coins)===0&&['headquarters','wall'].includes(entry.action)?'1 🎟️':Number(entry.coins).toLocaleString('ru-RU')+' 🪙')+'</strong></div>').join(''):'<p class="lc-clan-note">Операций пока нет</p>')+'</div>';
    html+='<div class="lc-clan-panel"><h3>Участники клана</h3><p class="lc-clan-note">Взносы за всё время в текущем клане. Назначать заместителей и исключать участников может только глава.</p>'+
@@ -355,7 +355,7 @@
     ' · Внесено '+fmt(m.contributed)+' 🪙 · '+fmt(m.deposits)+' взн.</small></div><span aria-hidden="true">↗</span></a>';
   }).join('');
   const hq=Number(c.headquarters),wall=Number(c.wall),slots=Number(c.memberCapacity);
-  const nextHq=hq<50?(50000+20000*(hq+1)**2):null;
+  const nextHq=hq<50?(50000+80000*(hq+1)**2):null;
   const progress=(value,max)=>{const v=Number(value),m=Number(max);return Number.isFinite(v)&&Number.isFinite(m)&&m>0?Math.max(0,Math.min(100,Math.round(v/m*100))):0};
   const meter=(label,value,max)=>'<div style="margin:10px 0"><div class="lc-clan-note">'+esc(label)+' · '+fmt(value)+' / '+fmt(max)+' · '+progress(value,max)+'%</div><progress aria-label="'+esc(label)+'" max="100" value="'+progress(value,max)+'" style="width:100%;height:10px;accent-color:#a78bfa"></progress></div>';
   return '<div class="lc-clan-panel"><button class="btn ghost" data-clan-top-back>← К рейтингу</button></div>'+
@@ -608,8 +608,8 @@
   }
   if(action==='deposit'){
    const amount=Number(document.getElementById('lc-deposit-amount')?.value);
-   if(!Number.isSafeInteger(amount)||amount<100||amount>Number(data?.mine?.depositLimit||100000)||amount%100!==0){
-    depositFeedback='Сумма должна быть от 100 до '+Number(data?.mine?.depositLimit||100000).toLocaleString('ru-RU')+' монет, с шагом 100.';
+   if(!Number.isSafeInteger(amount)||amount<100||amount>Number(data?.mine?.depositLimit||10000)||amount%100!==0){
+    depositFeedback='Сумма должна быть от 100 до '+Number(data?.mine?.depositLimit||10000).toLocaleString('ru-RU')+' монет, с шагом 100.';
     paint();return;
    }
    btn.disabled=true;btn.textContent='Переводим монеты…';
