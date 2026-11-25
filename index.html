@@ -4385,7 +4385,7 @@ function renderCasinoLeaderboard(){
 }
 async function casinoRankingRequest(url,options={}){
  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),12000);
- try{const response=await fetch(url,{...options,signal:controller.signal});const body=await response.text();return new Response(body||null,{status:response.status,statusText:response.statusText,headers:response.headers});}finally{clearTimeout(timer)}
+ try{const response=await fetch(url,{...options,signal:controller.signal});const body=await response.text();return {ok:response.ok,status:response.status,json:async()=>JSON.parse(body)};}finally{clearTimeout(timer)}
 }
 async function loadCasinoRanking(){
  const host=document.getElementById('casino-top-list');
@@ -4428,7 +4428,8 @@ async function loadCasinoRanking(){
   casinoRankingStatus();
   renderCasinoLeaderboard();
  }catch(e){
-  host.innerHTML='<div class="panel"><p class="subline">Общий рейтинг временно недоступен: '+rankEsc(e?.message||'Нет соединения')+'. Локальный прогресс не удалён.</p><button class="btn purple" data-casino-retry-top="1">Повторить подключение</button></div>';
+  const currentHost=document.getElementById('casino-top-list');
+  if(currentHost&&tab==='top')currentHost.innerHTML='<div class="panel"><p class="subline">Общий рейтинг временно недоступен: '+rankEsc(e?.message||'Нет соединения')+'. Локальный прогресс не удалён.</p><button class="btn purple" data-casino-retry-top="1">Повторить подключение</button></div>';
   casinoRankingStatus();
   console.warn('Casino leaderboard:',e);
  }finally{casinoRankingLoading=false}
@@ -7023,7 +7024,8 @@ async function casinoTournamentLoad(){
   casinoTournamentSnapshot=await r.json();
   casinoTournamentRender();
  }catch(e){
-  host.innerHTML='<p class="subline">'+rankEsc(e.message||'Не удалось загрузить турнир')+'. Турнирные данные временно недоступны.</p><button class="btn purple" data-casino-retry-tournament="1">Повторить подключение</button>';
+  const currentHost=document.getElementById('casino-tournament-content');
+  if(currentHost&&tab==='top')currentHost.innerHTML='<p class="subline">'+rankEsc(e.message||'Не удалось загрузить турнир')+'. Турнирные данные временно недоступны.</p><button class="btn purple" data-casino-retry-tournament="1">Повторить подключение</button>';
  }finally{casinoTournamentLoading=false}
 }
 async function casinoTournamentClaim(){
