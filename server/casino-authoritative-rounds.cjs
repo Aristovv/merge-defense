@@ -23,11 +23,13 @@ function applyCompletedRound(save,{game,stake,payout,description,now,freeSpin=fa
  next.liveCity14??={};const x=next.liveCity14;
  if(!x.daily||x.daily.key!==day)x.daily={key:day,games:[],rounds:0,builds:0,hot:0,claims:[]};
  if(!x.week||x.week.key!==week)x.week={key:week,rounds:0,wins:0,claimed:false};
- x.daily.rounds=add(x.daily.rounds,1);x.week.rounds=add(x.week.rounds,1);
- x.week.wins=add(x.week.wins,payout>0?1:0);
- if(!x.daily.games.includes(game))x.daily.games.push(game);
- if(game===(Number(day.replaceAll('-',''))*17+7)%16&&x.daily.hot<3){x.daily.hot++;next.chips=add(next.chips,35)}
- if(!freeSpin&&next.level<500){
+ if(!freeSpin){
+  x.daily.rounds=add(x.daily.rounds,1);x.week.rounds=add(x.week.rounds,1);
+  x.week.wins=add(x.week.wins,won?1:0);
+  if(!x.daily.games.includes(game))x.daily.games.push(game);
+  if(game===(Number(day.replaceAll('-',''))*17+7)%16&&x.daily.hot<3){x.daily.hot++;next.chips=add(next.chips,35)}
+ }
+ if(!freeSpin&&next.level<500&&x.daily.rounds<=200){
   next.xp=add(next.xp,Number(x.boosts?.xp)>now?6:4);
   while(next.level<500){const need=420+next.level*110+next.level*next.level*8;if(next.xp<need)break;next.xp-=need;next.level++;next.chips=add(next.chips,100+next.level*20)}
  }
