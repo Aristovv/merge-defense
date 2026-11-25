@@ -22,6 +22,8 @@ const LC56=[
  ['obsidian-crown','OBSIDIAN CROWN',39,'votes','obsidian-crown.png','Легендарный'],
  ['inferno-elite','INFERNO ELITE',59,'votes','inferno-elite.png','Легендарный'],
  ['crystal-monarch','CRYSTAL MONARCH',79,'votes','crystal-monarch.png','Легендарный'],
+ ['season-citizen','SEASON CITIZEN',0,'season','city-rookie.png','Сезонный'],
+ ['season-legend','SEASON LEGEND',0,'season','royal-eclipse.png','Эксклюзивный'],
  ['lucky-city-vip','LUCKY CITY VIP',109,'votes','lucky-city-vip.png','Эксклюзивный']
 ].map(([id,name,price,currency,image,rarity])=>({id,name,price,currency,image,rarity}));
 const LC56_MAP=new Map(LC56.map(o=>[o.id,o]));
@@ -45,9 +47,9 @@ function lc56State(){
 }
 function lc56Img(id,name){
  const o=LC56_MAP.get(id);
- return '<img loading="lazy" alt="'+rankEsc(name)+'" src="./assets/character44/'+(o?.image||'avatar.png')+'?v=56.1.16" onerror="this.onerror=null;this.src=\'./assets/character44/avatar.png\'">';
+ return '<img style="'+(id==='season-citizen'?'filter:hue-rotate(65deg) saturate(1.3)':id==='season-legend'?'filter:hue-rotate(245deg) saturate(1.4)':'')+'" loading="lazy" alt="'+rankEsc(name)+'" src="./assets/character44/'+(o?.image||'avatar.png')+'?v=56.1.16" onerror="this.onerror=null;this.src=\'./assets/character44/avatar.png\'">';
 }
-function lc56Price(o){return fmt(o.price)+(o.currency==='votes'?' голосов VK':' 🪙')}
+function lc56Price(o){if(o.currency==='season')return 'Награда сезона 1';return fmt(o.price)+(o.currency==='votes'?' голосов VK':' 🪙')}
 function lc56Tile(o,c){
  const owned=c.ownedOutfits.includes(o.id),active=c.activeOutfit===o.id;
  return '<article class="lc56-tile"><strong>'+o.name+'</strong><small>'+o.rarity+'</small>'+
@@ -55,7 +57,7 @@ function lc56Tile(o,c){
  '<div class="lc56-price">'+(owned?'✓ Куплен':lc56Price(o))+'</div>'+
  '<div class="lc56-actions"><button data-lc56-preview="'+o.id+'">Примерить</button>'+
  (owned?'<button data-lc56-wear="'+o.id+'" '+(active?'disabled':'')+'>'+(active?'✓ Надето':'Надеть')+'</button>':
- o.currency==='votes'?'<button disabled title="Оплата голосами пока не подключена">Оплата скоро</button>':
+ o.currency==='season'?'<button disabled>Только в сезонном пропуске</button>':o.currency==='votes'?'<button disabled title="Оплата голосами пока не подключена">Оплата скоро</button>':
  '<button class="lc56-buy" data-lc56-buy="'+o.id+'">Купить</button>')+'</div></article>';
 }
 function lc56Pending(o){
