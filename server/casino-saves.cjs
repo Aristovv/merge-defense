@@ -80,6 +80,19 @@ function regression(previous,next){
   return 'SERVER_DAILY_CLAIM_REQUIRED';
  if(JSON.stringify(previous.prestige40||[])!==JSON.stringify(next.prestige40||[]))return 'SERVER_PRESTIGE_ACTION_REQUIRED';
  if(JSON.stringify(Object.entries(season.seasonPass(previous)).sort())!==JSON.stringify(Object.entries(season.seasonPass(next)).sort()))return 'SERVER_SEASON_ACTION_REQUIRED';
+ // Authoritative mode: reject browser edits to server-maintained quest counters.
+ if(process.env.CASINO_AUTHORITATIVE_ECONOMY==='1'){
+  const canonical=value=>JSON.stringify(value??null,(_key,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.keys(v).sort().map(k=>[k,v[k]])):v);
+  for(const scope of ['daily','weekly']){
+   const old=previous.questPeriods?.[scope],fresh=next.questPeriods?.[scope];
+   if(canonical(old)===canonical(fresh))continue;
+   // Rendering may initialize an empty new period; it cannot create progress or claims.
+   const d=new Date();if(scope==='weekly')d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));
+   const key=d.toISOString().slice(0,10);
+   if(fresh?.key===key&&old?.key!==key&&Array.isArray(fresh.claimed)&&fresh.claimed.length===0&&['plays','wins','builds'].every(k=>fresh.counts?.[k]===0)&&Object.keys(fresh.counts).length===3)continue;
+   return 'SERVER_QUEST_PROGRESS_REQUIRED';
+  }
+ }
  const epoch=Number(previous.resetEpoch)||0;
  if((Number(next.resetEpoch)||0)!==epoch)return 'RESET_EPOCH_MISMATCH';
  for(const key of ['level','plays','wins','earned','best','giftBestStreak']){
