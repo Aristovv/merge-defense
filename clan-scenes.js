@@ -1,6 +1,14 @@
 /* Lucky City: procedural clan scenes. Distinct details evolve at every level. */
 (()=>{
-const svg=(body)=>'<svg role="img" aria-label="Визуальный уровень постройки" viewBox="0 0 320 184" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto;max-height:210px;border-radius:12px"><defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#26154d"/><stop offset="1" stop-color="#5b3663"/></linearGradient><linearGradient id="wallpaint" x2="0" y2="1"><stop stop-color="#dad0bd"/><stop offset="1" stop-color="#706277"/></linearGradient></defs><rect width="320" height="184" fill="url(#sky)"/><circle cx="255" cy="27" r="15" fill="#eac58c" opacity=".55"/><path d="M0 135Q60 116 120 136T320 128V184H0" fill="#25283d"/>'+body+'</svg>';
+let sceneId=0;
+const svg=(body,level,kind)=>{
+ const id='lcscene'+(++sceneId),sky=id+'sky',ground=id+'ground',glow=id+'glow';
+ const n=Math.max(1,Math.min(50,Math.floor(Number(level)||1))),tier=Math.floor((n-1)/10);
+ const colors=['#bfa477','#c8b5e7','#a9c8ff','#e5c681','#80f4e4'],accent=colors[tier];
+ const stars=Array.from({length:23},(_,i)=>'<circle cx="'+((i*73+17)%316)+'" cy="'+((i*29+9)%100)+'" r="'+(i%4===0?1.2:.6)+'" fill="#e5d5ff" opacity="'+(.25+(i%5)*.12)+'"/>').join('');
+ const skyline=Array.from({length:13},(_,i)=>{const h=12+(i*17%33);return '<rect x="'+(i*26)+'" y="'+(132-h)+'" width="20" height="'+h+'" fill="#17182f"/>'}).join('');
+ return '<svg role="img" aria-label="'+kind+' · уровень '+n+'" viewBox="0 0 320 204" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto;border-radius:12px"><defs><linearGradient id="'+sky+'" x1="0%" y1="0%" x2="0%" y2="100%"><stop stop-color="#100d26"/><stop offset="1" stop-color="#63416e"/></linearGradient><linearGradient id="'+ground+'" x1="0%" y1="0%" x2="0%" y2="100%"><stop stop-color="#34374f"/><stop offset="1" stop-color="#151626"/></linearGradient><radialGradient id="'+glow+'"><stop stop-color="'+accent+'" stop-opacity=".24"/><stop offset="1" stop-color="'+accent+'" stop-opacity="0"/></radialGradient></defs><rect width="320" height="204" fill="url(#'+sky+')"/>'+stars+'<circle cx="264" cy="35" r="21" fill="#eac58c" opacity=".12"/><circle cx="264" cy="35" r="14" fill="#eac58c" opacity=".75"/><path d="M0 111L42 70L86 117L125 80L181 121L228 77L320 115V160H0Z" fill="#292440"/>'+skyline+'<path d="M0 135Q60 116 120 136T320 128V204H0" fill="url(#'+ground+')"/><ellipse cx="160" cy="115" rx="142" ry="92" fill="url(#'+glow+')"/><ellipse cx="160" cy="166" rx="130" ry="13" fill="#090a18" opacity=".65"/>'+body+'<path d="M10 181H310" stroke="'+accent+'" opacity=".45"/><rect x="10" y="187" width="300" height="5" rx="2.5" fill="#0e0c20"/><rect x="10" y="187" width="'+(n*6)+'" height="5" rx="2.5" fill="'+accent+'"/><text x="310" y="200" text-anchor="end" font-size="7" fill="'+accent+'" font-family="sans-serif">LEVEL '+n+' / 50</text></svg>';
+};
 const rect=(x,y,w,h,fill,stroke='#0005',rx=0)=>'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="'+rx+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.5"/>';
 const line=(x1,y1,x2,y2,color='#0006',sw=2)=>'<path d="M'+x1+' '+y1+'L'+x2+' '+y2+'" stroke="'+color+'" stroke-width="'+sw+'"/>';
 function headquarters(level){
@@ -42,7 +50,10 @@ function headquarters(level){
  if(level>=26)out+='<path d="M57 169H263" stroke="#b5ab9a" stroke-width="9"/>';
  if(level>=36)out+='<path d="M68 80L160 25L251 80" stroke="#e4c784" stroke-width="4" fill="none"/>';
  if(level>=46)out+='<path d="M160 17L165 28H177L168 36L172 46L160 40L148 46L152 36L143 28H155Z" fill="#74f0df" stroke="#f9eac1" stroke-width="1"/>';
- return svg(out);
+ if(tier>=3)out+=rect(45,96,30,68,bg)+rect(245,96,30,68,bg)+'<path d="M40 98L60 72L80 98M240 98L260 72L280 98" fill="'+roofs[tier]+'" stroke="#e4c784" stroke-width="2"/>';
+ if(level>=36)out+=line(51,119,68,119,'#e4c784',3)+line(252,119,269,119,'#e4c784',3);
+ if(level>=46)out+=line(60,74,60,53,'#86f4ed',2)+line(260,74,260,53,'#86f4ed',2);
+ return svg(out,level,'Штаб');
 }
 function wall(level){
  const material=level<=3?'#725a42':level<=9?'#9a805c':level<=15?'#8e5e40':level<=25?'#7a858c':level<=35?'#9c9aa3':level<=40?'#bccbd1':level<=44?'#ceaf56':level<=47?'#79b9e6':'#79e9b7';
@@ -73,7 +84,16 @@ function wall(level){
   out+='<circle cx="'+(33+i*28)+'" cy="'+(154-i%2*5)+'" r="'+(2+(level>35?1:0))+'" fill="'+(level>=48?'#64ffcb':'#d7b385')+'"/>';
  }
  if(level>=45)out+='<path d="M156 87l5 9 10 2-8 7 2 11-9-5-9 5 2-11-8-7 10-2Z" fill="'+(level>=48?'#78ffe0':'#f5db87')+'"/>';
- return svg(out);
+ if(level>=10){
+  const towerH=55+Math.floor(level/2),y=165-towerH;
+  for(const x of [28,270]){
+   out+=rect(x,y,22,towerH,material,'#272336',2)+rect(x-3,y-7,28,9,material,'#272336',1);
+   for(let i=0;i<3;i++)out+=rect(x-3+i*10,y-13,8,8,material,'#272336');
+   out+=rect(x+8,y+13,6,16,level>=36?'#f8d58d':'#25283d','none',1);
+  }
+ }
+ if(level>=26)out+=line(53,147,267,147,level>=45?'#79ffe7':'#c5ad7c',2);
+ return svg(out,level,'Стена');
 }
 window.LuckyClanScene={headquarters,wall};
 })();
