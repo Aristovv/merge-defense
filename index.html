@@ -5036,7 +5036,7 @@ function buildingHourlyIncome(i){const level=state.buildings[i]||0;let total=0;f
 const BUSINESS_CATALOG=[["Кофейня","☕",6000,1,72],["Автомойка","🚘",30000,5,96],["Ресторан","🍽️",150000,10,120],["Логистический центр","🚚",750000,20,168],["Торговый комплекс","🏬",3000000,35,240],["Технологический парк","🏙️",15000000,50,336]];
 function businessLevels(save){return BUSINESS_CATALOG.map((_,i)=>{const n=save.businesses?.[i];return Number.isInteger(n)&&n>=0&&n<=10?n:0})}
 function businessCost(i,n){return Math.floor(BUSINESS_CATALOG[i][2]*(1+n*.5))}
-function businessPayback(i,n){return BUSINESS_CATALOG[i][4]+n*24}
+function businessPayback(i,n){return Math.max(36,Math.ceil(BUSINESS_CATALOG[i][4]*0.75)+n*12)}
 function businessIncome(i,level){let total=0;for(let n=0;n<level;n++)total+=Math.floor(businessCost(i,n)/businessPayback(i,n));return total}
 function businessStaff(save,i){const n=save.businessStaff?.[i];return Number.isInteger(n)&&n>=0&&n<=3?n:0}
 function businessManager(save,i){return save.businessManagers?.[i]===true}
