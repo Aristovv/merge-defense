@@ -47,7 +47,7 @@ function lc56State(){
 }
 function lc56Img(id,name){
  const o=LC56_MAP.get(id);
- return '<img style="'+(id==='season-citizen'?'filter:hue-rotate(65deg) saturate(1.3)':id==='season-legend'?'filter:hue-rotate(245deg) saturate(1.4)':'')+'" loading="lazy" alt="'+rankEsc(name)+'" src="./assets/character44/'+(o?.image||'avatar.png')+'?v=56.1.16" onerror="this.onerror=null;this.src=\'./assets/character44/avatar.png\'">';
+ return '<img decoding="async" style="'+(id==='season-citizen'?'filter:hue-rotate(65deg) saturate(1.3)':id==='season-legend'?'filter:hue-rotate(245deg) saturate(1.4)':'')+'" loading="lazy" alt="'+rankEsc(name)+'" src="./assets/character44/'+(o?.image||'avatar.png')+'?v=56.1.16" onerror="this.onerror=null;this.src=\'./assets/character44/avatar.png\'">';
 }
 function lc56Price(o){if(o.currency==='season')return 'Награда сезона 1';return fmt(o.price)+(o.currency==='votes'?' голосов VK':' 🪙')}
 function lc56Tile(o,c){
