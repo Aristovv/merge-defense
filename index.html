@@ -6740,6 +6740,7 @@ function claimCasinoPeriodQuest(scope,index){
  message('Задание выполнено: +'+fmt(quest.chips)+' фишек');
 }
 function claimCasinoAchievement(index){
+ if(casinoServerEconomy){void casinoRunEconomyAction('claim_achievement',{index}).then(r=>{if(r)message('Достижение получено')});return;}
  const item=CASINO_ACHIEVEMENTS[index];
  if(!item)return;
  if(!Array.isArray(state.achievementsClaimed))state.achievementsClaimed=[];
@@ -6766,8 +6767,9 @@ function casinoClaimableRewards(){
  });
  return items;
 }
-function claimAllCasinoRewards(){
- const items=casinoClaimableRewards();
+async function claimAllCasinoRewards(){
+ if(casinoServerEconomy){for(const item of casinoClaimableRewards().filter(x=>x.kind==='achievement')){const r=await casinoRunEconomyAction('claim_achievement',{index:item.index});if(!r)return;}}
+ const items=casinoClaimableRewards().filter(x=>!casinoServerEconomy||x.kind!=='achievement');
  if(!items.length){message('Пока нет наград для получения');return}
  let chips=0,coins=0;
  for(const item of items){
