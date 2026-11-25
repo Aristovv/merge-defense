@@ -173,6 +173,7 @@
    html+='<div class="lc-clan-panel"><h3>✦ Прогресс моего клана</h3>'+clanMeter('Казна',c.coins,c.treasuryCapacity)+clanMeter('Участники',c.memberCount,c.memberCapacity||10)+clanMeter('Штаб',c.headquarters,50)+clanMeter('Стена',c.wall,50)+'<a class="btn ghost" style="display:block;text-align:center;text-decoration:none;margin-top:12px" href="https://vk.com/club'+Number(c.groupId)+'" target="_blank" rel="noopener noreferrer">Сообщество клана ↗</a></div>';
    if(c.levelBonus){const bonus=c.levelBonus,level=Number(bonus.level)||1,pct=Number(bonus.percent)||0;html+='<div class="lc-clan-panel"><h3>✦ Бонус развития клана</h3><p>Ежедневный бесплатный взнос: <b>'+fmtProgress(bonus.dailyReward)+' 🪙</b> на участника</p>'+clanMeter('Усиление взноса',pct,50)+'<p class="lc-clan-note">'+(pct>=50?'Максимальный бонус достигнут.':'Следующие +5% на уровне '+(6+5*Math.floor((level-1)/5))+'.')+' Бонус начисляется в общую казну, не на личный баланс. Действует лимит вместимости казны.</p></div>';}
    const duel=duelClan===String(c.id)?duelState?.duel:null;
+   html+='<div class="lc-clan-panel"><h3>🏆 Клановые турниры</h3><p class="lc-clan-note">Пробный рейтинг без взносов и наград. 1 очко за ежедневный бесплатный вклад игрока. Соперники из той же лиги и категории численности.</p><button class="btn purple" data-clan="tournaments">Открыть турниры</button><div id="lc-tournament-results"></div></div>';
    const mySide=duel&&String(duel.clanA)===String(c.id);
    const battleCard=()=>{
     const ownPoints=Math.max(0,Number(mySide?duel.pointsA:duel.pointsB)||0),otherPoints=Math.max(0,Number(mySide?duel.pointsB:duel.pointsA)||0),total=ownPoints+otherPoints;
@@ -281,7 +282,7 @@
      if(node.classList.contains('lc-clan-grid'))return 'development';
      if(node.querySelector('[data-clan="leave"]'))return 'management';
      const h=node.querySelector(':scope > h3')?.textContent||'';
-     if(/Клановая битва|История битв/.test(h))return 'battle';
+     if(/Клановая битва|История битв|Клановые турниры/.test(h))return 'battle';
      if(/Клановые задания/.test(h))return 'missions';
      if(/Лидеры по взносам|Активность участников/.test(h))return 'members';
      if(/Пополнить казну/.test(h))return 'treasury';
@@ -447,6 +448,15 @@
    catch(error){if(host.isConnected){host.textContent=error.message;const back=document.createElement('button');back.className='btn ghost';back.dataset.clan='season-inline-back';back.textContent='Назад';host.appendChild(back);}}return;
   }
   if(action==='season-inline-back'){paintInlineSeason();return;}
+  if(action==='tournaments'){
+   const host=document.getElementById('lc-tournament-results');if(!host)return;
+   btn.disabled=true;host.textContent='Загрузка…';
+   try{const t=await api('/tournaments');if(!host.isConnected)return;
+    const band=['','1–3','4–10','11–20','21–35','36–50'][t.mine?.band]||'—';
+    const render=(title,rows,end)=>'<h4>'+title+'</h4><p class="lc-clan-note">До '+esc(end||'—')+' 00:00 UTC</p>'+((rows||[]).length?rows.map(x=>'<div class="lc-clan-roster" style="'+(String(x.id)===String(t.mine?.id)?'color:#f1d19a':'')+'"><span>#'+esc(x.rank)+' '+esc(x.name)+'</span><strong>'+fmtTop(x.points)+' оч.</strong></div>').join(''):'<p>Нет участников</p>');
+    host.innerHTML='<p class="lc-clan-note">Категория: '+esc(leagueNames[t.mine?.league]||'—')+' · '+band+' участников</p>'+render('Турнир дня',t.daily,t.dailyEnd)+render('Турнир недели',t.weekly,t.weeklyEnd);
+   }catch(error){host.textContent=error.message||'Не удалось загрузить турниры'}finally{btn.disabled=false}return;
+  }
   if(action==='duel')return loadDuel();
   if(action==='mission-rewards'){btn.disabled=true;try{const result=await api('/mission-rewards',{});await load();notice=Number(result.xp)>0?'Клан получил '+Number(result.xp)+' XP':'Нет новых выполненных заданий';}catch(e){notice=e.message}finally{btn.disabled=false;paint()}return;}
   if(!launch){notice='Откройте Lucky City через VK';return paint()}
