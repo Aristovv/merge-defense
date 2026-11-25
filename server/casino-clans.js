@@ -298,7 +298,19 @@ const safeVkPhoto=value=>{
   return u.protocol==='https:'&&/(^|\.)(userapi\.com|vkcdn\.ru|vk\.com|vk\.ru)$/.test(u.hostname.toLowerCase())?u.href:'';
  }catch(_){return ''}
 };
-export async function vkMemberProfiles(members,token=process.env.VK_GROUP_SERVICE_TOKEN){
+export export function clanReputation(days){
+ const n=Math.max(0,Number(days)||0);
+ const tiers=[{days:0,title:'Новобранец',icon:'🌱'},{days:7,title:'Активист',icon:'🥉'},{days:30,title:'Опора клана',icon:'🥈'},{days:100,title:'Ветеран',icon:'🥇'},{days:365,title:'Легенда клана',icon:'👑'}];
+ const index=tiers.findLastIndex(t=>n>=t.days);
+ return {...tiers[index],completed:n,next:tiers[index+1]?.days??null};
+}
+async function withClanReputation(pool,members){
+ if(!members.length)return members;
+ const counts=await pool.query('SELECT player_id,COUNT(*)::int AS days FROM lucky_clan_personal_daily WHERE player_id=ANY($1::text[]) AND claimed_at IS NOT NULL GROUP BY player_id',[members.map(m=>m.playerId)]);
+ const map=new Map(counts.rows.map(x=>[x.player_id,x.days]));
+ return members.map(m=>({...m,reputation:clanReputation(map.get(m.playerId)||0)}));
+}
+async function vkMemberProfiles(members,token=process.env.VK_GROUP_SERVICE_TOKEN){
  const ids=[...new Set(members.map(m=>String(m.playerId||'').replace(/^vk:/,'')).filter(x=>/^[1-9][0-9]{0,18}$/.test(x)))];
  const now=Date.now(),missing=ids.filter(id=>!memberProfilesCache.has(id)||memberProfilesCache.get(id).until<=now);
  if(missing.length&&token){
@@ -406,7 +418,7 @@ async function mine(pool,playerId){
 
  const applications=['owner','officer'].includes(rows[0].role)?await pool.query(`SELECT a.player_id AS "playerId",a.created_at AS "createdAt" FROM lucky_clan_applications a WHERE a.clan_id=$1 AND NOT EXISTS(SELECT 1 FROM lucky_clan_members m WHERE m.player_id=a.player_id) ORDER BY a.created_at LIMIT 100`,[rows[0].id]):{rows:[]};
  const managementLog=rows[0].role==='owner'?await pool.query(`SELECT actor_id AS "actorId",target_id AS "targetId",action,created_at AS "createdAt" FROM lucky_clan_management_log WHERE clan_id=$1 ORDER BY id DESC LIMIT 30`,[rows[0].id]):{rows:[]};
- return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,managementLog:managementLog.rows,applications:await vkMemberProfiles(applications.rows),activity:activity.rows[0]||{},missionTargets:targets,missionRewards:clanMissionRewards(targets),depositLimit,missionXp:Number(rewards.rows[0]?.xp||0),levelBonus};
+ return {...rows[0],members:await vkMemberProfiles(await withClanReputation(pool,members.rows)),history:log.rows,managementLog:managementLog.rows,applications:await vkMemberProfiles(applications.rows),activity:activity.rows[0]||{},missionTargets:targets,missionRewards:clanMissionRewards(targets),depositLimit,missionXp:Number(rewards.rows[0]?.xp||0),levelBonus};
 }
 // Seasons are 14 UTC days, starting on a Monday. Points count completed
 // mission periods rather than XP amounts, so higher income alone cannot buy rank.
@@ -540,6 +552,17 @@ async function personalWeekly(c,playerId){
  return {week,clanId:member.clan_id,progress:Number(counts.weekly),target:5,lifetime:Number(counts.lifetime),reward:Number(counts.weekly)>=5?Math.min(250000,Math.floor(Number(counts.effort)*0.02)):null,claimed:!!task.claimed_at,prize:Number(task.prize)};
 }
 export function registerLuckyClans(app,pool,requireAuth){
+ app.get('/api/casino/clans/reputation',requireAuth,wrap(async(req,res)=>{
+  await start(pool);
+  const member=(await pool.query('SELECT clan_id FROM lucky_clan_members WHERE player_id=$1',[req.playerId])).rows[0];
+  if(!member)fail('Сначала вступите в клан',403);
+  const rows=(await pool.query('SELECT player_id AS "playerId" FROM lucky_clan_members WHERE clan_id=$1',[member.clan_id])).rows;
+  const players=await withClanReputation(pool,rows);
+  const own=players.find(x=>x.playerId===req.playerId);
+  const ranking=await vkMemberProfiles(players.sort((a,b)=>b.reputation.completed-a.reputation.completed||String(a.playerId).localeCompare(String(b.playerId))));
+  res.json({mine:own?.reputation||clanReputation(0),ranking});
+ }));
+
  app.get('/api/casino/clans/personal-achievements',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   const member=(await pool.query('SELECT clan_id FROM lucky_clan_members WHERE player_id=$1',[req.playerId])).rows[0];
@@ -759,7 +782,7 @@ export function registerLuckyClans(app,pool,requireAuth){
    COUNT(*) FILTER(WHERE action='seats')::int AS "seatUpgrades"
    FROM lucky_clan_transactions WHERE clan_id=$1`,[clan.id]);
   const honors=await pool.query(`SELECT season,league,rank,points FROM lucky_clan_season_results WHERE clan_id=$1 AND rank BETWEEN 1 AND 3 AND points>0 AND season<$2 ORDER BY season DESC LIMIT 30`,[clan.id,clanSeasonWindow().number]);
-  return res.json({clan:{...clan,seasonHonors:honors.rows,members:await vkMemberProfiles(members.rows),
+  return res.json({clan:{...clan,seasonHonors:honors.rows,members:await vkMemberProfiles(await withClanReputation(pool,members.rows)),
    stats:totals.rows[0]||{},communityUrl:'https://vk.com/club'+String(clan.groupId)},
    premiumLevels:PREMIUM_LEVELS,seatPrices:CLAN_SEAT_PRICES});
  }));
