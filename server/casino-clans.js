@@ -1,8 +1,8 @@
 import {createHmac} from 'node:crypto';
 import economyRules from './casino-authoritative-economy.cjs';
 // Base income excludes temporary boosts; malformed legacy saves keep the old limit.
-function clanIncome(save){try{if(!Array.isArray(save?.buildings)||save.buildings.length!==14||save.buildings.some(x=>!Number.isInteger(x)||x<0||x>1000))return 0;const rate=economyRules.hourlyRate(save);return Number.isFinite(rate)&&rate>=0?Math.min(rate,10000000):0}catch{return 0}}
-function clanDepositLimit(save){return Math.min(5000000,Math.max(100000,Math.ceil(clanIncome(save)*2/100)*100))}
+function clanIncome(save){try{if(!Array.isArray(save?.buildings)||save.buildings.length!==14||save.buildings.some(x=>!Number.isInteger(x)||x<0||x>1000))return 0;const rate=economyRules.hourlyRate(save);return Number.isFinite(rate)&&rate>=0?Math.min(rate,100000000):0}catch{return 0}}
+function clanDepositLimit(save){return Math.min(50000000,Math.max(10000,Math.ceil(clanIncome(save)*2/100)*100))}
 
 // Lucky City clans: independent, server-owned data; never writes player cloud saves.
 const INIT=`
@@ -337,7 +337,7 @@ async function vkMemberProfiles(members,token=process.env.VK_GROUP_SERVICE_TOKEN
    profileAvatar:profile?.until>now?profile.avatar:'',profileUrl:/^[1-9][0-9]{0,18}$/.test(id)?'https://vk.com/id'+id:''};
  });
 }
-const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.coins,c.equipped_style AS "equippedStyle",c.join_policy AS "joinPolicy",c.min_income AS "minIncome",c.seat_tier AS "seatTier",(10+c.seat_tier*5)::int AS "memberCapacity",(50000+c.headquarters*c.headquarters*20000)::bigint AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
+const clanFields=`c.id,c.group_id AS "groupId",c.name,c.avatar,c.owner_id AS "ownerId",c.headquarters,c.wall,c.coins,c.equipped_style AS "equippedStyle",c.join_policy AS "joinPolicy",c.min_income AS "minIncome",c.seat_tier AS "seatTier",(10+c.seat_tier*5)::int AS "memberCapacity",(50000+c.headquarters*c.headquarters*80000)::bigint AS "treasuryCapacity",c.created_at AS "createdAt",(SELECT COUNT(*)::int FROM lucky_clan_members m WHERE m.clan_id=c.id) AS "memberCount"`;
 // Fixed targets per UTC period. Existing rewards retain their original keys.
 // Capped rewards keep high-income clans from gaining unlimited XP.
 // Shared clan perk: only the free daily treasury contribution is boosted.
@@ -361,12 +361,12 @@ async function missionTargets(pool,id){
  SELECT COUNT(*)::int AS n FROM lucky_clan_members WHERE clan_id=$1
  ), base AS (
  SELECT GREATEST(1,r.n) AS n,c.headquarters,c.wall,
- (50000+c.headquarters*c.headquarters*20000)::bigint AS cap
+ (50000+c.headquarters*c.headquarters*80000)::bigint AS cap
  FROM lucky_clans c CROSS JOIN roster r WHERE c.id=$1
  ), targets AS (
  SELECT p.d,p.w, GREATEST(1,CEIL(b.n*0.6))::int AS participants,
- LEAST(b.cap,$3::bigint,GREATEST(10000,b.n*10000::bigint,b.headquarters*5000::bigint,b.wall*3000::bigint,$2::bigint)) AS daily_coins,
- LEAST(b.cap,$3::bigint*7,GREATEST(50000,b.n*50000::bigint,b.headquarters*25000::bigint,b.wall*15000::bigint,$2::bigint*5)) AS weekly_coins
+ LEAST(b.cap,$3::bigint,GREATEST(1000,b.n*1000::bigint,CEIL($2::numeric*0.5)::bigint)) AS daily_coins,
+ LEAST(b.cap*3,$3::bigint*7,GREATEST(5000,b.n*5000::bigint,$2::bigint*3)) AS weekly_coins
  FROM base b CROSS JOIN periods p
  ), ins AS (
  INSERT INTO lucky_clan_mission_targets(clan_id,scope,period_start,participants,coins)
@@ -581,7 +581,7 @@ export function registerLuckyClans(app,pool,requireAuth){
    const progress=Number((await c.query('SELECT COUNT(*)::int AS n FROM lucky_clan_personal_daily WHERE player_id=$1 AND claimed_at IS NOT NULL',[req.playerId])).rows[0].n);
    if(progress<a.days)fail('Достижение ещё не выполнено');
    const clan=(await c.query('SELECT coins,headquarters FROM lucky_clans WHERE id=$1 FOR UPDATE',[member.clan_id])).rows[0];if(!clan)fail('Клан не найден',404);
-   const free=50000+20000*Number(clan.headquarters)**2-Number(clan.coins);
+   const free=50000+80000*Number(clan.headquarters)**2-Number(clan.coins);
    if(free<a.reward)fail('Освободите в казне место для всей награды: '+a.reward.toLocaleString('ru-RU')+' монет');
    const claimed=await c.query('INSERT INTO lucky_clan_personal_achievements(player_id,days,clan_id,prize) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING RETURNING days',[req.playerId,a.days,member.clan_id,a.reward]);
    if(!claimed.rowCount)fail('Награда уже получена',409);
@@ -601,7 +601,7 @@ export function registerLuckyClans(app,pool,requireAuth){
    if(task.progress<task.target)fail('Выполните 5 личных заданий за неделю');
    const clan=(await c.query('SELECT coins,headquarters FROM lucky_clans WHERE id=$1 FOR UPDATE',[task.clanId])).rows[0];
    if(!clan)fail('Клан не найден',404);
-   const prize=Math.min(task.reward,50000+20000*Number(clan.headquarters)**2-Number(clan.coins));
+   const prize=Math.min(task.reward,50000+80000*Number(clan.headquarters)**2-Number(clan.coins));
    if(prize<=0)fail('Казна заполнена');
    const claimed=await c.query('UPDATE lucky_clan_personal_weekly SET claimed_at=NOW(),prize=$3 WHERE player_id=$1 AND week=$2 AND claimed_at IS NULL RETURNING player_id',[req.playerId,task.week,prize]);
    if(!claimed.rowCount)fail('Награда недели уже получена',409);
@@ -624,7 +624,7 @@ export function registerLuckyClans(app,pool,requireAuth){
    if(task.progress<task.target)fail('Задание ещё не выполнено');
    const clan=(await c.query('SELECT coins,headquarters FROM lucky_clans WHERE id=$1 FOR UPDATE',[task.clanId])).rows[0];
    if(!clan)fail('Клан не найден',404);
-   const prize=Math.min(task.reward,50000+20000*Number(clan.headquarters)**2-Number(clan.coins));
+   const prize=Math.min(task.reward,50000+80000*Number(clan.headquarters)**2-Number(clan.coins));
    if(prize<=0)fail('Казна заполнена');
    const claimed=await c.query('UPDATE lucky_clan_personal_daily SET claimed_at=NOW(),prize=$3 WHERE player_id=$1 AND day=$2 AND claimed_at IS NULL RETURNING player_id',[req.playerId,task.day,prize]);
    if(!claimed.rowCount)fail('Награда уже получена',409);
@@ -719,7 +719,7 @@ export function registerLuckyClans(app,pool,requireAuth){
       const nominal=([0,10000,6000,3000][row.rank]||0)*(p.kind==='weekly'?5:1);
       const cl=(await c.query('SELECT coins,headquarters FROM lucky_clans WHERE id=$1 FOR UPDATE',[row.id])).rows[0];
       if(cl){
-       prize=Math.max(0,Math.min(nominal,50000+20000*Number(cl.headquarters)**2-Number(cl.coins)));
+       prize=Math.max(0,Math.min(nominal,50000+80000*Number(cl.headquarters)**2-Number(cl.coins)));
        if(prize>0){
         await c.query('UPDATE lucky_clans SET coins=coins+$1 WHERE id=$2',[prize,row.id]);
         await c.query("INSERT INTO lucky_clan_transactions(clan_id,player_id,action,coins,request_id) VALUES($1,'system','tournament',$2,$3)",[row.id,prize,'tournament:'+p.kind+':'+p.start+':'+row.id]);
@@ -970,7 +970,7 @@ export function registerLuckyClans(app,pool,requireAuth){
    const claimed=await c.query('INSERT INTO lucky_clan_daily_claims(vk_id,claim_day,clan_id) VALUES($1,$2::date,$3) ON CONFLICT DO NOTHING RETURNING vk_id',[vk,date,m.rows[0].clan_id]);
    if(!claimed.rowCount)fail('Сегодня бонус уже начислялся в другой клан');
    const clan=await c.query('SELECT coins,headquarters FROM lucky_clans WHERE id=$1 FOR UPDATE',[m.rows[0].clan_id]);
-   const cap=50000+clan.rows[0].headquarters**2*20000;
+   const cap=50000+clan.rows[0].headquarters**2*80000;
    const xp=await c.query('SELECT COALESCE(SUM(xp),0)::bigint AS xp FROM lucky_clan_mission_rewards WHERE clan_id=$1',[m.rows[0].clan_id]);
    const projects=(await c.query('SELECT project_id,level FROM lucky_clan_projects WHERE clan_id=$1',[m.rows[0].clan_id])).rows;
    const completed=(await c.query('SELECT COUNT(*)::int AS n FROM lucky_clan_personal_daily WHERE player_id=$1 AND claimed_at IS NOT NULL',[req.playerId])).rows[0].n;
@@ -987,7 +987,7 @@ export function registerLuckyClans(app,pool,requireAuth){
  app.post('/api/casino/clans/deposit',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   const amount=req.body?.amount,revision=req.body?.revision,key=req.body?.requestId;
-  if(!Number.isSafeInteger(amount)||amount<100||amount>5000000||amount%100!==0)fail('Взнос от 100 до 5 000 000 монет, шаг 100');
+  if(!Number.isSafeInteger(amount)||amount<100||amount>50000000||amount%100!==0)fail('Взнос от 100 до 50 000 000 монет, шаг 100');
   if(!Number.isSafeInteger(revision)||revision<1)fail('Облако не подтверждено');
   if(typeof key!=='string'||!/^[a-zA-Z0-9_-]{16,80}$/.test(key))fail('Неверный идентификатор операции');
   const result=await tx(pool,async c=>{
@@ -1010,7 +1010,7 @@ export function registerLuckyClans(app,pool,requireAuth){
    if(!member.rowCount)fail('Сначала вступите в клан',403);
    const clan=await c.query('SELECT coins,headquarters FROM lucky_clans WHERE id=$1 FOR UPDATE',[member.rows[0].clan_id]);
    if(!clan.rowCount)fail('Клан не найден',404);
-   const cap=50000+clan.rows[0].headquarters**2*20000;
+   const cap=50000+clan.rows[0].headquarters**2*80000;
    if(Number(clan.rows[0].coins)+amount>cap)fail('В казне недостаточно свободного места');
    const next={...save,coins:save.coins-amount,stamp:Date.now()};
    await c.query('UPDATE public.casino_city_saves SET save=$2::jsonb,revision=revision+1,updated_at=NOW() WHERE vk_id=$1',[vk,JSON.stringify(next)]);
