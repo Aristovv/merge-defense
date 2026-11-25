@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS lucky_clan_members (
 CREATE INDEX IF NOT EXISTS lucky_clan_members_clan_idx ON lucky_clan_members(clan_id);
 `;
 const ECONOMY_SQL=[
+ `CREATE TABLE IF NOT EXISTS lucky_clan_invites(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,player_id TEXT NOT NULL,inviter_id TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(clan_id,player_id))`,
  `ALTER TABLE lucky_clans ADD COLUMN IF NOT EXISTS join_policy TEXT NOT NULL DEFAULT 'open' CHECK(join_policy IN ('open','request','closed'))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_applications(clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,player_id TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),PRIMARY KEY(clan_id,player_id))`,
  `CREATE TABLE IF NOT EXISTS lucky_clan_management_log(id BIGSERIAL PRIMARY KEY,clan_id BIGINT NOT NULL REFERENCES lucky_clans(id) ON DELETE CASCADE,actor_id TEXT NOT NULL,target_id TEXT NOT NULL,action TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`,
@@ -364,7 +365,7 @@ async function mine(pool,playerId){
  const rewards=await pool.query(`SELECT COALESCE(SUM(xp),0)::bigint AS xp FROM lucky_clan_mission_rewards WHERE clan_id=$1`,[rows[0].id]);
  const own=await pool.query(`SELECT s.save->'buildings' AS buildings FROM public.casino_city_saves s WHERE s.vk_id=$1`,[String(playerId).replace(/^vk:/,'')]);
  const depositLimit=clanDepositLimit(own.rows[0]);
- const applications=rows[0].role==='owner'?await pool.query(`SELECT a.player_id AS "playerId",a.created_at AS "createdAt" FROM lucky_clan_applications a WHERE a.clan_id=$1 AND NOT EXISTS(SELECT 1 FROM lucky_clan_members m WHERE m.player_id=a.player_id) ORDER BY a.created_at LIMIT 100`,[rows[0].id]):{rows:[]};
+ const applications=['owner','officer'].includes(rows[0].role)?await pool.query(`SELECT a.player_id AS "playerId",a.created_at AS "createdAt" FROM lucky_clan_applications a WHERE a.clan_id=$1 AND NOT EXISTS(SELECT 1 FROM lucky_clan_members m WHERE m.player_id=a.player_id) ORDER BY a.created_at LIMIT 100`,[rows[0].id]):{rows:[]};
  const managementLog=rows[0].role==='owner'?await pool.query(`SELECT actor_id AS "actorId",target_id AS "targetId",action,created_at AS "createdAt" FROM lucky_clan_management_log WHERE clan_id=$1 ORDER BY id DESC LIMIT 30`,[rows[0].id]):{rows:[]};
  return {...rows[0],members:await vkMemberProfiles(members.rows),history:log.rows,managementLog:managementLog.rows,applications:await vkMemberProfiles(applications.rows),activity:activity.rows[0]||{},missionTargets:targets,missionRewards:clanMissionRewards(targets),depositLimit,missionXp:Number(rewards.rows[0]?.xp||0),levelBonus:clanLevelBonus(rewards.rows[0]?.xp)};
 }
@@ -475,7 +476,8 @@ export function registerLuckyClans(app,pool,requireAuth){
  app.get('/api/casino/clans',requireAuth,wrap(async(req,res)=>{
   await start(pool);
   const p=await pool.query('SELECT balance FROM lucky_clan_permits WHERE vk_id=$1',[String(req.playerId).replace(/^vk:/,'')]);
-  res.json({mine:await mine(pool,req.playerId),leaders:await listing(pool),permits:Number(p.rows[0]?.balance||0),premiumLevels:PREMIUM_LEVELS,
+  const invites=await pool.query(`SELECT cl.id,cl.name,cl.avatar,i.created_at AS "createdAt" FROM lucky_clan_invites i JOIN lucky_clans cl ON cl.id=i.clan_id WHERE i.player_id=$1 AND i.created_at>NOW()-INTERVAL '7 days' AND cl.join_policy<>'closed' AND NOT EXISTS(SELECT 1 FROM lucky_clan_members WHERE player_id=$1) ORDER BY i.created_at DESC LIMIT 30`,[req.playerId]);
+  res.json({invites:invites.rows,mine:await mine(pool,req.playerId),leaders:await listing(pool),permits:Number(p.rows[0]?.balance||0),premiumLevels:PREMIUM_LEVELS,
    seatPrices:CLAN_SEAT_PRICES,baseMemberCapacity:CLAN_SEAT_BASE});
  }));
  // Read-only public clan card, available to signed-in VK players.
@@ -561,6 +563,39 @@ export function registerLuckyClans(app,pool,requireAuth){
   console.info('[clans-create] success');
   res.status(201).json({ok:true,...result});
  }));
+ app.post('/api/casino/clans/invite',requireAuth,wrap(async(req,res)=>{
+  await start(pool);const target=String(req.body?.playerId||'');
+  if(!/^vk:[1-9]\d{0,18}$/.test(target)||target===req.playerId)fail('Введите корректный числовой ID игрока VK');
+  await tx(pool,async c=>{
+   const own=await c.query("SELECT cl.id,cl.join_policy FROM lucky_clans cl JOIN lucky_clan_members m ON m.clan_id=cl.id WHERE m.player_id=$1 AND m.role IN ('owner','officer') FOR UPDATE OF cl,m",[req.playerId]);
+   if(!own.rowCount)fail('Приглашать может только руководство',403);
+   const clan=own.rows[0];if(clan.join_policy==='closed')fail('Клан закрыт');
+   if((await c.query('SELECT 1 FROM lucky_clan_members WHERE player_id=$1',[target])).rowCount)fail('Игрок уже в клане');
+   if(!(await c.query('SELECT 1 FROM public.casino_city_saves WHERE vk_id=$1',[target.slice(3)])).rowCount)fail('Игрок ещё не зарегистрирован в Lucky City',404);
+   const count=await c.query("SELECT COUNT(*)::int AS n FROM lucky_clan_invites WHERE clan_id=$1 AND created_at>NOW()-INTERVAL '7 days'",[clan.id]);
+   if(count.rows[0].n>=50)fail('Лимит активных приглашений: 50');
+   await c.query("INSERT INTO lucky_clan_invites(clan_id,player_id,inviter_id) VALUES($1,$2,$3) ON CONFLICT(clan_id,player_id) DO UPDATE SET created_at=NOW(),inviter_id=EXCLUDED.inviter_id WHERE lucky_clan_invites.created_at<=NOW()-INTERVAL '7 days'",[clan.id,target,req.playerId]);
+  });res.json({ok:true});
+ }));
+ app.post('/api/casino/clans/invite-response',requireAuth,wrap(async(req,res)=>{
+  await start(pool);const id=req.body?.id,decision=req.body?.decision;
+  if(!validId(id)||!['accept','reject'].includes(decision))fail('Некорректное приглашение');
+  await tx(pool,async c=>{
+   const found=await c.query('SELECT id,seat_tier,join_policy FROM lucky_clans WHERE id=$1 FOR UPDATE',[id]);
+   if(!found.rowCount)fail('Клан не найден',404);
+   const invite=await c.query("SELECT 1 FROM lucky_clan_invites WHERE clan_id=$1 AND player_id=$2 AND created_at>NOW()-INTERVAL '7 days' FOR UPDATE",[id,req.playerId]);
+   if(!invite.rowCount)fail('Приглашение истекло',404);
+   if(decision==='accept'){
+    if(found.rows[0].join_policy==='closed')fail('Клан закрыт');
+    const count=await c.query('SELECT COUNT(*)::int AS n FROM lucky_clan_members WHERE clan_id=$1',[id]);
+    if(count.rows[0].n>=clanSeatCapacity(found.rows[0].seat_tier))fail('Нет свободных мест');
+    const added=await c.query("INSERT INTO lucky_clan_members(player_id,clan_id,role) VALUES($1,$2,'member') ON CONFLICT(player_id) DO NOTHING RETURNING player_id",[req.playerId,id]);
+    if(!added.rowCount)fail('Вы уже состоите в клане');
+    await c.query('DELETE FROM lucky_clan_applications WHERE player_id=$1',[req.playerId]);
+    await c.query('DELETE FROM lucky_clan_invites WHERE player_id=$1',[req.playerId]);
+   }else await c.query('DELETE FROM lucky_clan_invites WHERE clan_id=$1 AND player_id=$2',[id,req.playerId]);
+  });res.json({ok:true});
+ }));
  app.post('/api/casino/clans/join-policy',requireAuth,wrap(async(req,res)=>{
   await start(pool);const policy=req.body?.policy;if(!['open','request','closed'].includes(policy))fail('Некорректный режим');
   const changed=await pool.query('UPDATE lucky_clans SET join_policy=$1 WHERE owner_id=$2 RETURNING id',[policy,req.playerId]);
@@ -568,10 +603,10 @@ export function registerLuckyClans(app,pool,requireAuth){
  }));
  app.post('/api/casino/clans/application',requireAuth,wrap(async(req,res)=>{
   await start(pool);const target=req.body?.playerId,decision=req.body?.decision;
-  if(typeof target!=='string'||!/^vk:[1-9]\\d{0,18}$/.test(target)||!['accept','reject'].includes(decision))fail('Некорректная заявка');
+  if(typeof target!=='string'||!/^vk:[1-9]\d{0,18}$/.test(target)||!['accept','reject'].includes(decision))fail('Некорректная заявка');
   await tx(pool,async c=>{
-   const own=await c.query('SELECT id,seat_tier,join_policy FROM lucky_clans WHERE owner_id=$1 FOR UPDATE',[req.playerId]);
-   if(!own.rowCount)fail('Только глава может рассматривать заявки',403);
+   const own=await c.query(`SELECT cl.id,cl.seat_tier,cl.join_policy FROM lucky_clans cl JOIN lucky_clan_members m ON m.clan_id=cl.id WHERE m.player_id=$1 AND m.role IN ('owner','officer') FOR UPDATE OF cl,m`,[req.playerId]);
+   if(!own.rowCount)fail('Только руководство может рассматривать заявки',403);
    const clan=own.rows[0],application=await c.query('SELECT 1 FROM lucky_clan_applications WHERE clan_id=$1 AND player_id=$2 FOR UPDATE',[clan.id,target]);
    if(!application.rowCount)fail('Заявка не найдена',404);
    if(decision==='accept'){
