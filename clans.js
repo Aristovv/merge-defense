@@ -9,6 +9,9 @@
  let topSelectedClan=null,topClanDetails=null,topClanLoading=false,topClanError='';
  // Keep opened sections open after clan operations, without localStorage or save mutations.
  const expandedSections=new Set();
+ const clanStyles={violet:['Неоновый союз','#b78aff','✦'],emerald:['Изумрудная гвардия','#69dfb0','◆'],gold:['Золотая династия','#efc66d','♛'],crimson:['Багровый легион','#ff829d','⚔'],royal:['Королевский орден','#9edcff','♜'],cosmic:['Космическая элита','#d7a8ff','✧']};
+ function clanStyleBadge(id){const v=Object.hasOwn(clanStyles,id)?clanStyles[id]:null;return v?'<span style="display:inline-block;border:1px solid '+v[1]+';color:'+v[1]+';border-radius:9px;padding:5px 9px;margin:5px 0;font-weight:700">'+v[2]+' '+v[0]+'</span>':'';}
+
  let clanTab='overview',tabClanId=null;
  const hqNames=['Гнилой сарай','Обшитый сарай','Небольшой сарай','Старый гараж с мусором','Убранный гараж','Оштукатуренный гараж','Гараж с ровным полом','Гараж с белыми стенами','Гараж с ламинатом','Освещённый гараж','Гараж с мебелью','Гараж с сейфом','Гараж с крепкой дверью','Гараж с кодовым замком','Заброшенный дом'];
  const wallNames=['Куча листьев','Листья и палки','Большая куча веток','Вкопанные колья','Колья и верёвки','Укреплённые колья','Колючая проволока','Забор и яма','Ров с мостиком','Начало бревенчатого забора','Бревенчатый забор — треть','Бревенчатый забор — две трети','Готовый бревенчатый забор','Бревенчатый забор с рвом','Ров с водой','Металлический каркас'];
@@ -167,7 +170,9 @@
   if(!data)html+='<div class="lc-clan-panel">'+(loading?'Загрузка кланов…':'Не удалось загрузить кланы. <button class="btn ghost" data-clan="reload">Повторить</button>')+'</div>';
   else if(data.mine){
    const c=data.mine,canEdit=c.role==='owner'||c.role==='officer';
-   html+='<div class="lc-clan-head">'+group(c)+'<div class="lc-clan-title">'+esc(c.name)+'</div><p class="lc-clan-note">Участников: '+c.memberCount+'/'+Number(c.memberCapacity||10)+' · Роль: '+(c.role==='owner'?'Глава':c.role==='officer'?'Заместитель':'Участник')+'</p><p>🪙 Казна клана: <b>'+Number(c.coins).toLocaleString('ru-RU')+' / '+Number(c.treasuryCapacity).toLocaleString('ru-RU')+'</b></p><button class="btn purple" data-clan="daily">Ежедневно до +'+Number(c.levelBonus?.dailyReward||500).toLocaleString('ru-RU')+' монет в казну</button></div>';
+   html+='<div class="lc-clan-panel"><h3>🛍 Клановый магазин</h3><p class="lc-clan-note">Постоянные коллективные титулы и оформление за монеты казны. Покупать и выбирать оформление может глава. Доход и игровой баланс не изменяются.</p><button class="btn purple" data-clan="shop-load">Обновить магазин</button><div id="lc-clan-shop"></div></div>';
+
+   html+='<div class="lc-clan-head">'+group(c)+'<div class="lc-clan-title">'+esc(c.name)+'</div>'+clanStyleBadge(c.equippedStyle)+'<p class="lc-clan-note">Участников: '+c.memberCount+'/'+Number(c.memberCapacity||10)+' · Роль: '+(c.role==='owner'?'Глава':c.role==='officer'?'Заместитель':'Участник')+'</p><p>🪙 Казна клана: <b>'+Number(c.coins).toLocaleString('ru-RU')+' / '+Number(c.treasuryCapacity).toLocaleString('ru-RU')+'</b></p><button class="btn purple" data-clan="daily">Ежедневно до +'+Number(c.levelBonus?.dailyReward||500).toLocaleString('ru-RU')+' монет в казну</button></div>';
    const fmtProgress=n=>Number(n||0).toLocaleString('ru-RU');
    const clanMeter=(label,value,max)=>{const v=Number(value),m=Number(max),pct=Number.isFinite(v)&&Number.isFinite(m)&&m>0?Math.max(0,Math.min(100,Math.round(v/m*100))):0;return '<div style="margin:12px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px"><strong>'+esc(label)+'</strong><span>'+fmtProgress(value)+' / '+fmtProgress(max)+' · '+pct+'%</span></div><div role="progressbar" aria-label="'+esc(label)+'" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100" style="height:9px;margin-top:6px;border-radius:9px;background:#171126;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#7543c9,#d3a0ff);border-radius:9px"></div></div></div>'};
    html+='<div class="lc-clan-panel"><h3>✦ Прогресс моего клана</h3>'+clanMeter('Казна',c.coins,c.treasuryCapacity)+clanMeter('Участники',c.memberCount,c.memberCapacity||10)+clanMeter('Штаб',c.headquarters,50)+clanMeter('Стена',c.wall,50)+'<a class="btn ghost" style="display:block;text-align:center;text-decoration:none;margin-top:12px" href="https://vk.com/club'+Number(c.groupId)+'" target="_blank" rel="noopener noreferrer">Сообщество клана ↗</a></div>';
@@ -217,7 +222,7 @@
    html+='<div class="lc-clan-panel"><h3>Как растёт лимит казны?</h3><p class="lc-clan-note">Вместимость зависит только от уровня штаба: 50 000 + 20 000 × уровень штаба². Стена не увеличивает казну.</p><p class="lc-clan-note">Сейчас: '+Number(c.treasuryCapacity).toLocaleString('ru-RU')+' 🪙. После следующего уровня штаба: '+(c.headquarters<50?(50000+20000*Math.pow(c.headquarters+1,2)).toLocaleString('ru-RU')+' 🪙':'максимум достигнут')+'.</p></div>';
    html+='<div class="lc-clan-panel"><h3>Пополнить казну монетами</h3><p class="lc-clan-note">Перевод из твоего личного баланса. Минимум 100 монет, шаг 100; твой суточный лимит — '+Number(c.depositLimit||100000).toLocaleString('ru-RU')+' монет (зависит от базового дохода). Отменить перевод нельзя.</p><input id="lc-deposit-amount" type="number" min="100" max="'+Number(c.depositLimit||100000)+'" step="100" class="lc-clan-input" placeholder="Например, 10000"><button class="btn purple" data-clan="deposit">Перевести монеты</button>'+(depositFeedback?'<p class="lc-clan-note" role="status">'+esc(depositFeedback)+'</p>':'')+'</div>';
    html+='<div class="lc-clan-grid">'+[['headquarters','🏚️','Штаб'],['wall','🛡️','Стена']].map(([key,emoji,label])=>'<div class="lc-clan-panel"><strong>'+label+' · '+c[key]+'/50</strong><div class="lc-clan-visual">'+(window.LuckyClanScene?.[key]?.(c[key])||'🏰')+'</div><p class="lc-clan-note">'+esc(description(key,c[key]))+'</p>'+(canEdit&&c[key]<50?(premiumNext(key,c[key]+1)?(Number(data?.permits||0)>0?'<button class="btn purple" data-clan="upgrade" data-kind="'+key+'">Строительный пропуск · 1 🎟️</button>':'<button class="btn purple" data-clan="buy-permit">Улучшить за 5 голосов VK</button>'):'<button class="btn purple" data-clan="upgrade" data-kind="'+key+'">Улучшить · '+upgradeCost(key,c[key])+' 🪙</button>'):'')+'</div>').join('')+'</div>';
-   html+='<div class="lc-clan-panel"><h3>История казны</h3>'+((c.history||[]).length?(c.history||[]).map(entry=>'<div class="lc-clan-roster"><span>'+({deposit:'Взнос игрока',daily:'Ежедневный бонус',headquarters:'Улучшение штаба',wall:'Улучшение стены',seats:'Расширение мест',tournament:'Приз турнира'}[entry.action]||'Операция')+'</span><strong>'+(Number(entry.coins)>0?'+':'')+(Number(entry.coins)===0&&['headquarters','wall'].includes(entry.action)?'1 🎟️':Number(entry.coins).toLocaleString('ru-RU')+' 🪙')+'</strong></div>').join(''):'<p class="lc-clan-note">Операций пока нет</p>')+'</div>';
+   html+='<div class="lc-clan-panel"><h3>История казны</h3>'+((c.history||[]).length?(c.history||[]).map(entry=>'<div class="lc-clan-roster"><span>'+({deposit:'Взнос игрока',daily:'Ежедневный бонус',headquarters:'Улучшение штаба',wall:'Улучшение стены',seats:'Расширение мест',tournament:'Приз турнира',shop:'Покупка оформления'}[entry.action]||'Операция')+'</span><strong>'+(Number(entry.coins)>0?'+':'')+(Number(entry.coins)===0&&['headquarters','wall'].includes(entry.action)?'1 🎟️':Number(entry.coins).toLocaleString('ru-RU')+' 🪙')+'</strong></div>').join(''):'<p class="lc-clan-note">Операций пока нет</p>')+'</div>';
    html+='<div class="lc-clan-panel"><h3>Участники клана</h3><p class="lc-clan-note">Взносы за всё время в текущем клане. Назначать заместителей и исключать участников может только глава.</p>'+
     [...(c.members||[])].sort((a,b)=>(({owner:0,officer:1,member:2}[a.role]??3)-({owner:0,officer:1,member:2}[b.role]??3))||Number(b.contributed||0)-Number(a.contributed||0)).map(m=>'<div class="lc-clan-roster"><a class="lc-clan-person" href="'+esc(m.profileUrl||'https://vk.com/id'+String(m.playerId).replace('vk:',''))+'" target="_blank" rel="noopener noreferrer" aria-label="Открыть страницу '+esc(m.profileName||'игрока')+' во ВКонтакте">'+(m.profileAvatar?'<img class="lc-clan-person-photo" src="'+esc(m.profileAvatar)+'" alt="">':'<span class="lc-clan-person-placeholder" aria-hidden="true">👤</span>')+'<span class="lc-clan-person-info"><strong class="lc-clan-person-name">'+esc(m.profileName||'Профиль VK')+'</strong><span class="lc-clan-note">'+(m.role==='owner'?'Глава':m.role==='officer'?'Заместитель':'Участник')+' · Внесено: '+Number(m.contributed||0).toLocaleString('ru-RU')+' 🪙 ('+Number(m.deposits||0)+' взн.)</span></span></a>'+
     (c.role==='owner'&&m.role!=='owner'?'<div style="display:flex;flex-wrap:wrap;gap:5px"><button class="btn ghost" data-clan="role" data-user="'+esc(m.playerId)+'" data-role="'+(m.role==='officer'?'member':'officer')+'">'+(m.role==='officer'?'Снять роль':'В заместители')+'</button><button class="btn ghost" data-clan="kick" data-user="'+esc(m.playerId)+'">Исключить</button></div>':'')+'</div>').join('')+'</div>';
@@ -275,13 +280,14 @@
    const page=view.querySelector('.page'),head=page?.querySelector(':scope > .lc-clan-head');
    if(page&&head){
     if(tabClanId!==String(clan.id)){tabClanId=String(clan.id);clanTab='overview'}
-    const tabs=[['overview','🏠','Обзор'],['development','🏰','Развитие'],['battle','⚔️','Битвы'],['treasury','🪙','Казна'],['members','👥','Участники'],['missions','📋','Задания'],['season','🏆','Сезоны'],['management','⚙️','Управление'],['history','📜','История']];
+    const tabs=[['overview','🏠','Обзор'],['development','🏰','Развитие'],['battle','⚔️','Битвы'],['treasury','🪙','Казна'],['members','👥','Участники'],['missions','📋','Задания'],['season','🏆','Сезоны'],['management','⚙️','Управление'],['history','📜','История'],['shop','🛍','Магазин']];
     const sectionMap={seats:'development',permits:'development',treasury:'treasury',management:'history',history:'history',members:'members'};
     const classify=node=>{
      if(node.dataset.clanSection)return sectionMap[node.dataset.clanSection]||'overview';
      if(node.classList.contains('lc-clan-grid'))return 'development';
      if(node.querySelector('[data-clan="leave"]'))return 'management';
      const h=node.querySelector(':scope > h3')?.textContent||'';
+     if(/Клановый магазин/.test(h))return 'shop';
      if(/Клановая битва|История битв|Клановые турниры/.test(h))return 'battle';
      if(/Клановые задания/.test(h))return 'missions';
      if(/Лидеры по взносам|Активность участников/.test(h))return 'members';
@@ -341,7 +347,7 @@
   const progress=(value,max)=>{const v=Number(value),m=Number(max);return Number.isFinite(v)&&Number.isFinite(m)&&m>0?Math.max(0,Math.min(100,Math.round(v/m*100))):0};
   const meter=(label,value,max)=>'<div style="margin:10px 0"><div class="lc-clan-note">'+esc(label)+' · '+fmt(value)+' / '+fmt(max)+' · '+progress(value,max)+'%</div><progress aria-label="'+esc(label)+'" max="100" value="'+progress(value,max)+'" style="width:100%;height:10px;accent-color:#a78bfa"></progress></div>';
   return '<div class="lc-clan-panel"><button class="btn ghost" data-clan-top-back>← К рейтингу</button></div>'+
-   '<div class="lc-clan-detail-hero"><div class="lc-clan-detail-header"><img src="'+esc(c.avatar)+'" alt=""><div><div class="lc-clan-detail-title">'+esc(c.name)+'</div>'+championBadge+'<p class="lc-clan-note">Клан сообщества VK · Основан '+(c.createdAt?esc(new Date(c.createdAt).toLocaleDateString('ru-RU')):'—')+'</p></div></div>'+
+   '<div class="lc-clan-detail-hero"><div class="lc-clan-detail-header"><img src="'+esc(c.avatar)+'" alt=""><div><div class="lc-clan-detail-title">'+esc(c.name)+'</div>'+championBadge+clanStyleBadge(c.equippedStyle)+'<p class="lc-clan-note">Клан сообщества VK · Основан '+(c.createdAt?esc(new Date(c.createdAt).toLocaleDateString('ru-RU')):'—')+'</p></div></div>'+
    '<a class="lc-clan-detail-action" href="'+asLink(c.communityUrl)+'" target="_blank" rel="noopener noreferrer">Открыть сообщество клана VK ↗</a></div>'+
    honorPanel+
    '<div class="lc-clan-detail-stats">'+tiles.map(([label,value])=>'<div class="lc-clan-detail-stat"><span class="lc-clan-note">'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>').join('')+'</div>'+
@@ -355,6 +361,17 @@
    '<div class="lc-clan-detail-members">'+(memberMarkup||'<p class="lc-clan-note">Участников пока нет.</p>')+'</div></div>';
  }
 
+
+ async function loadClanShop(){
+  const host=document.getElementById('lc-clan-shop');if(!host)return;host.textContent='Загрузка…';
+  try{
+   const shop=await api('/shop');if(!host.isConnected)return;
+   host.innerHTML='<p>Казна: <b>'+fmtTop(shop.coins)+' 🪙</b></p>'+shop.items.map(item=>{
+    const owned=shop.owned.includes(item.id),active=shop.equipped===item.id;
+    return '<div style="border:1px solid #ffffff20;border-radius:12px;margin:8px 0;padding:10px">'+clanStyleBadge(item.id)+'<p>'+fmtTop(item.price)+' 🪙 · '+(active?'Выбрано':owned?'Куплено':'Не приобретено')+'</p>'+(shop.canManage?(owned?'<button class="btn ghost" data-clan="shop-equip" data-item="'+esc(active?'':item.id)+'">'+(active?'Снять оформление':'Выбрать')+'</button>':'<button class="btn purple" data-clan="shop-buy" data-item="'+esc(item.id)+'" data-price="'+esc(fmtTop(item.price))+'" '+(Number(shop.coins)<item.price?'disabled':'')+'>Купить</button>'):'')+'</div>';
+   }).join('');
+  }catch(error){if(host.isConnected)host.textContent=error.message||'Магазин недоступен';}
+ }
  let inlineSeason=null,inlineLeague=null,inlineLoading=false,inlineError='';
  function paintInlineSeason(){
   const host=document.getElementById('lc-clan-season-inline');if(!host)return;
@@ -437,7 +454,7 @@
  document.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-clan]');if(!btn||!root()?.contains(btn)||btn.disabled)return;
   const action=btn.dataset.clan;if(action==='reload'||action==='refresh-permits')return load();
-  if(action==='tab'){clanTab=btn.dataset.tab;paint();if(clanTab==='season')void loadInlineSeason();return;}
+  if(action==='tab'){clanTab=btn.dataset.tab;paint();if(clanTab==='season')void loadInlineSeason();if(clanTab==='shop')void loadClanShop();return;}
   if(action==='season-inline'){await loadInlineSeason();return;}
   if(action==='season-inline-league'){inlineLeague=btn.dataset.league;paintInlineSeason();return;}
   if(action==='season-inline-profile'){
@@ -448,6 +465,13 @@
    catch(error){if(host.isConnected){host.textContent=error.message;const back=document.createElement('button');back.className='btn ghost';back.dataset.clan='season-inline-back';back.textContent='Назад';host.appendChild(back);}}return;
   }
   if(action==='season-inline-back'){paintInlineSeason();return;}
+  if(action==='shop-load'){await loadClanShop();return;}
+  if(action==='shop-buy'||action==='shop-equip'){
+   if(action==='shop-buy'&&!window.confirm('Купить оформление за '+btn.dataset.price+' монет из казны?'))return;
+   btn.disabled=true;
+   try{await api('/'+action,{itemId:btn.dataset.item||''});data=await api();notice='Успешно';paint();await loadClanShop();}
+   catch(error){notice=error.message;paint();await loadClanShop();}finally{btn.disabled=false}return;
+  }
   if(action==='tournaments'){
    const host=document.getElementById('lc-tournament-results');if(!host)return;
    btn.disabled=true;host.textContent='Загрузка…';
